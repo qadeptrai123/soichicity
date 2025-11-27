@@ -423,7 +423,6 @@ export default function CreatePostDialog() {
             </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
-
         {/* Đường kẻ phía dưới */}
         <div className="w-full h-px !bg-gray-800 mt-2"></div>
         </div>
