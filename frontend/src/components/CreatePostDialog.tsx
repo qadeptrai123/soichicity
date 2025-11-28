@@ -1,212 +1,3 @@
-// import React, { useState, useRef } from "react";
-// import { X, Image as ImageIcon, Plus, MoreHorizontal, Globe, Users } from "lucide-react";
-// import {
-//   Dialog,
-//   DialogContent,
-//   DialogHeader,
-//   DialogTitle,
-//   DialogTrigger,
-// } from "@/components/ui/dialog";
-// import { Button } from "@/components/ui/button";
-// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-// import {
-//   DropdownMenu,
-//   DropdownMenuContent,
-//   DropdownMenuItem,
-//   DropdownMenuTrigger,
-// } from "@/components/ui/dropdown-menu";
-
-// export default function CreatePostDialog() {
-//   const [isOpen, setIsOpen] = useState(false);
-//   const [content, setContent] = useState("");
-//   const [images, setImages] = useState<string[]>([]);
-  
-//   // State quản lý quyền trả lời: 'everyone' hoặc 'followers'
-//   const [replyPrivacy, setReplyPrivacy] = useState<"everyone" | "followers">("everyone");
-  
-//   const fileInputRef = useRef<HTMLInputElement>(null);
-
-//   // Xử lý chọn ảnh
-//   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     if (e.target.files && e.target.files.length > 0) {
-//       const newFiles = Array.from(e.target.files);
-//       const newImageUrls = newFiles.map((file) => URL.createObjectURL(file));
-//       setImages((prev) => [...prev, ...newImageUrls]);
-//     }
-//   };
-
-//   // Xử lý xóa ảnh
-//   const removeImage = (indexToRemove: number) => {
-//     setImages(images.filter((_, index) => index !== indexToRemove));
-//   };
-
-//   // Đăng bài
-//   const handlePost = () => {
-//     console.log("Đăng bài:", { 
-//         content, 
-//         images, 
-//         replyPrivacy // Gửi thêm thông tin quyền riêng tư lên server
-//     });
-//     // Reset form
-//     setContent("");
-//     setImages([]);
-//     setReplyPrivacy("everyone");
-//     setIsOpen(false);
-//   };
-
-//   const isDisabled = !content && images.length === 0;
-
-//   return (
-//     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-//       {/* TRIGGER: Dấu cộng */}
-//       <DialogTrigger asChild>
-//         <Button 
-//           variant="secondary" 
-//           size="icon" 
-//           className="fixed bottom-10 right-10 h-14 w-14 rounded-full shadow-lg bg-white text-black hover:bg-gray-200 transition-all border border-gray-300 z-50"
-//         >
-//           <Plus className="h-8 w-8" />
-//         </Button>
-//       </DialogTrigger>
-
-//       <DialogContent className="sm:max-w-[600px] bg-[#101010] text-white border-neutral-800 p-0 gap-0 shadow-2xl [&>button]:hidden">
-        
-//         {/* HEADER */}
-//         <DialogHeader className="flex flex-row items-center justify-between p-4 border-b border-neutral-800 space-y-0">
-//           <DialogTitle className="text-xl font-bold pl-2">Thread mới</DialogTitle>
-//           <Button 
-//             variant="ghost" 
-//             size="icon" 
-//             onClick={() => setIsOpen(false)}
-//             className="bg-white text-black hover:bg-gray-200 rounded-full h-8 w-8 border-none shadow-sm"
-//           >
-//             <X size={20} strokeWidth={3} />
-//           </Button>
-//         </DialogHeader>
-
-//         {/* BODY */}
-//         <div className="p-4 flex gap-4">
-//           <div className="flex flex-col items-center pt-1">
-//             <Avatar className="w-10 h-10 border border-neutral-700">
-//               <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-//               <AvatarFallback>U</AvatarFallback>
-//             </Avatar>
-//             <div className="w-[2px] flex-1 bg-neutral-800 my-2 min-h-[40px] rounded-full"></div>
-//             <Avatar className="w-5 h-5 opacity-40">
-//                <AvatarFallback className="text-[8px] bg-neutral-800 text-white">Me</AvatarFallback>
-//             </Avatar>
-//           </div>
-
-//           <div className="flex-1 space-y-2 pb-2">
-//             <div>
-//               <p className="font-semibold text-sm mb-1">username_soichi</p>
-//               <textarea
-//                 value={content}
-//                 onChange={(e) => setContent(e.target.value)}
-//                 placeholder="Có gì mới?"
-//                 className="w-full bg-transparent border-none text-white placeholder-neutral-500 focus:ring-0 resize-none min-h-[60px] text-sm outline-none p-0"
-//                 style={{ fieldSizing: "content" } as any} 
-//               />
-//             </div>
-
-//             {/* Ảnh Preview */}
-//             {images.length > 0 && (
-//               <div className="flex gap-3 overflow-x-auto py-2 scrollbar-hide">
-//                 {images.map((img, index) => (
-//                   <div key={index} className="relative group flex-shrink-0">
-//                     <img
-//                       src={img}
-//                       alt="Preview"
-//                       className="h-48 w-auto rounded-xl object-cover border border-neutral-800"
-//                     />
-//                     <button
-//                       onClick={() => removeImage(index)}
-//                       className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 rounded-full p-1 transition backdrop-blur-sm"
-//                     >
-//                       <X className="w-3 h-3 text-white" />
-//                     </button>
-//                   </div>
-//                 ))}
-//               </div>
-//             )}
-
-//             {/* Toolbar */}
-//             <div className="flex items-center gap-4 text-neutral-400 mt-2">
-//               <button onClick={() => fileInputRef.current?.click()} className="!bg-neutral-900 border border-neutral-800 hover:bg-neutral-900 text-neutral-400 p-2 -ml-2 rounded-lg transition-colors outline-none cursor-pointer" title="Thêm ảnh">
-//                 {/* text-white: Icon bên trong màu trắng */}
-//                 <ImageIcon size={20} />
-//               </button>
-//               <div className="text-xs border border-neutral-600 rounded px-1 font-medium cursor-not-allowed opacity-50">GIF</div>
-//               <button className="hover:text-white transition ml-auto opacity-50">
-//                 <MoreHorizontal size={20} />
-//               </button>
-//             </div>
-
-//             <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
-//           </div>
-//         </div>
-
-//         {/* FOOTER - Đã cập nhật phần lựa chọn trả lời */}
-//         <div className="p-4 flex items-center justify-between">
-          
-//           {/* DROPDOWN MENU LỰA CHỌN */}
-//           <DropdownMenu>
-//             <DropdownMenuTrigger asChild>
-//               {/* <button className="text-neutral-500 text-sm cursor-pointer hover:text-neutral-300 outline-none transition-colors"> */}
-//               <button className="!text-neutral-400 !bg-neutral-900 border border-neutral-800 hover:bg-neutral-900 text-sm font-medium cursor-pointer px-3 py-1 -ml-3 rounded-lg transition-colors outline-none">
-//                 {replyPrivacy === "everyone" 
-//                   ? "Bất kỳ ai cũng có thể trả lời" 
-//                   : "Người theo dõi bạn có thể trả lời"}
-//               </button>
-//             </DropdownMenuTrigger>
-            
-//             {/* Menu Content (Giao diện tối) */}
-//             <DropdownMenuContent align="start" className="bg-[#1e1e1e] border-neutral-800 text-white min-w-[200px]">
-              
-//               <DropdownMenuItem 
-//                 onClick={() => setReplyPrivacy("everyone")}
-//                 className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800 focus:text-white gap-2 py-3"
-//               >
-//                 <Globe size={16} className="text-neutral-400" />
-//                 <div className="flex flex-col">
-//                     <span className="font-medium">Bất kỳ ai</span>
-//                 </div>
-//               </DropdownMenuItem>
-
-//               <DropdownMenuItem 
-//                 onClick={() => setReplyPrivacy("followers")}
-//                 className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800 focus:text-white gap-2 py-3"
-//               >
-//                 <Users size={16} className="text-neutral-400" />
-//                 <div className="flex flex-col">
-//                     <span className="font-medium">Người theo dõi</span>
-//                 </div>
-//               </DropdownMenuItem>
-
-//             </DropdownMenuContent>
-//           </DropdownMenu>
-
-//           {/* Nút Đăng */}
-//           <Button 
-//             onClick={handlePost}
-//             disabled={isDisabled}
-//             className={`rounded-full font-bold px-6 py-2 h-auto ${
-//               isDisabled 
-//               ? "bg-neutral-800 text-neutral-500 cursor-not-allowed hover:bg-neutral-800" 
-//               : "bg-white text-black hover:bg-gray-200"
-//             }`}
-//           >
-//             Đăng
-//           </Button>
-//         </div>
-
-//       </DialogContent>
-//     </Dialog>
-//   );
-// }
-
-
-
 import React, { useState, useRef } from "react";
 import { 
   Image as ImageIcon, 
@@ -284,7 +75,7 @@ export default function CreatePostDialog() {
       </DialogTrigger>
 
       {/* POPUP CHÍNH */}
-      <DialogContent className="sm:max-w-[600px] !bg-slate-900 text-white border-neutral-800 p-0 gap-0 shadow-2xl [&>button]:hidden rounded-xl">
+      <DialogContent className="sm:max-w-[600px] !bg-gray-900 text-white border-neutral-800 p-0 gap-0 shadow-2xl [&>button]:hidden rounded-xl">
         
         {/* --- HEADER: Cancel - Title - Empty --- */}
         <DialogHeader className="flex flex-row items-center justify-between p-4 border-b border-neutral-800 space-y-0 h-14">
@@ -373,14 +164,14 @@ export default function CreatePostDialog() {
                 <ImageIcon size={15} />
               </button>
               
-              <button className="hover:text-neutral-300 transition outline-none !bg-slate-900 border-none cursor-pointer !p-1"><Play size={15} /></button>
-              <button className="hover:text-neutral-300 transition outline-none !bg-slate-900 border-none cursor-pointer !p-1"><Music size={15} /></button>
-              <button className="hover:text-neutral-300 transition outline-none !bg-slate-900 border-none cursor-pointer !p-1"><File size={15} /></button>
-              <button className="hover:text-neutral-300 transition outline-none !bg-slate-900 border-none cursor-pointer !p-1"><LinkIcon size={15} /></button>
-              <button className="hover:text-neutral-300 transition outline-none !bg-slate-900 border-none cursor-pointer !p-1"><MapPin size={15} /></button>
-              <button className="hover:text-neutral-300 transition outline-none !bg-slate-900 border-none cursor-pointer !p-1"><Hash size={15} /></button>
-              <button className="hover:text-neutral-300 transition outline-none !bg-slate-900 border-none cursor-pointer !p-1"><AtSign size={15} /></button>
-              <button className="hover:text-neutral-300 transition outline-none !bg-slate-900 border-none cursor-pointer !p-1"><Smile size={15} /></button>
+              <button className="hover:text-neutral-300 transition outline-none !bg-gray-900 border-none cursor-pointer !p-1"><Play size={15} /></button>
+              <button className="hover:text-neutral-300 transition outline-none !bg-gray-900 border-none cursor-pointer !p-1"><Music size={15} /></button>
+              <button className="hover:text-neutral-300 transition outline-none !bg-gray-900 border-none cursor-pointer !p-1"><File size={15} /></button>
+              <button className="hover:text-neutral-300 transition outline-none !bg-gray-900 border-none cursor-pointer !p-1"><LinkIcon size={15} /></button>
+              <button className="hover:text-neutral-300 transition outline-none !bg-gray-900 border-none cursor-pointer !p-1"><MapPin size={15} /></button>
+              <button className="hover:text-neutral-300 transition outline-none !bg-gray-900 border-none cursor-pointer !p-1"><Hash size={15} /></button>
+              <button className="hover:text-neutral-300 transition outline-none !bg-gray-900 border-none cursor-pointer !p-1"><AtSign size={15} /></button>
+              <button className="hover:text-neutral-300 transition outline-none !bg-gray-900 border-none cursor-pointer !p-1"><Smile size={15} /></button>
            
             </div>
 
