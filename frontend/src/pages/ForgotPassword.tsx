@@ -97,7 +97,7 @@ export default function ForgotPassword({ setActiveTab }: { setActiveTab?: (tab: 
                         </form>
                     </Form>
 
-                    {/* Quay lại đăng nhập */}
+                    {/* BACK TO LOGIN */}
                     <div className="text-center pt-2">
                         <a
                             onClick={() => setActiveTab?.("login")}

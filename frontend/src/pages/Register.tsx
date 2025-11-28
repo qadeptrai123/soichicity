@@ -1,11 +1,9 @@
-// File: src/components/auth/RegisterForm.tsx
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
-// Shadcn Components (Giả định path đúng)
+// Shadcn Components
 import { Button } from "@/components/ui/button";
 import {
     Form,
@@ -17,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
-// Schemas (Giả định path đúng)
+// Schemas 
 import { registerSchema, type RegisterValues } from "@/schemas/authSchema";
 
 // Định nghĩa props nếu bạn cần truyền state/hàm từ component cha
@@ -102,7 +100,6 @@ export function RegisterForm({ isLoading, setIsLoading }: RegisterFormProps) {
                                     <Input
                                         type={showPassword ? "text" : "password"}
                                         placeholder="Create a password"
-                                        // Thay thế màu cứng
                                         className="bg-[var(--bg-input)] border-slate-700 pr-10 focus:border-blue-500/50 text-white placeholder:text-slate-400"
                                         {...field}
                                     />
@@ -132,7 +129,6 @@ export function RegisterForm({ isLoading, setIsLoading }: RegisterFormProps) {
                                     <Input
                                         type={showConfirmPassword ? "text" : "password"}
                                         placeholder="Confirm your password"
-                                        // Thay thế màu cứng
                                         className="bg-[var(--bg-input)] border-slate-700 pr-10 focus:border-blue-500/50 text-white placeholder:text-slate-400"
                                         {...field}
                                     />
