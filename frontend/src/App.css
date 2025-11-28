@@ -1,43 +1,26 @@
 @import "tailwindcss";
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
+:root {
+    /* Background Colors */
+    --bg-primary: #0A1628;
+    --bg-secondary: #1A1F2E;
+    --bg-input: #0D1520;
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
+    /* Border Colors */
+    --border-primary: #374151;
+    --border-secondary: slate-700;
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
+    /* Text Colors */
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
 
-.card {
-  padding: 2em;
-}
+    /* Button & Link Colors */
+    --color-primary: #2B7FFF;
+    --color-primary-hover: #2566d1;
+    --color-blue-600: #2563eb;
+    --color-blue-500: #3b82f6;
 
-.read-the-docs {
-  color: #888;
+    /* Accent Colors */
+    --color-blue-accent: #0ea5e9;
 }

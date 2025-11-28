@@ -2,24 +2,24 @@ import { z } from "zod";
 
 // Schema cho Đăng nhập
 export const loginSchema = z.object({
-    email: z.string().email({ message: "Email không hợp lệ" }),
-    password: z.string().min(6, { message: "Mật khẩu phải có ít nhất 6 ký tự" }),
+    email: z.string().email({ message: "Ivalid Email" }),
+    password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
 
 // Schema cho Đăng ký
 export const registerSchema = z.object({
-    username: z.string().min(2, { message: "Tên hiển thị phải có ít nhất 2 ký tự" }),
-    email: z.string().email({ message: "Email không hợp lệ" }),
-    password: z.string().min(6, { message: "Mật khẩu phải có ít nhất 6 ký tự" }),
+    username: z.string().min(2, { message: "Display name must be at least 2 characters" }),
+    email: z.string().email({ message: "Invalid Email" }),
+    password: z.string().min(6, { message: "Password must be at least 6 characters" }),
     confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
-    message: "Mật khẩu xác nhận không khớp",
+    message: "Confirm password does not match",
     path: ["confirmPassword"],
 });
 
 // Schema cho Quên mật khẩu
 export const forgotPasswordSchema = z.object({
-    email: z.string().email({ message: "Email không hợp lệ" }),
+    email: z.string().email({ message: "Invalid Email" }),
 });
 
 // Export kiểu dữ liệu để dùng trong component
