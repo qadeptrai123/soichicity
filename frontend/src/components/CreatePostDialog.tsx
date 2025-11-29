@@ -289,13 +289,13 @@ export default function CreatePostCard() {
   const isDisabled = !content && images.length === 0;
 
   return (
-    <Card className="w-160! bg-gray-900 border-neutral-800 p-4 gap-4 shadow-2xl rounded-xl justify-center">
+    <Card className="w-160! bg-[#1E2939] border-neutral-800 p-4 gap-4 shadow-2xl rounded-xl justify-center">
       {/* 1. CARD HEADER: Cancel & Title */}
       <CardHeader className="flex flex-row items-center justify-between p-4 border-b border-neutral-800 space-y-0 h-14">
         <div className="flex-1 text-left">
           <button 
             onClick={handleReset}
-            className="text-neutral-300 hover:text-white text-[14px] bg-transparent border-none cursor-pointer p-0 font-normal"
+            className="text-[#99A1AF] hover:text-white text-[14px] bg-[#1E2939]! border-none cursor-pointer p-0 font-normal"
           >
             Cancel
           </button>
@@ -317,10 +317,9 @@ export default function CreatePostCard() {
             <AvatarFallback>U</AvatarFallback>
           </Avatar>
           
-          <div className="w-[2px] flex-1 bg-neutral-800 my-2 min-h-[40px] rounded-full"></div>
-          
-          <Avatar className="w-5 h-5 opacity-40">
-             <AvatarFallback className="text-[8px] bg-neutral-800 text-white">Me</AvatarFallback>
+          <div className="w-[2px] flex-1 bg-[#364153] my-2 min-h-[40px] rounded-full"></div>
+          <Avatar className="w-6 h-6 opacity-40 border border-[#364153] bg-[#1E2939]">
+             <div className="w-3 h-3 bg-[#364153] rounded-full m-auto"></div>
           </Avatar>
         </div>
 
@@ -334,7 +333,7 @@ export default function CreatePostCard() {
              value={content}
              onChange={(e) => setContent(e.target.value)}
              placeholder="What's new?"
-             className="w-full bg-transparent border-none text-white placeholder-neutral-500 focus:ring-0 !resize-y text-sm outline-none p-0 min-h-[100px] leading-relaxed mb-2" 
+             className="w-full bg-transparent border-none text-white placeholder-[#6A7282] focus:ring-0 !resize-y text-sm outline-none p-0 min-h-[100px] leading-relaxed mb-2" 
            />
 
            {/* Preview Ảnh */}
@@ -352,14 +351,14 @@ export default function CreatePostCard() {
            )}
 
            {/* --- ICONS --- */}
-           <div className="flex items-center gap-4 text-neutral-500 mt-1">
-             <button onClick={() => fileInputRef.current?.click()} className="hover:text-neutral-300 transition bg-transparent border-none cursor-pointer p-0">
-               <ImageIcon size={15} />
+           <div className="flex items-center gap-0 text-neutral-500 mt-1">
+             <button onClick={() => fileInputRef.current?.click()} className="hover:text-neutral-300 transition bg-[#1E2939]! border-none cursor-pointer p-0">
+               <ImageIcon size={18} />
              </button>
-             <button className="hover:text-neutral-300 transition bg-transparent border-none cursor-pointer p-0"><AtSign size={15} /></button>
-             <button className="hover:text-neutral-300 transition bg-transparent border-none cursor-pointer p-0"><Smile size={15} /></button>
+             <button className="hover:text-[#99A1AF] transition bg-[#1E2939]! border-none cursor-pointer p-0"><AtSign size={18} /></button>
+             <button className="hover:text-[#99A1AF] transition bg-[#1E2939]! border-none cursor-pointer p-0"><Smile size={18} /></button>
            </div>
-           <div className="mt-6 text-neutral-600 text-sm cursor-text pl-1">
+           <div className="mt-6 text-[#6A7282] text-sm cursor-text pl-1">
               Add to post
            </div>
            <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
@@ -371,10 +370,10 @@ export default function CreatePostCard() {
           <Button 
             onClick={handlePost}
             disabled={isDisabled}
-            className={`rounded-3xl font-bold px-5 py-1 h-auto text-[14px] transition-all border-none ${
+            className={`rounded-3xl! font-bold px-7! py-2! h-auto text-[14px] transition-all border-none ${
               isDisabled 
-                ? "bg-neutral-800 text-neutral-500 cursor-not-allowed" 
-                : "bg-white text-black hover:bg-neutral-200"
+                ? "bg-[#2B7FFF]! text-[#FFFFFF] cursor-not-allowed" 
+                : "bg-[#2B7FFF]! text-[#FFFFFF] hover:bg-[#2B7FFF]!"
             }`}
           >
             Post
