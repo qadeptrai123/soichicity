@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LogoImage from "../assets/logo.png"; // Import logo image
 import {
     Form,
     FormControl,
@@ -44,19 +44,11 @@ export default function ForgotPassword({ setActiveTab }: { setActiveTab?: (tab: 
 
             <Card className="w-full max-w-md bg-[var(--bg-secondary)] backdrop-blur-xl border-slate-700/50 shadow-2xl shadow-black/50">
                 <CardHeader className="flex flex-col items-center mb-2">
-                    <div className="w-12 h-12 bg-gradient-to-tr from-blue-500 to-cyan-400 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="w-6 h-6 text-white"
-                        >
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" />
-                        </svg>
+                    <div className="w-15 h-15 bg-gradient-to-tr bg-blue-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30">
+                        <img
+                            src={LogoImage}
+                            alt="App Logo"
+                        />
                     </div>
                     <CardTitle className="text-xl text-white tracking-tight">
                         Forgot Password

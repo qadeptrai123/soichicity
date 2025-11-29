@@ -22,7 +22,23 @@ export const forgotPasswordSchema = z.object({
     email: z.string().email({ message: "Invalid Email" }),
 });
 
+// Schema cho Đặt lại mật khẩu
+export const resetPasswordSchema = z.object({
+    newPassword: z.string()
+        .min(8, "Password must be at least 8 characters long")
+        .max(50, "Password cannot exceed 50 characters"),
+    confirmPassword: z.string()
+        .min(8, "Password must be at least 8 characters long")
+        .max(50, "Password cannot exceed 50 characters"),
+}).refine(data => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"], // Gắn lỗi vào trường confirmPassword
+});
+
+
+
 // Export kiểu dữ liệu để dùng trong component
 export type LoginValues = z.infer<typeof loginSchema>;
 export type RegisterValues = z.infer<typeof registerSchema>;
 export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
