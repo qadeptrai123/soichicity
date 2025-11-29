@@ -36,34 +36,46 @@
 
 
 
-import CreatePostDialog from "@/components/CreatePostDialog";
-import './App.css'
+// import CreatePostDialog from "@/components/CreatePostDialog";
+// import './App.css'
 
-function App() {
-  return (
-    // Nền đen toàn màn hình
-    <div className="min-h-screen w-full bg-slate-950 text-white font-sans flex justify-center">
+// function App() {
+//   return (
+//     // Nền đen toàn màn hình
+//     <div className="min-h-screen w-full bg-slate-950 text-white font-sans flex justify-center">
       
-      {/* Khung giả lập mobile/tablet */}
-      <div className="w-full max-w-[600px] border-x border-neutral-800 min-h-screen relative">
+//       {/* Khung giả lập mobile/tablet */}
+//       <div className="w-full max-w-[600px] border-x border-neutral-800 min-h-screen relative">
         
-        {/* Header */}
-        <div className="p-4 flex justify-center border-b border-neutral-800">
-           <span className="font-bold text-lg">Sợi Chỉ City</span>
-        </div>
+//         {/* Header */}
+//         <div className="p-4 flex justify-center border-b border-neutral-800">
+//            <span className="font-bold text-lg">Sợi Chỉ City</span>
+//         </div>
 
-        {/* Nội dung thông báo trống */}
-        <div className="p-10 text-center text-neutral-500 mt-20">
-          <p>Bảng tin chưa có bài viết nào...</p>
-          <p className="text-sm mt-2">Hãy bấm nút dấu (+) ở góc dưới để đăng bài mới!</p>
-        </div>
+//         {/* Nội dung thông báo trống */}
+//         <div className="p-10 text-center text-neutral-500 mt-20">
+//           <p>Bảng tin chưa có bài viết nào...</p>
+//           <p className="text-sm mt-2">Hãy bấm nút dấu (+) ở góc dưới để đăng bài mới!</p>
+//         </div>
 
-        {/* Component tạo bài viết của bạn */}
-        <CreatePostDialog />
+//         <CreatePostDialog />
 
+//       </div>
+//     </div>
+//   )
+// }
+
+// export default App
+
+
+  import CreatePostCard from "@/components/CreatePostDialog";
+  import './App.css'
+
+  function App() {
+    return (
+      <div className="w-full flex justify-center px-100">
+        <CreatePostCard />
       </div>
-    </div>
-  )
-}
-
-export default App
+    );
+  }
+  export default App
