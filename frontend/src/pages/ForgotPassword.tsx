@@ -85,7 +85,7 @@ export default function ForgotPassword() {
                                             <Input
                                                 type="email"
                                                 placeholder="you@example.com"
-                                                className="flex items-center bg-input border-border focus:border-blue-accent/50 text-foreground placeholder-text-text-muted py-6 text-base"
+                                                className="flex items-center bg-input! border-border! focus:border-blue-accent/50 text-foreground placeholder-text-text-muted py-6 text-base"
                                                 {...field}
                                             />
                                         </FormControl>
