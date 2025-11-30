@@ -78,11 +78,11 @@ export default function CreatePostCard() {
         <CardHeader className="flex items-center justify-between p-4 border-b h-14 -mx-4!">
           <button 
             onClick={handleReset}
-            className="text-[#99A1AF] hover:text-white text-[14px] bg-[#1E2939]! border-none cursor-pointer p-0 font-normal"
+            className="text-[#99A1AF] hover:text-white text-[16px]! bg-[#1E2939]! border-none cursor-pointer p-0 font-normal"
           >
             Cancel
           </button>
-          <CardTitle className="text-[16px] font-bold text-white">New Post</CardTitle>
+          <CardTitle className="text-[16px]! font-bold text-white">New Post</CardTitle>
           <div className="w-6"></div> {/* placeholder */}
         </CardHeader>
 
@@ -103,12 +103,12 @@ export default function CreatePostCard() {
 
           {/* Right column: Input + Icons + Preview */}
           <div className="flex-1 flex flex-col">
-            <p className="font-semibold text-sm mb-1 text-white">yourUsername</p>
+            <p className="font-semibold text-sm mb-1 text-[16px]! text-white">yourUsername</p>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="What's new?"
-              className="w-full bg-transparent border-none text-white placeholder-[#6A7282] focus:ring-0 !resize-y text-sm outline-none p-0 min-h-[100px] leading-relaxed mb-2"
+              className="w-full bg-transparent border-none text-white placeholder-[#6A7282] focus:ring-0 !resize-y text-[16px]! outline-none p-0 min-h-[100px] leading-relaxed mb-2"
             />
 
             {/* Media preview */}
@@ -141,7 +141,7 @@ export default function CreatePostCard() {
             )}
 
             {/* Icons */}
-            <div className="flex items-center gap-0 text-neutral-500 mt-1 relative">
+            <div className="flex items-center gap-0 text-neutral-500 mt-1 relative -translate-x-4">
               <button onClick={() => fileInputRef.current?.click()} className="hover:text-neutral-300 transition bg-[#1E2939]! border-none cursor-pointer p-0">
                 <ImageIcon size={18} />
               </button>
@@ -170,7 +170,7 @@ export default function CreatePostCard() {
                 </div>
               )}
             </div>
-            <div className="mt-6 text-[#6A7282] text-sm cursor-text pl-1">Add to post</div>
+            <div className="mt-6  text-[16px]! text-[#6A7282] cursor-text pl-1">Add to post</div>
 
             <input
               type="file"
@@ -188,7 +188,7 @@ export default function CreatePostCard() {
           <Button 
             onClick={handlePost}
             disabled={isDisabled}
-            className={`rounded-3xl! font-bold px-7! py-2! h-auto text-[14px] transition-all border-none ${
+            className={`rounded-3xl! font-bold px-7! py-2! h-auto text-[16px]! transition-all border-none ${
               isDisabled 
                 ? "bg-[#2B7FFF]! text-[#FFFFFF] cursor-not-allowed" 
                 : "bg-[#2B7FFF]! text-[#FFFFFF] hover:bg-[#2B7FFF]!"
