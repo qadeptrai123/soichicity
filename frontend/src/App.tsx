@@ -73,9 +73,7 @@
 
   function App() {
     return (
-      <div className="w-full flex justify-center px-100">
-        <CreatePostCard />
-      </div>
-    );
+      <CreatePostCard />
+    ); 
   }
   export default App
