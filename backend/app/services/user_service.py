@@ -9,6 +9,17 @@ def get_user(db, user_id: str):
         return {"id": user.id, **user.to_dict()}
     return None
 
+#Kiệt thêm để test, xem lại xem cần đúng kh
+def get_users(db):
+    users_ref = db.collection("users")
+    docs = users_ref.stream()
+    users = []
+    for doc in docs:
+        u = doc.to_dict()
+        u["id"] = doc.id
+        users.append(u)
+    return users
+
 def get_user_by_email(db, email: str):
     users_ref = db.collection('users')
     # Tìm user có email trùng khớp
