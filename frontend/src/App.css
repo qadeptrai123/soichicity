@@ -24,3 +24,16 @@
     /* Accent Colors */
     --color-blue-accent: #0ea5e9;
 }
+
+/* Typography */
+.text-base {
+    font-size: 16px;
+}
+
+.text-hd {
+    font-size: 18px;
+}
+
+.text-ft {
+    font-size: 14px;
+}

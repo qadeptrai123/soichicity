@@ -58,7 +58,7 @@ export default function ResetPassword() {
             {/* CARD CHÍNH - Reset Password */}
             <Card className="w-full max-w-md bg-[var(--bg-secondary)] backdrop-blur-xl border-slate-700/50 shadow-2xl shadow-black/50">
                 <CardHeader className="flex flex-col items-center mb-2">
-                    <div className="w-15 h-15 bg-gradient-to-tr bg-blue-500 rounded-full flex items-center justify-center mb-4">
+                    <div className="w-15 h-15 bg-gradient-to-tr bg-blue-500 rounded-full flex items-center justify-center">
                         <img
                             src={LogoImage}
                             alt="App Logo"
@@ -66,17 +66,17 @@ export default function ResetPassword() {
                     </div>
                 </CardHeader>
                 <CardHeader className="flex flex-col items-center mb-2">
-                    <div className="w-15 h-15 bg-gradient-to-tr bg-[#1E2939] rounded-full flex items-center justify-center mb-4">
+                    <div className="w-15 h-15 bg-gradient-to-tr bg-[#1E2939] rounded-full flex items-center justify-center">
                         <Lock className="w-6 h-6 text-[#155DFC]" strokeWidth={3} />
                     </div>
 
                     {/* Tiêu đề chính */}
-                    <CardTitle className="text-xl text-white tracking-tight">
-                        Reset Password
+                    <CardTitle className="text-hd text-white tracking-tight">
+                        <h2>Reset Your Password</h2>
                     </CardTitle>
 
                     {/* Mô tả */}
-                    <CardDescription className="text-slate-400 mt-2 text-center">
+                    <CardDescription className="text-slate-400 mt-2 text-center text-base">
                         Enter your new password below
                     </CardDescription>
                 </CardHeader>
@@ -91,7 +91,7 @@ export default function ResetPassword() {
                                 name="newPassword"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-xs font-medium text-slate-300">
+                                        <FormLabel className="text-base text-slate-300">
                                             New Password
                                         </FormLabel>
                                         <FormControl>
@@ -99,7 +99,7 @@ export default function ResetPassword() {
                                                 <Input
                                                     type={showNewPassword ? "text" : "password"}
                                                     placeholder="Enter new password"
-                                                    className="bg-[var(--bg-input)] border-slate-700 focus:border-blue-500/50 text-white placeholder:text-slate-400 pr-10"
+                                                    className="flex items-center bg-[var(--bg-input)] border-slate-700 focus:border-blue-500/50 text-white placeholder:text-slate-400 text-base py-6 pr-10"
                                                     {...field}
                                                 />
                                                 <button
@@ -107,11 +107,11 @@ export default function ResetPassword() {
                                                     onClick={() => setShowNewPassword(!showNewPassword)}
                                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 bg-[var(--bg-input)]!"
                                                 >
-                                                    {showNewPassword ? <EyeOffIcon className="h-3 w-3" /> : <EyeIcon className="h-3 w-3" />}
+                                                    {showNewPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                                                 </button>
                                             </div>
                                         </FormControl>
-                                        <FormMessage className="text-xs" />
+                                        <FormMessage className="text-base" />
                                     </FormItem>
                                 )}
                             />
@@ -122,7 +122,7 @@ export default function ResetPassword() {
                                 name="confirmPassword"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-xs font-medium text-slate-300">
+                                        <FormLabel className="text-base font-medium text-slate-300">
                                             Confirm Password
                                         </FormLabel>
                                         <FormControl>
@@ -130,7 +130,7 @@ export default function ResetPassword() {
                                                 <Input
                                                     type={showConfirmPassword ? "text" : "password"}
                                                     placeholder="Re-enter your password"
-                                                    className="bg-[var(--bg-input)] border-slate-700 focus:border-blue-500/50 text-white placeholder:text-slate-400 pr-10"
+                                                    className="flex items-center bg-[var(--bg-input)] border-slate-700 focus:border-blue-500/50 text-white placeholder:text-slate-400 text-base py-6 pr-10"
                                                     {...field}
                                                 />
                                                 <button
@@ -138,18 +138,18 @@ export default function ResetPassword() {
                                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 bg-[var(--bg-input)]!"
                                                 >
-                                                    {showConfirmPassword ? <EyeOffIcon className="h-3 w-3" /> : <EyeIcon className="h-3 w-3" />}
+                                                    {showConfirmPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                                                 </button>
                                             </div>
                                         </FormControl>
-                                        <FormMessage className="text-xs" />
+                                        <FormMessage className="text-base" />
                                     </FormItem>
                                 )}
                             />
 
                             <Button
                                 type="submit"
-                                className="w-full bg-[var(--color-primary)]! hover:bg-[var(--color-primary-hover)]! h-11 text-white font-semibold"
+                                className="w-full bg-[var(--color-primary)]! hover:bg-[var(--color-primary-hover)]! h-12 text-white text-base py-6"
                             >
                                 Reset Password
                             </Button>
@@ -157,10 +157,10 @@ export default function ResetPassword() {
                     </Form>
 
                     {/* BACK TO LOGIN */}
-                    <div className="text-center pt-2">
+                    <div className="text-center pt-1">
                         <a
                             onClick={() => setIsResetComplete(true)}
-                            className="inline-flex items-center text-sm text-slate-400! hover:text-slate-300! transition-colors cursor-pointer"
+                            className="inline-flex items-center text-base text-slate-400! hover:text-slate-300! transition-colors cursor-pointer"
                         >
                             Back to Sign in
                         </a>
@@ -172,8 +172,8 @@ export default function ResetPassword() {
             </Card>
 
             {/* Thông báo chọn mật khẩu mạnh */}
-            <p className="text-center text-xs text-slate-400 mt-8">
-                Make sure to choose a strong password that you haven't used before
+            <p className="text-center text-base text-slate-400 mt-6">
+                Make sure to choose a strong password that you haven't used before.
             </p>
         </div>
     );
