@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { 
   Image as ImageIcon, 
@@ -20,13 +19,15 @@ type MediaFile = { url: string; type: "image" | "video" };
 
 // --- Danh sách emoji mẫu ---
 const EMOJIS = [
+  "❤️","💖","💗","💓","💞","💕","❣️","👍","💙","💟",
   "😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇",
+  "🔥","⚡","💥","🌈","✨","🌟","⭐","💫","👎","👌",
   "🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚",
-  "😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎","🥸",
   "🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","☹️",
+  "🩵","💠","🔵","🔷","🔹","🟦","🧿","📘","🌀","🔷",
   "😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡",
   "🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓",
-  "🤗","🤔","🤭","🤫","🤥","😶","😐","😑","😬","🙄",
+  "🤗","🤝","👏","🙌","🤥","😶","😐","😑","😬","🙄",
   "😯","😦","😧","😮","😲","🥱","😴","🤤","😪","😵",
   "🤐","🥴","🤢","🤮","🤧","😷","🤒","🤕","🤑","🤠",
 ];
@@ -72,14 +73,13 @@ export default function CreatePostCard() {
 
   return (
     <div className="w-full flex justify-center px-100"> 
-      <Card className="w-160! bg-[#1E2939] border-neutral-800 p-4 gap-4 shadow-2xl rounded-xl justify-center">
+      <Card className="w-150! bg-[#1E2939] border-neutral-800 p-4 gap-4 shadow-2xl rounded-xl justify-center">
         
         {/* 1. CARD HEADER */}
         <CardHeader className="flex items-center justify-between p-4 border-b h-14 -mx-4!">
           <button 
             onClick={handleReset}
-            className="text-[#99A1AF] hover:text-white text-[16px]! bg-[#1E2939]! border-none cursor-pointer p-0 font-normal"
-          >
+            className="text-[#99A1AF] hover:text-white text-[16px]! bg-[#1E2939]! border-none cursor-pointer p-0 font-normal">
             Cancel
           </button>
           <CardTitle className="text-[16px]! font-bold text-white">New Post</CardTitle>
@@ -103,13 +103,12 @@ export default function CreatePostCard() {
 
           {/* Right column: Input + Icons + Preview */}
           <div className="flex-1 flex flex-col">
-            <p className="font-semibold text-sm mb-1 text-[16px]! text-white">yourUsername</p>
+            <p className="font-semibold text-sm mb-1 text-[16px]! text-white">LocTran0411</p>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="What's new?"
-              className="w-full bg-transparent border-none text-white placeholder-[#6A7282] focus:ring-0 !resize-y text-[16px]! outline-none p-0 min-h-[100px] leading-relaxed mb-2"
-            />
+              className="w-full bg-transparent border-none text-white placeholder-[#6A7282] focus:ring-0 !resize-y text-[16px]! outline-none p-0 min-h-[100px] leading-relaxed mb-2"/>
 
             {/* Media preview */}
             {mediaFiles.length > 0 && (
@@ -120,19 +119,16 @@ export default function CreatePostCard() {
                       <img
                         src={item.url}
                         alt="Preview"
-                        className="h-48 w-auto rounded-xl object-cover border border-neutral-800"
-                      />
+                        className="h-48 w-auto rounded-xl object-cover border border-neutral-800"/>
                     ) : (
                       <video
                         src={item.url}
                         className="h-48 w-auto rounded-xl object-cover border border-neutral-800"
-                        controls
-                      />
+                        controls/>
                     )}
                     <button
                       onClick={() => removeMedia(index)}
-                      className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 rounded-full p-1 transition backdrop-blur-sm flex items-center justify-center border-none cursor-pointer"
-                    >
+                      className="absolute top-2 right-2 bg-transparent! hover:bg-black/80 rounded-full p-2! transition backdrop-blur-sm flex items-center justify-center border-none cursor-pointer">
                       <Plus className="rotate-45 w-4 h-4 text-white" />
                     </button>
                   </div>
@@ -141,36 +137,33 @@ export default function CreatePostCard() {
             )}
 
             {/* Icons */}
-            <div className="flex items-center gap-0 text-neutral-500 mt-1 relative -translate-x-4">
-              <button onClick={() => fileInputRef.current?.click()} className="hover:text-neutral-300 transition bg-[#1E2939]! border-none cursor-pointer p-0">
+            <div className="flex items-center gap-1! text-neutral-500 mt-1 relative -translate-x-2">
+              <button onClick={() => fileInputRef.current?.click()} 
+                className="hover:text-neutral-300 transition bg-[#1E2939]! border-none cursor-pointer p-2!">
                 <ImageIcon size={18} />
               </button>
-              <button className="hover:text-[#99A1AF] transition bg-[#1E2939]! border-none cursor-pointer p-0">
+              <button className="hover:text-[#99A1AF] transition bg-[#1E2939]! border-none cursor-pointer p-2! elative">
                 <AtSign size={18} />
               </button>
-              <button 
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)} 
-                className="hover:text-[#99A1AF] transition bg-[#1E2939]! border-none cursor-pointer p-0 relative"
-              >
+              <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} 
+                className="hover:text-[#99A1AF] transition bg-[#1E2939]! border-none cursor-pointer p-2! relative">
                 <Smile size={18} />
               </button>
 
               {/* Emoji Picker */}
               {showEmojiPicker && (
-                <div className="absolute bottom-full left-0 mb-2 w-72 max-h-72 bg-white border border-neutral-300 rounded-lg p-2 grid grid-cols-6 gap-2 shadow-lg z-50 overflow-y-auto">
+                <div className="absolute bottom-full left-0 mb-2 w-90 max-h-72 bg-white border border-gray-300 rounded-lg p-2! grid grid-cols-8 gap-2 shadow-lg z-50 overflow-y-auto">
                   {EMOJIS.map((emoji, idx) => (
-                    <button
-                      key={idx}
+                    <button key={idx}
                       onClick={() => handleEmojiClick(emoji)}
-                      className="flex items-center justify-center w-10 h-10 text-xl hover:bg-neutral-700 rounded transition"
-                    >
+                      className="flex items-center justify-center w-8 h-8 text-xl bg-white! rounded transition">
                       {emoji}
                     </button>
                   ))}
                 </div>
               )}
             </div>
-            <div className="mt-6  text-[16px]! text-[#6A7282] cursor-text pl-1">Add to post</div>
+            <div className="mt-6 text-[16px]! text-[#6A7282] cursor-text pl-1">Add to post</div>
 
             <input
               type="file"
@@ -178,8 +171,7 @@ export default function CreatePostCard() {
               accept="image/*,video/*"
               className="hidden"
               ref={fileInputRef}
-              onChange={handleFileUpload}
-            />
+              onChange={handleFileUpload}/>
           </div>
         </CardContent>
 
@@ -192,8 +184,7 @@ export default function CreatePostCard() {
               isDisabled 
                 ? "bg-[#2B7FFF]! text-[#FFFFFF] cursor-not-allowed" 
                 : "bg-[#2B7FFF]! text-[#FFFFFF] hover:bg-[#2B7FFF]!"
-            }`}
-          >
+            }`}>
             Post
           </Button>
         </CardFooter>
