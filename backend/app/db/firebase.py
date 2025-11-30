@@ -27,5 +27,23 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
+
+async def get_user_by_username(username: str):
+    doc_ref = db.collection("users").document(username)
+    doc = doc_ref.get()
+    if doc.exists:
+        return doc.to_dict()
+    return None
+
+async def create_new_user(user_data: dict):
+    username = user_data["username"]
+    doc_ref = db.collection("users").document(username)
+    
+    if doc_ref.get().exists:
+        return False
+        
+    doc_ref.set(user_data)
+    return True
+
 def get_db():
     return db
