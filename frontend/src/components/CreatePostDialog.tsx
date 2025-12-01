@@ -92,7 +92,7 @@ export default function CreatePostDialog() {
 
   return (
     <Dialog open={true}>
-      <DialogContent className="sm:max-w-[600px] bg-secondary border-border p-0 shadow-2xl gap-0 overflow-visible [&>button]:hidden -mt-18" >
+      <DialogContent className="sm:max-w-[600px] bg-secondary border-border p-0 shadow-2xl gap-0 overflow-visible [&>button]:hidden max-h-[90vh] flex flex-col -mt-9" >
 
         {/* HEADER */}
         <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b border-border space-y-0">
@@ -107,7 +107,7 @@ export default function CreatePostDialog() {
         </DialogHeader>
 
         {/* CONTENT */}
-        <div className="p-6 flex gap-4 min-h-[300px]">
+        <div className="p-6 flex gap-4 min-h-[300px] overflow-y-auto flex-1">
           {/* Left: Avatar & Line */}
           <div className="flex flex-col items-center pt-1">
             <Avatar className="w-10 h-10 border border-border">

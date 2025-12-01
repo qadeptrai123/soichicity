@@ -11,7 +11,7 @@ export default function EmojiButton({ onSelect }: { onSelect: (emoji: string) =>
     <Popover modal={true}>
       <PopoverTrigger asChild className="p-0">
         <Button className="text-text-secondary hover:text-foreground transition bg-transparent border-none cursor-pointer p-2 rounded-full hover:bg-white/5">
-          <Smile size={20} />
+          <Smile size={10} />
         </Button>
       </PopoverTrigger>
 
@@ -20,7 +20,7 @@ export default function EmojiButton({ onSelect }: { onSelect: (emoji: string) =>
         align="start"
         sideOffset={10}
         className="w-fit p-0 border-none z-[1000] shadow-2xl rounded-lg bg-transparent"
-        style={{ width: "300px", maxHeight: "350px" }}
+        style={{ width: "300px", maxHeight: "300px" }}
         
         // --- QUAN TRỌNG: Ngăn chặn sự kiện cuộn lan ra ngoài Dialog ---
         onWheel={(e) => e.stopPropagation()}      // Cho chuột
@@ -36,7 +36,7 @@ export default function EmojiButton({ onSelect }: { onSelect: (emoji: string) =>
           <EmojiPicker
             theme={Theme.DARK}
             onEmojiClick={(emojiData) => onSelect(emojiData.emoji)}
-            height={350}
+            height={300}
             width={300}
             lazyLoadEmojis={true}
           />
