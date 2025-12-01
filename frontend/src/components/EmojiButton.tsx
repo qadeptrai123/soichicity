@@ -68,7 +68,6 @@ export default function EmojiButton({ onSelect }: { onSelect: (emoji: string) =>
                 "--epr-focus-bg-color": "transparent",
             } as React.CSSProperties}
           />
-
         </div>
       </PopoverContent>
     </Popover>

@@ -48,7 +48,6 @@
 .no-scrollbar .epr-body::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
-
 .no-scrollbar .epr-body {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */

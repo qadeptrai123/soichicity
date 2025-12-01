@@ -35,7 +35,6 @@ import {
 } from "@/components/ui/popover";
 import EmojiButton from "./EmojiButton";
 
-
 type MediaFile = { url: string; type: "image" | "video" };
 
 const MOCK_USERS = [
@@ -51,7 +50,6 @@ export default function CreatePostDialog() {
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
 
   // --- LOGIC ---
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
