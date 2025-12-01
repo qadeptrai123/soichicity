@@ -23,6 +23,15 @@
     --color-blue-accent: #0ea5e9;
 }
 
+@utility no-scrollbar {
+    @apply [scrollbar-width:none] [&::-webkit-scrollbar]:hidden;
+}
+
+@utility custom-scrollbar {
+    @apply [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border-secondary [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-text-secondary;
+}
+
+
 /* Typography */
 .text-base {
     font-size: 16px;
@@ -34,4 +43,17 @@
 
 .text-ft {
     font-size: 14px;
+}
+
+/* Ẩn thanh cuộn cho Emoji Picker nhưng BẮT BUỘC cho phép lăn chuột */
+.no-scrollbar .epr-body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.no-scrollbar .epr-body {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+  
+  /* Dòng quan trọng nhất để sửa lỗi không lướt được: */
+  overflow-y: auto !important; 
 }

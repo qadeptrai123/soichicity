@@ -1,43 +1,57 @@
 import React, { useState, useRef } from "react";
-import { 
-  Image as ImageIcon, 
-  Plus, 
-  AtSign, 
+import {
+  Image as ImageIcon,
+  AtSign,
   Smile,
+  X
 } from "lucide-react";
-import { 
-  Card, 
-  CardContent, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  EmojiPicker,
+  EmojiPickerContent,
+  EmojiPickerFooter,
+  EmojiPickerSearch,
+} from "@/components/ui/emoji-picker";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import EmojiButton from "./EmojiButton";
+
 
 type MediaFile = { url: string; type: "image" | "video" };
 
-// --- Danh sách emoji mẫu ---
-const EMOJIS = [
-  "❤️","💖","💗","💓","💞","💕","❣️","👍","💙","💟",
-  "😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇",
-  "🔥","⚡","💥","🌈","✨","🌟","⭐","💫","👎","👌",
-  "🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚",
-  "🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","☹️",
-  "🩵","💠","🔵","🔷","🔹","🟦","🧿","📘","🌀","🔷",
-  "😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡",
-  "🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓",
-  "🤗","🤝","👏","🙌","🤥","😶","😐","😑","😬","🙄",
-  "😯","😦","😧","😮","😲","🥱","😴","🤤","😪","😵",
-  "🤐","🥴","🤢","🤮","🤧","😷","🤒","🤕","🤑","🤠",
+const MOCK_USERS = [
+  { id: 1, name: "Alice", username: "alice123" },
+  { id: 2, name: "Bob", username: "bob_builder" },
+  { id: 3, name: "Charlie", username: "charlie_brown" },
+  { id: 4, name: "David", username: "david_beckham" },
+  { id: 5, name: "Eve", username: "eve_polastri" },
 ];
 
-export default function CreatePostCard() {
+export default function CreatePostDialog() {
   const [content, setContent] = useState<string>("");
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   // --- LOGIC ---
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,6 +71,7 @@ export default function CreatePostCard() {
   const handleReset = () => {
     setContent("");
     setMediaFiles([]);
+    setShowEmojiPicker(false);
   };
 
   const handlePost = () => {
@@ -64,131 +79,152 @@ export default function CreatePostCard() {
     handleReset();
   };
 
-  const handleEmojiClick = (emoji: string) => {
+  const onEmojiClick = (emoji: string) => {
     setContent((prev) => prev + emoji);
     setShowEmojiPicker(false);
+  };
+
+  const handleTagUser = (username: string) => {
+    setContent((prev) => prev + `@${username} `);
   };
 
   const isDisabled = !content && mediaFiles.length === 0;
 
   return (
-    <div className="w-full flex justify-center px-100"> 
-      <Card className="w-150! bg-[#1E2939] border-neutral-800 p-4 gap-4 shadow-2xl rounded-xl justify-center">
-        
-        {/* 1. CARD HEADER */}
-        <CardHeader className="flex items-center justify-between p-4 border-b h-14 -mx-4!">
-          <button 
+    <Dialog open={true}>
+      <DialogContent className="sm:max-w-[600px] bg-secondary border-border p-0 shadow-2xl gap-0 overflow-visible [&>button]:hidden max-h-[90vh] flex flex-col -mt-9" >
+
+        {/* HEADER */}
+        <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b border-border space-y-0">
+          <button
             onClick={handleReset}
-            className="text-[#99A1AF] hover:text-white text-[16px]! bg-[#1E2939]! border-none cursor-pointer p-0 font-normal">
+            className="text-text-secondary hover:text-foreground text-base bg-transparent border-none cursor-pointer p-0 font-normal transition-colors"
+          >
             Cancel
           </button>
-          <CardTitle className="text-[16px]! font-bold text-white">New Post</CardTitle>
-          <div className="w-6"></div> {/* placeholder */}
-        </CardHeader>
+          <DialogTitle className="text-base font-bold text-foreground m-0">New Post</DialogTitle>
+          <div className="w-[50px]"></div> {/* Spacer to balance "Cancel" */}
+        </DialogHeader>
 
-        {/* 2. CARD CONTENT */}
-        <CardContent className="p-4 flex gap-3 min-h-[200px]">
-          
-          {/* Left column: Avatar + line */}
+        {/* CONTENT */}
+        <div className="p-6 flex gap-4 min-h-[300px] overflow-y-auto flex-1">
+          {/* Left: Avatar & Line */}
           <div className="flex flex-col items-center pt-1">
-            <Avatar className="w-9 h-9 border border-neutral-700">
+            <Avatar className="w-10 h-10 border border-border">
               <AvatarImage src="https://github.com/shadcn.png" alt="User" />
               <AvatarFallback>U</AvatarFallback>
             </Avatar>
-            <div className="w-[2px] flex-1 bg-[#364153] my-2 min-h-[40px] rounded-full"></div>
-            <Avatar className="w-6 h-6 opacity-40 border border-[#364153]">
-              <div className="w-3 h-3 bg-[#364153] rounded-full m-auto"></div>
-            </Avatar>
+            <div className="w-[2px] flex-1 bg-border my-3 rounded-full opacity-50"></div>
           </div>
 
-          {/* Right column: Input + Icons + Preview */}
+          {/* Right: Input & Media */}
           <div className="flex-1 flex flex-col">
-            <p className="font-semibold text-sm mb-1 text-[16px]! text-white">LocTran0411</p>
+            <p className="font-semibold text-base mb-1 text-foreground">lemaihoaibao</p>
+
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="What's new?"
-              className="w-full bg-transparent border-none text-white placeholder-[#6A7282] focus:ring-0 !resize-y text-[16px]! outline-none p-0 min-h-[100px] leading-relaxed mb-2"/>
+              className="w-full bg-transparent border-none text-foreground placeholder-text-muted focus:ring-0 resize-none text-base outline-none p-0 min-h-[120px] leading-relaxed mb-4"
+            />
 
-            {/* Media preview */}
+            {/* Media Preview */}
             {mediaFiles.length > 0 && (
-              <div className="flex gap-3 overflow-x-auto py-2 scrollbar-hide mb-2">
+              <div className="flex gap-3 overflow-x-auto py-2 mb-4 scrollbar-hide">
                 {mediaFiles.map((item, index) => (
-                  <div key={index} className="relative group flex-shrink-0">
+                  <div
+                    key={index}
+                    className="relative flex-shrink-0 max-w-[480px] rounded-xl overflow-hidden border border-border"
+                  >
                     {item.type === "image" ? (
                       <img
                         src={item.url}
                         alt="Preview"
-                        className="h-48 w-auto rounded-xl object-cover border border-neutral-800"/>
+                        className="max-h-64 w-auto object-contain bg-black/10"
+                      />
                     ) : (
                       <video
                         src={item.url}
-                        className="h-48 w-auto rounded-xl object-cover border border-neutral-800"
-                        controls/>
+                        className="max-h-64 w-auto object-contain bg-black/10"
+                        controls
+                      />
                     )}
+
+                    {/* Nút xoá ảnh/video */}
                     <button
                       onClick={() => removeMedia(index)}
-                      className="absolute top-2 right-2 bg-transparent! hover:bg-black/80 rounded-full p-2! transition backdrop-blur-sm flex items-center justify-center border-none cursor-pointer">
-                      <Plus className="rotate-45 w-4 h-4 text-white" />
+                      className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 rounded-full p-1 transition border border-white/20"
+                    >
+                      <X size={12} />
                     </button>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Icons */}
-            <div className="flex items-center gap-1! text-neutral-500 mt-1 relative -translate-x-2">
-              <button onClick={() => fileInputRef.current?.click()} 
-                className="hover:text-neutral-300 transition bg-[#1E2939]! border-none cursor-pointer p-2!">
-                <ImageIcon size={18} />
-              </button>
-              <button className="hover:text-[#99A1AF] transition bg-[#1E2939]! border-none cursor-pointer p-2! elative">
-                <AtSign size={18} />
-              </button>
-              <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} 
-                className="hover:text-[#99A1AF] transition bg-[#1E2939]! border-none cursor-pointer p-2! relative">
-                <Smile size={18} />
-              </button>
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 mt-auto relative mt-6! -ml-2!">
+              {/* Image Upload */}
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                className="text-text-secondary hover:text-foreground transition bg-transparent border-none cursor-pointer p-2 rounded-full hover:bg-white/5"
+              >
+                <ImageIcon size={20} />
+              </Button>
+              <input
+                type="file"
+                multiple
+                accept="image/*,video/*"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+              />
+
+              {/* Tag User */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="text-text-secondary hover:text-foreground transition bg-transparent border-none cursor-pointer p-2 rounded-full hover:bg-white/5 outline-none">
+                    <AtSign size={20} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-secondary border-border text-foreground w-56">
+                  {MOCK_USERS.map((user) => (
+                    <DropdownMenuItem
+                      key={user.id}
+                      onClick={() => handleTagUser(user.username)}
+                      className="cursor-pointer hover:bg-white/10 focus:bg-white/10"
+                    >
+                      <span>{user.name}</span>
+                      <span className="ml-auto text-xs text-text-muted">@{user.username}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Emoji Picker */}
-              {showEmojiPicker && (
-                <div className="absolute bottom-full left-0 mb-2 w-90 max-h-72 bg-white border border-gray-300 rounded-lg p-2! grid grid-cols-8 gap-2 shadow-lg z-50 overflow-y-auto">
-                  {EMOJIS.map((emoji, idx) => (
-                    <button key={idx}
-                      onClick={() => handleEmojiClick(emoji)}
-                      className="flex items-center justify-center w-8 h-8 text-xl bg-white! rounded transition">
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <EmojiButton onSelect={onEmojiClick} />
             </div>
-            <div className="mt-6 text-[16px]! text-[#6A7282] cursor-text pl-1">Add to post</div>
-
-            <input
-              type="file"
-              multiple
-              accept="image/*,video/*"
-              className="hidden"
-              ref={fileInputRef}
-              onChange={handleFileUpload}/>
           </div>
-        </CardContent>
+        </div>
 
-        {/* 3. CARD FOOTER */}
-        <CardFooter className="pt-4! pb-2! px-4! flex justify-end border-t -mx-4!">
-          <Button 
+        {/* FOOTER */}
+        <DialogFooter className="p-6 pt-2 flex justify-end border-t border-border sm:justify-end">
+          <Button
             onClick={handlePost}
             disabled={isDisabled}
-            className={`rounded-3xl! font-bold px-7! py-2! h-auto text-[16px]! transition-all border-none ${
-              isDisabled 
-                ? "bg-[#2B7FFF]! text-[#FFFFFF] cursor-not-allowed" 
-                : "bg-[#2B7FFF]! text-[#FFFFFF] hover:bg-[#2B7FFF]!"
-            }`}>
+            className={`rounded-full font-semibold px-8 py-2 h-auto text-base transition-all border-none ${isDisabled
+              ? "bg-primary/50 text-white/50 cursor-not-allowed"
+              : "bg-primary text-white hover:bg-primary-hover shadow-lg shadow-blue-500/20"
+              }`}
+          >
             Post
           </Button>
-        </CardFooter>
-      </Card>
-    </div>
+        </DialogFooter>
+      </DialogContent >
+    </Dialog >
   );
 }
+
+
+
+
