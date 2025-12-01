@@ -6,6 +6,7 @@ import { Smile } from "lucide-react";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 
 export default function EmojiButton({ onSelect }: { onSelect: (emoji: string) => void }) {
+  const searchBackgroundColor = "#1A1F2E";
   return (
     // Thêm modal={true} giúp Popover chiếm quyền ưu tiên, xử lý focus tốt hơn
     <Popover modal={true}>
@@ -22,26 +23,55 @@ export default function EmojiButton({ onSelect }: { onSelect: (emoji: string) =>
         className="w-fit p-0 border-none z-[1000] shadow-2xl rounded-lg bg-transparent"
         style={{ width: "300px", maxHeight: "300px" }}
         
-        // --- QUAN TRỌNG: Ngăn chặn sự kiện cuộn lan ra ngoài Dialog ---
-        onWheel={(e) => e.stopPropagation()}      // Cho chuột
-        onTouchMove={(e) => e.stopPropagation()}  // Cho màn hình cảm ứng
+        onWheel={(e) => e.stopPropagation()}     
+        onTouchMove={(e) => e.stopPropagation()}  
       >
+        <style>{`
+          .EmojiPickerReact .epr-category-nav {
+            display: none !important;
+          }
+            
+          aside.EmojiPickerReact.epr-main {
+            border-width: 2px !important; 
+            border-style: solid !important;
+          }
+        `}</style>
+        
         <div className="
             [&_.epr-body::-webkit-scrollbar]:hidden 
             [&_.epr-body]:[scrollbar-width:none] 
             [&_.epr-body]:[-ms-overflow-style:none] 
             [&_.epr-body]:!overflow-y-auto 
             [&_.epr-body]:cursor-grab
-        ">
+            [&_input]:!bg-[#1A1F2E]
+            [&_input:focus]:!bg-[#1A1F2E] 
+            [&_input]:!outline-none
+            "
+        >
+
           <EmojiPicker
             theme={Theme.DARK}
             onEmojiClick={(emojiData) => onSelect(emojiData.emoji)}
             height={300}
             width={300}
             lazyLoadEmojis={true}
+            previewConfig={{ showPreview: false }}
+            style={{
+                "--epr-bg-color": "#1A1F2E",              // Màu nền chính
+                "--epr-category-label-bg-color": "#1A1F2E", // Màu nền thanh tiêu đề dính
+                "--epr-text-color": "#ffffff",            // Màu chữ
+                "--epr-picker-border-color": "#1E2939",   // Màu viền
+                
+                "--epr-search-input-bg-color": searchBackgroundColor,
+                "--epr-search-input-text-color": "#ffffff", // Màu chữ ô tìm kiếm
+                "--epr-preview-text-color": "#ffffff",    // Màu chữ ở thanh preview dưới đáy
+                "--epr-focus-bg-color": "transparent",
+            } as React.CSSProperties}
           />
+
         </div>
       </PopoverContent>
     </Popover>
   );
 }
+

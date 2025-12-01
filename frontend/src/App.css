@@ -31,7 +31,6 @@
     @apply [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border-secondary [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-text-secondary;
 }
 
-
 /* Typography */
 .text-base {
     font-size: 16px;

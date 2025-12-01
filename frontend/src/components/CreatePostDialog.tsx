@@ -206,7 +206,6 @@ export default function CreatePostDialog() {
             </div>
           </div>
         </div>
-
         {/* FOOTER */}
         <DialogFooter className="p-6 pt-2 flex justify-end border-t border-border sm:justify-end">
           <Button
