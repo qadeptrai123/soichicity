@@ -3,7 +3,7 @@ from typing import Optional
 from email_validator import validate_email, EmailNotValidError
 import re
 
-# Thông tin cơ bản
+
 class UserBase(BaseModel):
     username: str
     email: EmailStr
@@ -16,36 +16,35 @@ class UserCreate(UserBase):
     @field_validator('username')
     @classmethod
     def validate_username(cls, v: str):
-        # 1. Check khoảng trắng
+        # 1. Check whitespace
         if ' ' in v:
-            raise ValueError('Username không được chứa khoảng trắng')
+            raise ValueError('Username must not contain whitespace')
             
-        # 2. Check ký tự đặc biệt
+        # 2. Check special characters
         if not re.match("^[a-zA-Z0-9_.]+$", v):
-             raise ValueError('Username chỉ được chứa chữ cái không dấu, số, dấu chấm và gạch dưới')
+             raise ValueError('Username can only contain alphanumeric characters, dots, and underscores')
 
-        # 3.Chuyển tất cả về chữ thường
-        return v
+        # 3.Convert all to lowercase
+        return v.lower()
     @field_validator('email')
     @classmethod
     def validate_real_email(cls, v: str):
         try:
-            # check_deliverability=True: Nó sẽ ping đến Server của email (Gmail, Yahoo...) 
-            # để xem tên miền đó có nhận được thư không.
+            # check_deliverability=True: It will ping the email server (Gmail, Yahoo...) 
+            # to see if the domain can receive emails.
             email_info = validate_email(v, check_deliverability=True)
             
-            # Trả về email đã được chuẩn hóa (ví dụ: Test@Gmail.Com -> test@gmail.com)
+            # Return the normalized email (e.g., Test@Gmail.Com -> test@gmail.com)
             return email_info.normalized 
             
         except EmailNotValidError as e:
-            # Nếu email không tồn tại hoặc tên miền ảo -> Báo lỗi
-            raise ValueError(f"Email không hợp lệ: {str(e)}")
+            raise ValueError(f"Email is not valid: {str(e)}")
 
-# Thông tin lưu trong DB (có hash pass)
+# Information stored in DB (with hashed password)
 class UserInDB(UserBase):
     hashed_password: str
 
-# Thông tin trả về cho client (giấu password đi)
+# Information returned to client (hides password)
 class UserResponse(UserBase):
     pass
 
