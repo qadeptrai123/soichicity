@@ -51,6 +51,8 @@ export default function CreatePostDialog() {
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+
   // --- LOGIC ---
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -90,7 +92,7 @@ export default function CreatePostDialog() {
 
   return (
     <Dialog open={true}>
-      <DialogContent className="sm:max-w-[600px] bg-secondary border-border p-0 shadow-2xl gap-0 overflow-visible">
+      <DialogContent className="sm:max-w-[600px] bg-secondary border-border p-0 shadow-2xl gap-0 overflow-visible [&>button]:hidden -mt-18" >
 
         {/* HEADER */}
         <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b border-border space-y-0">
@@ -112,7 +114,7 @@ export default function CreatePostDialog() {
               <AvatarImage src="https://github.com/shadcn.png" alt="User" />
               <AvatarFallback>U</AvatarFallback>
             </Avatar>
-            <div className="w-[2px] flex-1 bg-border my-3 min-h-[40px] rounded-full opacity-50"></div>
+            <div className="w-[2px] flex-1 bg-border my-3 rounded-full opacity-50"></div>
           </div>
 
           {/* Right: Input & Media */}
@@ -130,25 +132,30 @@ export default function CreatePostDialog() {
             {mediaFiles.length > 0 && (
               <div className="flex gap-3 overflow-x-auto py-2 mb-4 scrollbar-hide">
                 {mediaFiles.map((item, index) => (
-                  <div key={index} className="relative group flex-shrink-0">
+                  <div
+                    key={index}
+                    className="relative flex-shrink-0 max-w-[480px] rounded-xl overflow-hidden border border-border"
+                  >
                     {item.type === "image" ? (
                       <img
                         src={item.url}
                         alt="Preview"
-                        className="h-48 w-auto rounded-xl object-cover border border-border"
+                        className="max-h-64 w-auto object-contain bg-black/10"
                       />
                     ) : (
                       <video
                         src={item.url}
-                        className="h-48 w-auto rounded-xl object-cover border border-border"
+                        className="max-h-64 w-auto object-contain bg-black/10"
                         controls
                       />
                     )}
+
+                    {/* Nút xoá ảnh/video */}
                     <button
                       onClick={() => removeMedia(index)}
-                      className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 rounded-full p-1 transition backdrop-blur-sm border-none cursor-pointer text-white"
+                      className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 rounded-full p-1 transition border border-white/20"
                     >
-                      <X size={14} />
+                      <X size={12} />
                     </button>
                   </div>
                 ))}
@@ -156,7 +163,7 @@ export default function CreatePostDialog() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2 mt-auto relative">
+            <div className="flex items-center gap-2 mt-auto relative mt-6! -ml-2!">
               {/* Image Upload */}
               <Button
                 onClick={() => fileInputRef.current?.click()}
@@ -195,26 +202,13 @@ export default function CreatePostDialog() {
               </DropdownMenu>
 
               {/* Emoji Picker */}
-
-              <EmojiButton />
+              <EmojiButton onSelect={onEmojiClick} />
             </div>
-          </div>
-        </div>
-
-        {/* Add to post row */}
-        <div className="flex px-6 pb-4 items-center">
-          <div className="flex flex-col items-center w-10"> {/* Matches left column width */}
-            <div className="w-6 h-6 flex items-center justify-center">
-              <div className="w-2 h-2 rounded-full bg-text-secondary opacity-50"></div>
-            </div>
-          </div>
-          <div className="ml-4 text-text-muted text-sm cursor-pointer hover:text-foreground transition">
-            Add to post
           </div>
         </div>
 
         {/* FOOTER */}
-        <DialogFooter className="p-6 pt-2 flex justify-end border-t-0 sm:justify-end">
+        <DialogFooter className="p-6 pt-2 flex justify-end border-t border-border sm:justify-end">
           <Button
             onClick={handlePost}
             disabled={isDisabled}
@@ -227,8 +221,10 @@ export default function CreatePostDialog() {
           </Button>
         </DialogFooter>
       </DialogContent >
-
-
     </Dialog >
   );
 }
+
+
+
+
