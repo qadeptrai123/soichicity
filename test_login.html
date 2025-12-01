@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test Google Login</title>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+  </head>
+  <body>
+    <h1>Test lấy Google ID Token</h1>
+    <button onclick="loginGoogle()">Login with Google</button>
+    <h3>Token của bạn :</h3>
+    <textarea id="tokenArea" rows="10" cols="100"></textarea>
+
+    <script>
+      // THAY THẾ BẰNG CONFIG CỦA BẠN (Lấy trong Firebase Console -> Project Settings)
+      const firebaseConfig = {
+        apiKey: "AIzaSyCFtIp-_1OhBHmoi0oT4hbWYdZ1_cdt5u4",
+        authDomain: "soichicity.firebaseapp.com",
+        projectId: "soichicity",
+        storageBucket: "soichicity.firebasestorage.app",
+        messagingSenderId: "875535139346",
+        appId: "1:875535139346:web:6e5e5cd2083aea67e74ecb",
+        measurementId: "G-96SEHCQYV6",
+      };
+
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+
+      function loginGoogle() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        firebase
+          .auth()
+          .signInWithPopup(provider)
+          .then((result) => {
+            // Đây là bước quan trọng: Lấy ID Token để gửi cho Backend
+            return result.user.getIdToken();
+          })
+          .then((token) => {
+            console.log("Token:", token);
+            document.getElementById("tokenArea").value = token;
+            alert("Đã lấy được Token! Hãy copy từ khung bên dưới.");
+          })
+          .catch((error) => {
+            console.error(error);
+            alert("Lỗi: " + error.message);
+          });
+      }
+    </script>
+  </body>
+</html>
