@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.api import users, threads, auth
 from app.core.config import settings
-from app.api import posts
+from app.api import posts, media
 
 
 app = FastAPI(
@@ -16,6 +16,9 @@ app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["auth"])
 
 # Posts router
 app.include_router(posts.router)
+
+# Media router
+app.include_router(media.router)
 
 @app.get("/")
 def read_root():

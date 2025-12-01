@@ -2,6 +2,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from app.core.config import settings
 import os
+from firebase_admin import storage
 
 # Check if the app is already initialized
 if not firebase_admin._apps:
@@ -23,7 +24,10 @@ if not firebase_admin._apps:
             "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL")
         })
 
-    firebase_admin.initialize_app(cred)
+    # firebase_admin.initialize_app(cred)
+    firebase_admin.initialize_app(cred, {
+    "storageBucket": "soichicity.appspot.com"
+})
 
 db = firestore.client()
 
@@ -44,6 +48,13 @@ async def create_new_user(user_data: dict):
         
     doc_ref.set(user_data)
     return True
+
+def upload_file_to_storage(file_path: str, storage_path: str):
+    bucket = storage.bucket()
+    blob = bucket.blob(storage_path)
+    blob.upload_from_filename(file_path)
+    blob.make_public()
+    return blob.public_url
 
 def get_db():
     return db
