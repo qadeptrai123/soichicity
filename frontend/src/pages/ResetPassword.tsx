@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import { EyeIcon, EyeOffIcon, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import LogoImage from "../assets/logo.png";
 import {
     Form,
@@ -22,11 +22,11 @@ import {
 } from "@/components/ui/card";
 import { resetPasswordSchema, type ResetPasswordValues } from "@/schemas/authSchema";
 import LoginForm from "./Login";
+import { useNavigate } from "react-router-dom";
 
 export default function ResetPassword() {
-    const [showNewPassword, setShowNewPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isResetComplete, setIsResetComplete] = useState(false);
+    const navigate = useNavigate();
 
     const form = useForm<ResetPasswordValues>({
         resolver: zodResolver(resetPasswordSchema),
@@ -44,8 +44,8 @@ export default function ResetPassword() {
     }
 
     return (
-        <div className="fixed inset-0 bg-[var(--bg-primary)] flex flex-col justify-center items-center overflow-auto p-4">
-            {/* Trang trí: Giữ nguyên như component ForgotPassword */}
+        <div className="fixed inset-0 bg-background flex flex-col justify-center items-center overflow-auto p-4">
+            {/* Decorative elements: Same as ForgotPassword component */}
             <div className="w-[40vw] h-[40vw] max-w-lg max-h-lg absolute top-0 left-0 opacity-70 bg-blue-600/10 rounded-full blur-[100px]" />
             <div className="w-[40vw] h-[40vw] max-w-lg max-h-lg absolute bottom-0 right-[5%] opacity-60 bg-blue-500/10 rounded-full blur-[100px]" />
             <div className="w-80 h-80 absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-50 bg-blue-700/10 rounded-full blur-[80px]" />
@@ -55,10 +55,10 @@ export default function ResetPassword() {
             <div className="w-28 h-28 absolute bottom-[5%] right-0 rounded-full border border-blue-600/10" />
 
 
-            {/* CARD CHÍNH - Reset Password */}
-            <Card className="w-full max-w-md bg-[var(--bg-secondary)] backdrop-blur-xl border-slate-700/50 shadow-2xl shadow-black/50">
+            {/* Main Card - Reset Password */}
+            <Card className="w-full max-w-md bg-secondary backdrop-blur-xl border-border-secondary shadow-2xl shadow-black/50">
                 <CardHeader className="flex flex-col items-center mb-2">
-                    <div className="w-15 h-15 bg-gradient-to-tr bg-blue-500 rounded-full flex items-center justify-center">
+                    <div className="w-15 h-15 bg-linear-to-tr bg-blue-500 rounded-full flex items-center justify-center">
                         <img
                             src={LogoImage}
                             alt="App Logo"
@@ -66,16 +66,16 @@ export default function ResetPassword() {
                     </div>
                 </CardHeader>
                 <CardHeader className="flex flex-col items-center mb-2">
-                    <div className="w-15 h-15 bg-gradient-to-tr bg-[#1E2939] rounded-full flex items-center justify-center">
+                    <div className="w-15 h-15 bg-linear-to-tr bg-[#1E2939] rounded-full flex items-center justify-center">
                         <Lock className="w-6 h-6 text-[#155DFC]" strokeWidth={3} />
                     </div>
 
-                    {/* Tiêu đề chính */}
+                    {/* Main Title */}
                     <CardTitle className="text-hd text-white tracking-tight">
                         <h2>Reset Your Password</h2>
                     </CardTitle>
 
-                    {/* Mô tả */}
+                    {/* Description */}
                     <CardDescription className="text-slate-400 mt-2 text-center text-base">
                         Enter your new password below
                     </CardDescription>
@@ -85,7 +85,7 @@ export default function ResetPassword() {
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
 
-                            {/* Trường New Password */}
+                            {/* New Password Field */}
                             <FormField
                                 control={form.control}
                                 name="newPassword"
@@ -97,18 +97,12 @@ export default function ResetPassword() {
                                         <FormControl>
                                             <div className="relative">
                                                 <Input
-                                                    type={showNewPassword ? "text" : "password"}
+                                                    type="password"
                                                     placeholder="Enter new password"
-                                                    className="flex items-center bg-[var(--bg-input)] border-slate-700 focus:border-blue-500/50 text-white placeholder:text-slate-400 text-base py-6 pr-10"
+                                                    className="flex items-center bg-input! border-border! focus:border-blue-accent/50 text-foreground placeholder-text-text-muted text-base py-6 pr-10"
                                                     {...field}
                                                 />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowNewPassword(!showNewPassword)}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 bg-[var(--bg-input)]!"
-                                                >
-                                                    {showNewPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                                                </button>
+
                                             </div>
                                         </FormControl>
                                         <FormMessage className="text-base" />
@@ -116,30 +110,23 @@ export default function ResetPassword() {
                                 )}
                             />
 
-                            {/* Trường Confirm Password */}
+                            {/* Confirm Password Field */}
                             <FormField
                                 control={form.control}
                                 name="confirmPassword"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-base font-medium text-slate-300">
+                                        <FormLabel className="text-base font-medium text-text-secondary">
                                             Confirm Password
                                         </FormLabel>
                                         <FormControl>
                                             <div className="relative">
                                                 <Input
-                                                    type={showConfirmPassword ? "text" : "password"}
+                                                    type="password"
                                                     placeholder="Re-enter your password"
-                                                    className="flex items-center bg-[var(--bg-input)] border-slate-700 focus:border-blue-500/50 text-white placeholder:text-slate-400 text-base py-6 pr-10"
+                                                    className="flex items-center bg-input! border-border! focus:border-blue-accent/50 text-foreground placeholder-text-text-muted text-base py-6 pr-10"
                                                     {...field}
                                                 />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 bg-[var(--bg-input)]!"
-                                                >
-                                                    {showConfirmPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                                                </button>
                                             </div>
                                         </FormControl>
                                         <FormMessage className="text-base" />
@@ -149,17 +136,17 @@ export default function ResetPassword() {
 
                             <Button
                                 type="submit"
-                                className="w-full bg-[var(--color-primary)]! hover:bg-[var(--color-primary-hover)]! h-12 text-white text-base py-6"
+                                className="w-full bg-primary! hover:bg-primary-hover! h-12 text-white text-base py-6"
                             >
                                 Reset Password
                             </Button>
                         </form>
                     </Form>
 
-                    {/* BACK TO LOGIN */}
-                    <div className="text-center pt-1">
+                    {/* Back to Login */}
+                    <div className="text-center">
                         <a
-                            onClick={() => setIsResetComplete(true)}
+                            onClick={() => navigate("/")}
                             className="inline-flex items-center text-base text-slate-400! hover:text-slate-300! transition-colors cursor-pointer"
                         >
                             Back to Sign in
@@ -171,7 +158,7 @@ export default function ResetPassword() {
 
             </Card>
 
-            {/* Thông báo chọn mật khẩu mạnh */}
+            {/* Notice: Choose strong password */}
             <p className="text-center text-base text-slate-400 mt-6">
                 Make sure to choose a strong password that you haven't used before.
             </p>
