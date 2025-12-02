@@ -1,3 +1,4 @@
+import { authAPI } from "../services/authAPI";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -28,19 +29,51 @@ import { loginSchema, type LoginValues } from "@/schemas/authSchema";
 
 export default function LoginForm() {
     const [isLoading, setIsLoading] = useState(false);
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const navigate = useNavigate();
 
     const loginForm = useForm<LoginValues>({
         resolver: zodResolver(loginSchema),
-        defaultValues: { email: "", password: "" },
+        defaultValues: { identifier: "", password: "" },
     });
+
 
     const onLoginSubmit = async (data: LoginValues) => {
         setIsLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        console.log("Login Data:", data);
-        setIsLoading(false);
+        try {
+            const response = await authAPI.login(data.identifier, data.password);
+
+            // Lưu token
+            localStorage.setItem("access_token", response.access_token);
+            localStorage.setItem("refresh_token", response.refresh_token);
+
+            alert("Login successful!");
+        } catch (error) {
+            loginForm.setError("identifier", {
+                type: "manual",
+                message: error instanceof Error ? error.message : "Login failed",
+            });
+        } finally {
+            setIsLoading(false);
+        }
     };
+
+    const handleGoogleLogin = async () => {
+        setIsGoogleLoading(true);
+        try {
+            const response = await authAPI.loginWithGoogle();
+
+            localStorage.setItem("access_token", response.access_token);
+            localStorage.setItem("user_email", response.user.email || "");
+
+            alert("Login successful!");
+        } catch (error) {
+            alert(error instanceof Error ? error.message : "Google login failed");
+        } finally {
+            setIsGoogleLoading(false);
+        }
+    };
+
 
     return (
         <div className="fixed inset-0 bg-background flex flex-col items-center overflow-auto p-4">
@@ -73,7 +106,7 @@ export default function LoginForm() {
 
                     <CardContent className="space-y-6">
                         {/* GOOGLE LOGIN BUTTON */}
-                        <Button variant="outline" className="w-full h-12 bg-white! text-slate-900 hover:bg-slate-50 border-0 text-base relative group">
+                        <Button type="button" onClick={handleGoogleLogin} disabled={isGoogleLoading} variant="outline" className="w-full h-12 bg-white! text-slate-900 hover:bg-slate-50 border-0 text-base relative group">
                             <svg className="w-8 h-8 mr-3" viewBox="0 0 24 24">
                                 <path
                                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -110,14 +143,14 @@ export default function LoginForm() {
                             <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-3">
                                 <FormField
                                     control={loginForm.control}
-                                    name="email"
+                                    name="identifier"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className="text-base  text-slate-300">Email or Username</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     placeholder="you@example.com"
-                                                    className="flex items-center bg-input! border-border! focus:border-blue-500/50 text-white placeholder:text-slate-400 py-6 text-base"
+                                                    className="flex items-center bg-input! border-border! text-white placeholder:text-slate-400 py-6 text-base"
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -137,7 +170,7 @@ export default function LoginForm() {
                                                     <Input
                                                         type="password"
                                                         placeholder="Enter your password"
-                                                        className="flex items-center bg-input! border-border! pr-10 focus:border-blue-500/50 text-white placeholder:text-slate-400 py-6 text-base"
+                                                        className="flex items-center bg-input! border-border! pr-10 text-white placeholder:text-slate-400 py-6 text-base"
                                                         {...field}
                                                     />
                                                 </div>

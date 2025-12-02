@@ -100,7 +100,7 @@ export default function ResetPassword() {
                                                     <Input
                                                         type="password"
                                                         placeholder="Enter new password"
-                                                        className="flex items-center bg-input! border-border! focus:border-blue-accent/50 text-foreground placeholder-text-text-muted text-base py-6 pr-10"
+                                                        className="flex items-center bg-input! border-border! text-foreground placeholder-text-text-muted text-base py-6 pr-10"
                                                         {...field}
                                                     />
 
@@ -125,7 +125,7 @@ export default function ResetPassword() {
                                                     <Input
                                                         type="password"
                                                         placeholder="Re-enter your password"
-                                                        className="flex items-center bg-input! border-border! focus:border-blue-accent/50 text-foreground placeholder-text-text-muted text-base py-6 pr-10"
+                                                        className="flex items-center bg-input! border-border! text-foreground placeholder-text-text-muted text-base py-6 pr-10"
                                                         {...field}
                                                     />
                                                 </div>

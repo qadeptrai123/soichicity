@@ -46,12 +46,16 @@
 
 /* Ẩn thanh cuộn cho Emoji Picker nhưng BẮT BUỘC cho phép lăn chuột */
 .no-scrollbar .epr-body::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+    display: none;
+    /* Chrome, Safari, Opera */
 }
+
 .no-scrollbar .epr-body {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-  
-  /* Dòng quan trọng nhất để sửa lỗi không lướt được: */
-  overflow-y: auto !important; 
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+
+    /* Dòng quan trọng nhất để sửa lỗi không lướt được: */
+    overflow-y: auto !important;
 }

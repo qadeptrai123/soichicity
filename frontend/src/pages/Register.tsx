@@ -1,3 +1,4 @@
+import { authAPI } from "../services/authAPI";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -29,6 +30,7 @@ import { registerSchema, type RegisterValues } from "@/schemas/authSchema";
 
 export default function Register() {
     const [isLoading, setIsLoading] = useState(false);
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const navigate = useNavigate();
 
     const registerForm = useForm<RegisterValues>({
@@ -38,11 +40,37 @@ export default function Register() {
 
     const onRegisterSubmit = async (data: RegisterValues) => {
         setIsLoading(true);
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        console.log("Register Data:", data);
-        setIsLoading(false);
+        try {
+            await authAPI.register(data.username, data.email, data.password);
+            alert("Registration successful! Please log in.");
+            navigate("/");
+        } catch (error) {
+            registerForm.setError("email", {
+                type: "manual",
+                message: error instanceof Error ? error.message : "Registration failed",
+            });
+        } finally {
+            setIsLoading(false);
+        }
     };
+
+    const handleGoogleRegister = async () => {
+        setIsGoogleLoading(true);
+        try {
+            const response = await authAPI.loginWithGoogle();
+
+            localStorage.setItem("access_token", response.access_token);
+            localStorage.setItem("user_email", response.user.email || "");
+
+            alert("Registration successful!");
+        } catch (error) {
+            alert(error instanceof Error ? error.message : "Google registration failed");
+        } finally {
+            setIsGoogleLoading(false);
+        }
+    };
+
+
 
     return (
         <div className="fixed inset-0 bg-background flex flex-col items-center overflow-auto p-4 pt-5">
@@ -70,7 +98,7 @@ export default function Register() {
                     </CardHeader>
 
                     <CardContent className="space-y-6">
-                        <Button variant="outline" className="w-full h-12 bg-white! text-slate-900 hover:bg-slate-50 border-0 text-base">
+                        <Button onClick={handleGoogleRegister} disabled={isGoogleLoading} variant="outline" className="w-full h-12 bg-white! text-slate-900 hover:bg-slate-50 border-0 text-base">
                             <svg className="w-8 h-8 mr-3" viewBox="0 0 24 24">
                                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -100,7 +128,7 @@ export default function Register() {
                                             <FormControl>
                                                 <Input
                                                     placeholder="Choose a username"
-                                                    className="flex items-center bg-input! border-border! focus:border-blue-accent/50 text-foreground placeholder-text-text-muted text-base py-6"
+                                                    className="flex items-center bg-input! border-border! text-foreground placeholder-text-text-muted text-base py-6"
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -119,7 +147,7 @@ export default function Register() {
                                                 <Input
                                                     type="email"
                                                     placeholder="you@example.com"
-                                                    className="flex items-center bg-input! border-border! focus:border-blue-accent/50 text-foreground placeholder-text-text-muted text-base py-6"
+                                                    className="flex items-center bg-input! border-border! text-foreground placeholder-text-text-muted text-base py-6"
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -139,7 +167,7 @@ export default function Register() {
                                                     <Input
                                                         type="password"
                                                         placeholder="Create a password"
-                                                        className="flex items-center bg-input! border-border! pr-10 focus:border-blue-accent/50 text-foreground placeholder-text-text-muted text-base py-6"
+                                                        className="flex items-center bg-input! border-border! pr-10 text-foreground placeholder-text-text-muted text-base py-6"
                                                         {...field}
                                                     />
                                                 </div>
@@ -160,7 +188,7 @@ export default function Register() {
                                                     <Input
                                                         type="password"
                                                         placeholder="Confirm your password"
-                                                        className="flex items-center bg-input! border-border! pr-10 focus:border-blue-accent/50 text-foreground placeholder-text-text-muted text-base py-6"
+                                                        className="flex items-center bg-input! border-border! pr-10 text-foreground placeholder-text-text-muted text-base py-6"
                                                         {...field}
                                                     />
                                                 </div>

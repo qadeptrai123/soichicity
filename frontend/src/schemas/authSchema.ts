@@ -2,9 +2,18 @@ import { z } from "zod";
 
 // Schema cho Đăng nhập
 export const loginSchema = z.object({
-    email: z.string().email({ message: "Ivalid Email" }),
+    identifier: z.string()
+        .refine(
+            (value) => {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                // Nếu là email thì không kiểm tra min, nếu là username thì min 2
+                return emailRegex.test(value) || value.length >= 2;
+            },
+            { message: "Invalid email or username (username min 2 characters)" }
+        ),
     password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
+
 
 // Schema cho Đăng ký
 export const registerSchema = z.object({
