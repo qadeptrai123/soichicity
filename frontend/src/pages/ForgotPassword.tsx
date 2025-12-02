@@ -46,7 +46,7 @@ export default function ForgotPassword() {
     };
 
     return (
-        <div className="fixed inset-0 bg-background flex flex-col justify-center items-center overflow-auto p-4">
+        <div className="fixed inset-0 bg-background flex flex-col items-center overflow-auto p-4">
             {/* Decorative elements */}
             <div className="w-[40vw] h-[40vw] max-w-lg max-h-lg absolute top-0 left-0 opacity-70 bg-blue-600/10 rounded-full blur-[100px]" />
             <div className="w-[40vw] h-[40vw] max-w-lg max-h-lg absolute bottom-0 right-[5%] opacity-60 bg-blue-500/10 rounded-full blur-[100px]" />
@@ -56,77 +56,80 @@ export default function ForgotPassword() {
             <div className="w-20 h-20 absolute top-[10%] right-[5%] rounded-[10px] border border-blue-400/10" />
             <div className="w-28 h-28 absolute bottom-[5%] right-0 rounded-full border border-blue-600/10" />
 
-            <Card className="w-full max-w-md bg-secondary backdrop-blur-xl border-border-secondary shadow-2xl shadow-black/50">
-                <CardHeader className="flex flex-col items-center mb-2">
-                    <div className="w-15 h-15 bg-linear-to-tr bg-blue-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30">
-                        <img src={LoginImage} alt="App Logo" />
-                    </div>
-                    <CardTitle className="text-xl text-white text-hd tracking-tight">
-                        Forgot Password
-                    </CardTitle>
-                    <CardDescription className="text-slate-400 text-base text-center mt-2">
-                        Enter your email address and we'll send you a link to get back into your account.
-                    </CardDescription>
-                </CardHeader>
+            <div className="flex flex-col items-center w-full max-w-md mx-auto my-auto">
+                <Card className="w-full max-w-md bg-secondary backdrop-blur-xl border-border-secondary shadow-2xl shadow-black/50 mx-auto my-auto">
+                    <CardHeader className="flex flex-col items-center mb-2">
+                        <div className="w-15 h-15 bg-linear-to-tr bg-blue-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30">
+                            <img src={LoginImage} alt="App Logo" />
+                        </div>
+                        <CardTitle className="text-xl text-white text-hd tracking-tight">
+                            Forgot Password
+                        </CardTitle>
+                        <CardDescription className="text-slate-400 text-base text-center mt-2">
+                            Enter your email address and we'll send you a link to get back into your account.
+                        </CardDescription>
+                    </CardHeader>
 
-                <CardContent className="space-y-6">
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                            {/* Email Field */}
-                            <FormField
-                                control={form.control}
-                                name="email"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-base text-slate-300">
-                                            Email
-                                        </FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="email"
-                                                placeholder="you@example.com"
-                                                className="flex items-center bg-input! border-border! focus:border-blue-accent/50 text-foreground placeholder-text-text-muted py-6 text-base"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage className="text-base" />
-                                    </FormItem>
-                                )}
-                            />
+                    <CardContent className="space-y-6">
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                                {/* Email Field */}
+                                <FormField
+                                    control={form.control}
+                                    name="email"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-base text-slate-300">
+                                                Email
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="email"
+                                                    placeholder="you@example.com"
+                                                    className="flex items-center bg-input! border-border! focus:border-blue-accent/50 text-foreground placeholder-text-text-muted py-6 text-base"
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage className="text-base" />
+                                        </FormItem>
+                                    )}
+                                />
 
-                            {/* Submit Button */}
-                            <Button
-                                type="submit"
-                                className="w-full bg-primary! hover:bg-primary-hover! h-11 text-white text-base py-6"
-                                disabled={isLoading}
-                            >
-                                {isLoading ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                        Sending...
-                                    </>
-                                ) : (
-                                    "Send Reset Link"
-                                )}
-                            </Button>
-
-                            {/* Back to Login */}
-                            <div className="text-center text-base text-slate-400">
-                                <span
-                                    onClick={() => navigate("/")}
-                                    className="text-base text-slate-400 hover:text-slate-300 transition-all cursor-pointer"
+                                {/* Submit Button */}
+                                <Button
+                                    type="submit"
+                                    className="w-full bg-primary! hover:bg-primary-hover! h-11 text-white text-base py-6"
+                                    disabled={isLoading}
                                 >
-                                    Back to Login
-                                </span>
-                            </div>
-                        </form>
-                    </Form>
-                </CardContent>
-            </Card>
+                                    {isLoading ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        "Send Reset Link"
+                                    )}
+                                </Button>
 
-            <p className="text-center text-ft text-slate-400 mt-6">
-                By continuing, you agree to our Terms of Service and Privacy Policy.
-            </p>
+                                {/* Back to Login */}
+                                <div className="text-center text-base text-slate-400">
+                                    <span
+                                        onClick={() => navigate("/")}
+                                        className="text-base text-slate-400 hover:text-slate-300 transition-all cursor-pointer"
+                                    >
+                                        Back to Login
+                                    </span>
+                                </div>
+                            </form>
+                        </Form>
+                    </CardContent>
+                </Card>
+
+                <p className="text-center text-ft text-slate-400 mt-6">
+                    By continuing, you agree to our Terms of Service and Privacy Policy.
+                </p>
+            </div>
+
         </div>
     );
 }
