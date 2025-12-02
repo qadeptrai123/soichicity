@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useRef } from "react";
 import { Image as ImageIcon, AtSign, X, Search } from "lucide-react"; 
 import {
@@ -18,18 +20,29 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import EmojiButton from "./EmojiButton";
-import { CURRENT_USER, MOCK_FRIENDS } from "../MockData/data";
 
 type MediaFile = { url: string; type: "image" | "video" };
 
+type User = {
+  id: string | number;
+  username: string;
+  name: string | null;
+  avatarUrl?: string;
+};
 interface CreatePostDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  currentUser: User; // THAY ĐỔI: Nhận dữ liệu người dùng qua props
+  mockFriends: User[]; 
+  onPost: (content: string, mediaFiles: MediaFile[]) => void;
 }
 
 export default function CreatePostDialog({ 
   open, 
-  onOpenChange 
+  onOpenChange,
+  currentUser, // THAM SỐ
+  mockFriends, // THAM SỐ
+  onPost, // THAM SỐ
 }: CreatePostDialogProps) {
   
   const [content, setContent] = useState<string>("");
@@ -42,10 +55,12 @@ export default function CreatePostDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 3. Logic lọc danh sách bạn bè dựa trên từ khóa tìm kiếm
-  const filteredFriends = MOCK_FRIENDS.filter((user) => 
-    user.name.toLowerCase().includes(tagSearch.toLowerCase()) ||
-    user.username.toLowerCase().includes(tagSearch.toLowerCase())
-  );
+  const filteredFriends = mockFriends.filter((user) => {
+    const query = tagSearch.toLowerCase();
+    const matchName = user.name ? user.name.toLowerCase().includes(query) : false;
+    const matchUsername = user.username.toLowerCase().includes(query);
+    return matchName || matchUsername;
+  });
 
   // --- LOGIC ---
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,7 +90,7 @@ export default function CreatePostDialog({
   };
 
   const handlePost = () => {
-    console.log(`User ${CURRENT_USER.username} posted:`, { content, mediaFiles });
+    onPost(content, mediaFiles);
     handleReset();
   };
 
@@ -85,7 +100,7 @@ export default function CreatePostDialog({
   };
 
   const handleTagUser = (username: string) => {
-    setContent((prev) => prev + `@${username} `);
+    setContent((prev) => prev + `@${username} ` );
     setTagSearch(""); 
   };
 
@@ -113,15 +128,15 @@ export default function CreatePostDialog({
         <div className="p-6 flex gap-4 min-h-[300px] overflow-y-auto flex-1">
           <div className="flex flex-col items-center pt-1">
             <Avatar className="w-10 h-10 border border-border">
-              <AvatarImage src={CURRENT_USER.avatarUrl} alt={CURRENT_USER.username} />
-              <AvatarFallback>{CURRENT_USER.name.charAt(0).toUpperCase()}</AvatarFallback>
+              <AvatarImage src={currentUser.avatarUrl} alt={currentUser.username} />
+              <AvatarFallback>{(currentUser.name || currentUser.username).charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="w-[2px] flex-1 bg-border my-3 rounded-full opacity-50"></div>
           </div>
 
           <div className="flex-1 flex flex-col">
             <p className="font-semibold text-base mb-1 text-foreground">
-              {CURRENT_USER.username}
+              {currentUser.username}
             </p>
 
             <textarea
@@ -195,10 +210,10 @@ export default function CreatePostDialog({
                           className="cursor-pointer hover:bg-white/10 focus:bg-white/10 flex items-center gap-2 py-2 px-2 rounded-md"
                         >
                           <Avatar className="w-6 h-6">
-                            <AvatarFallback className="text-[10px] bg-primary/20">{user.name.charAt(0)}</AvatarFallback>
+                            <AvatarFallback className="text-[10px] bg-primary/20">{(user.name || user.username).charAt(0)}</AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col">
-                            <span className="text-sm font-medium leading-none">{user.name}</span>
+                            <span className="text-sm font-medium leading-none">{user.name || user.username}</span>
                             <span className="text-[10px] text-muted-foreground">@{user.username}</span>
                           </div>
                         </DropdownMenuItem>

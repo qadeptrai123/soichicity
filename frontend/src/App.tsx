@@ -19,17 +19,42 @@
 // //   )
 // // }
 
-import { useState } from "react";
-import CreatePostDialog from "./components/CreatePostDialog";
-import './App.css';
+// import { useState } from "react";
+// import CreatePostDialog from "./components/CreatePostDialog";
+// import './App.css';
+
+// export default function App() {
+//   const [isCreatePostOpen, setIsCreatePostOpen] = useState(true);
+
+//   return (
+//     <CreatePostDialog 
+//       open={isCreatePostOpen}
+//       onOpenChange={setIsCreatePostOpen}
+//     />
+//   );
+// }
+
+
+import { useState } from 'react';
+import CreatePostDialog from '@/components/CreatePostDialog'; 
+import { CURRENT_USER, MOCK_FRIENDS } from "@/MockData/data"; 
+import './App.css'
 
 export default function App() {
-  const [isCreatePostOpen, setIsCreatePostOpen] = useState(true);
+    
+    const [isDialogOpen, setIsDialogOpen] = useState(true);
 
-  return (
-    <CreatePostDialog 
-      open={isCreatePostOpen}
-      onOpenChange={setIsCreatePostOpen}
-    />
-  );
+    return (
+        // Chỉ trả về component Dialog duy nhất
+        <CreatePostDialog 
+            open={isDialogOpen} 
+            onOpenChange={setIsDialogOpen} 
+            currentUser={CURRENT_USER} 
+            mockFriends={MOCK_FRIENDS} 
+            onPost={(content, mediaFiles) => {
+                console.log("Đã gửi bài đăng với nội dung:", content, "và media:", mediaFiles);
+                // setIsDialogOpen(false); 
+            }}
+        />
+    );
 }

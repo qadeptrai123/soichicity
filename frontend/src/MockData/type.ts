@@ -1,6 +1,6 @@
-export interface CurrentUser {
+export interface User {
   id: string | number;
-  name: string;
+  name: string | null;
   username: string;
   avatarUrl?: string;
 }

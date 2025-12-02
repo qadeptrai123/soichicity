@@ -1,13 +1,14 @@
-import type { CurrentUser } from "@/MockData/type";
+// import type { CurrentUser } from "@/MockData/type";
+import type {User } from "./type";
 
-export const CURRENT_USER: CurrentUser = {
+export const CURRENT_USER: User = {
   id: "user_99",
   name: "Trần Hữu Lộc",
   username: "LocTran0411",
   avatarUrl: "https://github.com/shadcn.png",
 };
 
-export const MOCK_FRIENDS: CurrentUser[] = [
+export const MOCK_FRIENDS: User[] = [
   { id: "1", name: "Alice", username: "alice123" },
   { id: "2", name: "Bob", username: "bob_builder" },
   { id: "3", name: "Charlie", username: "charlie_brown" },
