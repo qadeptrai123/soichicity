@@ -112,10 +112,9 @@ export default function ForgotPassword() {
 
                             {/* Back to Login */}
                             <div className="text-center text-base text-slate-400">
-                                Remember your password?{" "}
                                 <span
-                                    onClick={() => navigate("/login")}
-                                    className="text-primary hover:text-primary-hover! hover:underline transition-all cursor-pointer"
+                                    onClick={() => navigate("/")}
+                                    className="text-base text-slate-400 hover:text-slate-300 transition-all cursor-pointer"
                                 >
                                     Back to Login
                                 </span>
