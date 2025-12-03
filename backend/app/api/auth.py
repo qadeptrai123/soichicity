@@ -1,98 +1,95 @@
+# app/api/auth.py
+import requests
+# import json
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from app.db.firebase import get_db
 from app.services import user_service
-from app.core.security import verify_password, create_access_token, get_password_hash # Import từ core
-from app.schemas.user import UserCreate, UserResponse, PasswordRecoveryRequest, PasswordResetConfirm
-from jose import JWTError, jwt  
+from app.schemas.user import UserCreate, UserResponse
 from app.core.config import settings
-from datetime import timedelta
-from app.services.email_service import send_reset_password_email
+from firebase_admin import auth
 
 router = APIRouter()
 
-# API Đăng ký
+# API register
 @router.post("/register", response_model=UserResponse)
 def register(user_in: UserCreate, db=Depends(get_db)):
+    # Logic: Create user in Auth -> Get UID -> Create doc in Firestore
+    # Check duplicate username in Firestore
+    users_ref = db.collection('users')
+    if not users_ref.where('username', '==', user_in.username).get() == []:
+         raise HTTPException(status_code=400, detail="Username already taken")
+
     user = user_service.create_user(db, user_in)
-    if not user:
-         raise HTTPException(status_code=400, detail="Email already registered")
     return user
 
-# API Đăng nhập
-@router.post("/token", tags=["auth"])
+# API login
+@router.post("/login", tags=["auth"]) 
 def login(db=Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
-    # 1. Tìm user theo username
-    # Lưu ý: form_data.username là trường user nhập vào (có thể là username hoặc email tùy FE gửi)
-    user = user_service.get_user_by_username(db, form_data.username) 
-    
-    if not user:
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
-    
-    # 2. Kiểm tra mật khẩu (So sánh pass nhập vào với hash trong DB)
-    if not verify_password(form_data.password, user["hashed_password"]):
-         raise HTTPException(status_code=400, detail="Incorrect username or password")
-    
-    # 3. Tạo Token thật ? 
-    access_token = create_access_token(data={"sub": user["username"]})
-    
-    return {"access_token": access_token, "token_type": "bearer"}
+    """
+    Login supports both Email and Username.
+    """
+    login_identifier = form_data.username # Users can enter either username or email here
+    password = form_data.password
+    email_to_login = None
 
-# API recover password
-@router.post("/password-recovery", tags=["auth"])
-async def recover_password(payload: PasswordRecoveryRequest, db=Depends(get_db)):
-    """
-    Bước 1: User gửi email.
-    Server kiểm tra và gửi link reset (Mô phỏng in ra Console).
-    """
-    # 1. Tìm user theo email
-    user = user_service.get_user_by_email(db, payload.email)
-    
-    # Bảo mật: Dù email có hay không, cũng trả về thông báo giống nhau 
-    # để tránh hacker dò xem email nào đã đăng ký.
-    if not user:
-        # Giả vờ thành công
-        return {"message": "Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu."}
-    
-    # 2. Tạo Token reset (Chỉ sống 15 phút)
-    # Ta dùng lại hàm create_access_token nhưng với mục đích khác
-    reset_token = create_access_token(
-        data={"sub": user["username"], "type": "reset"}, # Thêm type để phân biệt
-        expires_delta=timedelta(minutes=15)
-    )
-    
-    try:
-        await send_reset_password_email(payload.email, reset_token)
-    except Exception as e:
-        print(f"Lỗi gửi mail: {e}")
-        # Tùy chọn: Có thể return lỗi 500 nếu muốn báo cho user biết
-    
-    return {"message": "Email hướng dẫn đã được gửi!"}
-
-# --- 4. RESET PASSWORD (ĐỔI MẬT KHẨU THẬT) ---
-@router.post("/reset-password", tags=["auth"])
-def reset_password(payload: PasswordResetConfirm, db=Depends(get_db)):
-    """
-    Bước 2: User gửi token nhận được từ email + mật khẩu mới.
-    """
-    # 1. Giải mã Token
-    try:
-        decoded_data = jwt.decode(payload.token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        username = decoded_data.get("sub")
-        token_type = decoded_data.get("type")
+    # STEP 1: Determine if input is Email or Username
+    if "@" in login_identifier:
+        # Input is Email
+        email_to_login = login_identifier
+    else:
+        # Input is Username -> Need to find Email from Firestore
+        # Make sure you have the get_user_by_username function in user_service
+        user_data = user_service.get_user_by_username(db, login_identifier)
+        if not user_data:
+            # Username not found in DB
+            raise HTTPException(status_code=400, detail="Incorrect username or password")
         
-        if username is None or token_type != "reset":
-            raise HTTPException(status_code=400, detail="Invalid token")
+        email_to_login = user_data.get("email")
+
+    # STEP 2: Check User Record on Firebase Auth (to handle Google Auth case)
+    if email_to_login:
+        user_record = user_service.get_user_by_email_admin(email_to_login)
+        
+        if user_record:
+            # Get list of providers (e.g., password, google.com)
+            providers = [p.provider_id for p in user_record.provider_data]
+            has_password_provider = 'password' in providers
             
-    except JWTError:
-        raise HTTPException(status_code=400, detail="Token expired or invalid")
-        
-    # 2. Mã hóa mật khẩu mới
-    new_hashed_pw = get_password_hash(payload.new_password)
+            # If user only has Google Auth and hasn't set a password
+            if 'google.com' in providers and not has_password_provider:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="This email is registered with Google Auth. Please use 'Continue with Google' or use the Forgot Password feature to set a password."
+                )
+    else:
+         raise HTTPException(status_code=400, detail="Invalid user data")
+
+    # STEP 3: Call Firebase REST API to verify password
+    request_url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={settings.FIREBASE_API_KEY}"
+    payload = {
+        "email": email_to_login, 
+        "password": password,
+        "returnSecureToken": True
+    }
     
-    # 3. Lưu vào DB
-    success = user_service.update_password(db, username, new_hashed_pw)
-    if not success:
-        raise HTTPException(status_code=404, detail="User not found")
+    response = requests.post(request_url, json=payload)
+    data = response.json()
+    
+    if "error" in data:
+        error_msg = data["error"]["message"]
+        if error_msg in ["EMAIL_NOT_FOUND", "INVALID_PASSWORD", "INVALID_LOGIN_CREDENTIALS"]:
+             raise HTTPException(status_code=400, detail="Incorrect username/email or password")
+        elif error_msg == "USER_DISABLED":
+             raise HTTPException(status_code=400, detail="User account has been disabled.")
+        elif error_msg == "TOO_MANY_ATTEMPTS_TRY_LATER":
+             raise HTTPException(status_code=400, detail="Too many failed attempts. Please try again later.")
         
-    return {"message": "Password updated successfully"}
+        raise HTTPException(status_code=400, detail=error_msg)
+        
+    return {
+        "access_token": data["idToken"], 
+        "token_type": "bearer",
+        "refresh_token": data["refreshToken"],
+        "expires_in": int(data["expiresIn"])
+    }

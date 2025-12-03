@@ -94,7 +94,7 @@ export default function CreatePostDialog({
 
   const onEmojiClick = (emoji: string) => {
     setContent((prev) => prev + emoji);
-    setShowEmojiPicker(false);
+
   };
 
   const handleTagUser = (username: string) => {
