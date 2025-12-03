@@ -21,6 +21,9 @@
     --color-blue-600: #2563eb;
     --color-blue-500: #3b82f6;
     --color-blue-accent: #0ea5e9;
+
+    /* Fonts */
+    --font-sans: "Inter", sans-serif;
 }
 
 @utility no-scrollbar {
@@ -51,10 +54,11 @@
 }
 
 .no-scrollbar .epr-body {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-  
-  /* Dòng quan trọng nhất để sửa lỗi không lướt được: */
-  overflow-y: auto !important; 
-}
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
 
+    /* Dòng quan trọng nhất để sửa lỗi không lướt được: */
+    overflow-y: auto !important;
+}
