@@ -49,12 +49,12 @@ async def create_new_user(user_data: dict):
     doc_ref.set(user_data)
     return True
 
-def upload_file_to_storage(file_path: str, storage_path: str):
-    bucket = storage.bucket()
-    blob = bucket.blob(storage_path)
-    blob.upload_from_filename(file_path)
-    blob.make_public()
-    return blob.public_url
+# def upload_file_to_storage(file_path: str, storage_path: str):
+#     bucket = storage.bucket()
+#     blob = bucket.blob(storage_path)
+#     blob.upload_from_filename(file_path)
+#     blob.make_public()
+#     return blob.public_url
 
 def get_db():
     return db
