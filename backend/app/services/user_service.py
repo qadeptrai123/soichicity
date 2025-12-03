@@ -35,7 +35,8 @@ def create_user(db, user: UserCreate):
         user_record = auth.create_user(
             email=user.email,
             password=user.password,
-            display_name=user.username # Temporarily store username in display_name
+            display_name=user.username, # Temporarily store username in display_name
+            email_verified=True
         )
     except auth.EmailAlreadyExistsError:
         raise HTTPException(status_code=400, detail="Email already registered in Firebase Auth")
