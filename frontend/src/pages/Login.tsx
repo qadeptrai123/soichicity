@@ -48,6 +48,7 @@ export default function LoginForm() {
             localStorage.setItem("refresh_token", response.refresh_token);
 
             alert("Login successful!");
+            navigate("/");
         } catch (error) {
             loginForm.setError("password", {
                 type: "manual",
@@ -67,6 +68,7 @@ export default function LoginForm() {
             localStorage.setItem("user_email", response.user.email || "");
 
             alert("Login successful!");
+            navigate("/");
         } catch (error) {
             alert(error instanceof Error ? error.message : "Google login failed");
         } finally {

@@ -1,6 +1,8 @@
 // Trang này sẽ là trang home luôn
 import FeedCard from '@/components/FeedCard';
+import { LoginPrompt } from '@/components/LoginPrompt';
 import type { PostData, AuthorData, MediaItem } from '@/components/FeedCard';
+import { useEffect, useState, useRef, useCallback } from 'react';
 
 // --- BẮT ĐẦU: DỮ LIỆU MOCK MỚI VỚI YOUTUBE LINKS ---
 
@@ -29,13 +31,12 @@ const youtubePlaceholders = [
 
 // URLs ảnh placeholder (giữ nguyên)
 const imagePlaceholders = [
-    'https://th.bing.com/th/id/OIP.epQ3-fDwbFjCeT9FJ0zySAHaE4?o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3',
-    'https://th.bing.com/th/id/OIP.CFG1RgZ9gTRtNgk_wWxG8QHaEO?w=283&h=180&c=7&r=0&o=7&dpr=1.1&pid=1.7&rm=3',
-    'https://th.bing.com/th/id/OIP.dnjO4CzIXomeStDIwIThywHaEC?w=331&h=180&c=7&r=0&o=7&dpr=1.1&pid=1.7&rm=3',
-    'https://th.bing.com/th/id/OIP.JNrN7rlOnylypuewePK6WQHaE1?o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3',
-    'https://th.bing.com/th?id=OIF.uDz7%2fCrozQsK48iGq6eNjg&w=276&h=180&c=7&r=0&o=7&dpr=1.1&pid=1.7&rm=3',
-    'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500&h=500',
-    'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500&h=500&crop=faces',
+    'https://images.pexels.com/photos/1486974/pexels-photo-1486974.jpeg?cs=srgb&dl=pexels-james-wheeler-1486974.jpg&fm=jpg',
+    'https://images.pexels.com/photos/414171/pexels-photo-414171.jpeg?cs=srgb&dl=pexels-pixabay-414171.jpg&fm=jpg',
+    'https://images.pexels.com/photos/736230/pexels-photo-736230.jpeg?cs=srgb&dl=pexels-lukas-736230.jpg&fm=jpg',
+    'https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?cs=srgb&dl=pexels-andrea-piacquadio-1108099.jpg&fm=jpg',
+    'https://images.pexels.com/photos/210647/pexels-photo-210647.jpeg?cs=srgb&dl=pexels-pixabay-210647.jpg&fm=jpg',
+    'https://images.pexels.com/photos/34950/pexels-photo.jpg?cs=srgb&dl=pexels-pixabay-34950.jpg&fm=jpg',
 ];
 
 // Nội dung bài đăng giả (giữ nguyên)
@@ -196,28 +197,118 @@ for (let i = 1; i <= totalPosts; i++) {
 // --- KẾT THÚC: DỮ LIỆU MOCK MỚI VỚI YOUTUBE LINKS ---
 
 const Feed = () => {
+    const [displayedPosts, setDisplayedPosts] = useState<(PostData & { author: AuthorData })[]>([]);
+    const [postsPerPage] = useState(20);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const observerTarget = useRef<HTMLDivElement>(null);
+
+    // Check authentication on mount
+    useEffect(() => {
+        const accessToken = localStorage.getItem('access_token');
+        setIsAuthenticated(!!accessToken);
+    }, []);
+
+    // Load more posts
+    const loadMorePosts = useCallback(() => {
+        if (isLoading || !hasMore) return;
+
+        setIsLoading(true);
+        // Simulate network delay
+        setTimeout(() => {
+            const startIndex = currentPage * postsPerPage;
+            const endIndex = startIndex + postsPerPage;
+            const newPosts = mockPosts.slice(startIndex, endIndex);
+
+            if (newPosts.length === 0) {
+                setHasMore(false);
+            } else {
+                setDisplayedPosts(prev => [...prev, ...newPosts]);
+                setCurrentPage(prev => prev + 1);
+            }
+            setIsLoading(false);
+        }, 300);
+    }, [currentPage, postsPerPage, isLoading, hasMore]);
+
+    // Initial load
+    useEffect(() => {
+        loadMorePosts();
+    }, []);
+
+    // Infinite scroll observer
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            entries => {
+                if (entries[0].isIntersecting && hasMore && !isLoading) {
+                    loadMorePosts();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (observerTarget.current) {
+            observer.observe(observerTarget.current);
+        }
+
+        return () => {
+            if (observerTarget.current) {
+                observer.unobserve(observerTarget.current);
+            }
+        };
+    }, [loadMorePosts, hasMore, isLoading]);
+
+
+
     return (
-        <div className="min-h-screen p-4 ">
-            <div className="max-w-2xl mx-auto space-y-4">
-                {mockPosts.map((item) => (
-                    <FeedCard
-                        key={item.id}
-                        post={{
-                            id: item.id,
-                            content: item.content,
-                            created_at: item.created_at,
-                            author_id: item.author_id,
-                            media_url: item.media_url,
-                            media_type: item.media_type,
-                            gallery: item.gallery,
-                            actions_count: item.actions_count,
-                            replies_count: item.replies_count,
-                            bookmark_count: item.bookmark_count,
-                            shares_count: item.shares_count
-                        }}
-                        author={item.author}
-                    />
-                ))}
+        <div className="min-h-screen p-4">
+            <div className={`mx-auto mr-30 gap-0 ${isAuthenticated ? 'max-w-2xl' : 'max-w-7xl grid grid-cols-1 lg:grid-cols-3'}`}>
+                {/* Feed Posts - Center when authenticated, Left column when not */}
+                <div className={isAuthenticated ? 'w-full' : 'lg:col-span-2'}>
+                    <div className="space-y-4">
+                        {displayedPosts.length > 0 && displayedPosts.map((item) => (
+                            <FeedCard
+                                key={item.id}
+                                post={{
+                                    id: item.id,
+                                    content: item.content,
+                                    created_at: item.created_at,
+                                    author_id: item.author_id,
+                                    media_url: item.media_url,
+                                    media_type: item.media_type,
+                                    gallery: item.gallery,
+                                    actions_count: item.actions_count,
+                                    replies_count: item.replies_count,
+                                    bookmark_count: item.bookmark_count,
+                                    shares_count: item.shares_count
+                                }}
+                                author={item.author}
+                            />
+                        ))}
+
+                        {/* Infinite scroll trigger */}
+                        <div ref={observerTarget} className="py-8 text-center">
+                            {isLoading && (
+                                <div className="flex justify-center">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
+                                </div>
+                            )}
+                            {!hasMore && displayedPosts.length > 0 && (
+                                <p className="text-text-muted text-sm">No more posts to load</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Login Prompt - Right Column (only show if not authenticated) */}
+                {!isAuthenticated && (
+                    <div className="-ml-40 lg:col-span-1">
+                        <div className="sticky top-4">
+                            <LoginPrompt />
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

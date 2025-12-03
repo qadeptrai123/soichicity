@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Bookmark, Repeat2, Heart, Send, MoreHorizontal, X, ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { MessageSquare, Bookmark, Repeat2, Heart, Send, MoreHorizontal, X, Play } from "lucide-react";
 
 // 1. Định nghĩa kiểu dữ liệu cho Post (khớp với Firestore)
 export interface MediaItem {
@@ -90,22 +90,7 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
 
     const currentItem = items[selectedIndex];
     const embedUrl = currentItem.type === 'youtube' ? getYouTubeEmbedUrl(currentItem.url) : null;
-
-    const handlePrev = () => {
-        setSelectedIndex((prev) => (prev === 0 ? items.length - 1 : prev - 1));
-        if (scrollContainerRef.current) {
-            const newIndex = selectedIndex === 0 ? items.length - 1 : selectedIndex - 1;
-            scrollContainerRef.current.scrollLeft = newIndex * scrollContainerRef.current.offsetWidth;
-        }
-    };
-
-    const handleNext = () => {
-        setSelectedIndex((prev) => (prev === items.length - 1 ? 0 : prev + 1));
-        if (scrollContainerRef.current) {
-            const newIndex = selectedIndex === items.length - 1 ? 0 : selectedIndex + 1;
-            scrollContainerRef.current.scrollLeft = newIndex * scrollContainerRef.current.offsetWidth;
-        }
-    };
+    const isMultipleItems = items.length > 1;
 
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const container = e.currentTarget;
@@ -115,107 +100,135 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
         setSelectedIndex(Math.min(newIndex, items.length - 1));
     };
 
-    const handleDotClick = (index: number) => {
-        setSelectedIndex(index);
-        if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollLeft = index * scrollContainerRef.current.offsetWidth;
-        }
-    };
-
     return (
         <>
-            <div className="rounded-xl overflow-hidden border border-border mt-2 w-full bg-black relative group">
-                {/* Horizontal carousel - side by side */}
-                <div
-                    ref={scrollContainerRef}
-                    className="flex bg-black overflow-x-auto scroll-smooth snap-x snap-mandatory"
-                    style={{
-                        scrollBehavior: 'smooth',
-                        scrollSnapType: 'x mandatory',
-                        WebkitOverflowScrolling: 'touch'
-                    }}
-                    onScroll={handleScroll}
-                >
-                    {items.map((item, index) => (
-                        <div
-                            key={index}
-                            className="flex-shrink-0 bg-black snap-start"
-                            style={{ width: '100%', aspectRatio: '1' }}
-                        >
-                            {item.type === 'youtube' ? (
-                                <div className="relative w-full h-full bg-black">
-                                    <iframe
-                                        src={getYouTubeEmbedUrl(item.url)!}
-                                        title={`YouTube video ${index + 1}`}
-                                        frameBorder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                        className="absolute top-0 left-0 w-full h-full"
-                                    />
-                                </div>
-                            ) : item.type === 'video' ? (
-                                <div className="relative w-full h-full bg-black cursor-pointer" onClick={() => setShowLightbox(true)}>
-                                    <video
-                                        className="w-full h-full object-cover"
-                                        src={item.url}
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/50 transition">
-                                        <Play size={48} className="text-white fill-white" />
+            {/* Horizontal Carousel Layout for Multiple Items */}
+            {isMultipleItems ? (
+                <div className="rounded-xl overflow-hidden border border-border mt-2 w-full bg-black relative group">
+                    <div
+                        ref={scrollContainerRef}
+                        className="flex bg-black overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide"
+                        style={{
+                            scrollBehavior: 'smooth',
+                            scrollSnapType: 'x mandatory',
+                            WebkitOverflowScrolling: 'touch',
+                            msOverflowStyle: 'none',
+                            scrollbarWidth: 'none'
+                        }}
+                        onScroll={handleScroll}
+                    >
+                        {items.map((item, index) => (
+                            <div
+                                key={index}
+                                className="shrink-0 bg-black snap-start relative flex items-center justify-center"
+                                style={{
+                                    width: 'calc(50% - 4px)',
+                                    minHeight: '240px'
+                                }}
+                                onClick={() => {
+                                    setSelectedIndex(index);
+                                    setShowLightbox(true);
+                                }}
+                            >
+                                {item.type === 'youtube' ? (
+                                    <div className="w-full h-full bg-black flex items-center justify-center">
+                                        <img
+                                            src={`https://img.youtube.com/vi/${item.url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)?.[1]}/mqdefault.jpg`}
+                                            alt="YouTube thumbnail"
+                                            className="w-full h-full object-contain"
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
+                                            <Play size={32} className="text-white fill-white" />
+                                        </div>
                                     </div>
-                                </div>
-                            ) : (
-                                <img
-                                    src={item.url}
-                                    alt={`Gallery item ${index + 1}`}
-                                    className="w-full h-full object-cover cursor-pointer"
-                                    loading="lazy"
-                                    onClick={() => {
-                                        setSelectedIndex(index);
-                                        setShowLightbox(true);
-                                    }}
-                                />
-                            )}
-                        </div>
-                    ))}
+                                ) : item.type === 'video' ? (
+                                    <>
+                                        <video
+                                            className="w-full h-full object-contain"
+                                            src={item.url}
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
+                                            <Play size={32} className="text-white fill-white" />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <img
+                                        src={item.url}
+                                        alt={`Gallery item ${index + 1}`}
+                                        className="w-full h-auto object-contain"
+                                        loading="lazy"
+                                    />
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
-
-                {/* Navigation Controls */}
-                {items.length > 1 && (
-                    <>
-                        <button
-                            onClick={handlePrev}
-                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition z-10 opacity-0 group-hover:opacity-100"
-                        >
-                            <ChevronLeft size={20} />
-                        </button>
-                        <button
-                            onClick={handleNext}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition z-10 opacity-0 group-hover:opacity-100"
-                        >
-                            <ChevronRight size={20} />
-                        </button>
-
-                        {/* Indicator Dots */}
-                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                            {items.map((_, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => handleDotClick(index)}
-                                    className={`transition-all rounded-full ${index === selectedIndex
-                                        ? 'bg-white w-2 h-2'
-                                        : 'bg-white/50 w-1.5 h-1.5 hover:bg-white/70'
-                                        }`}
-                                    aria-label={`Go to image ${index + 1}`}
-                                />
-                            ))}
-                        </div>
-                    </>
-                )}
-            </div>
+            ) : (
+                /* Single Item - Original Carousel Layout */
+                <div className="rounded-xl overflow-hidden border border-border mt-2 w-full bg-black relative group">
+                    <div
+                        ref={scrollContainerRef}
+                        className="flex bg-black overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide"
+                        style={{
+                            scrollBehavior: 'smooth',
+                            scrollSnapType: 'x mandatory',
+                            WebkitOverflowScrolling: 'touch',
+                            msOverflowStyle: 'none',
+                            scrollbarWidth: 'none'
+                        }}
+                        onScroll={handleScroll}
+                    >
+                        {items.map((item, index) => (
+                            <div
+                                key={index}
+                                className="shrink-0 bg-black snap-start relative flex items-center justify-center"
+                                style={{
+                                    width: '100%',
+                                    minHeight: '400px'
+                                }}
+                                onClick={() => {
+                                    setSelectedIndex(index);
+                                    setShowLightbox(true);
+                                }}
+                            >
+                                {item.type === 'youtube' ? (
+                                    <div className="w-full h-full bg-black flex items-center justify-center">
+                                        <img
+                                            src={`https://img.youtube.com/vi/${item.url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)?.[1]}/mqdefault.jpg`}
+                                            alt="YouTube thumbnail"
+                                            className="w-full h-full object-contain"
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
+                                            <Play size={32} className="text-white fill-white" />
+                                        </div>
+                                    </div>
+                                ) : item.type === 'video' ? (
+                                    <>
+                                        <video
+                                            className="w-full h-full object-contain"
+                                            src={item.url}
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
+                                            <Play size={32} className="text-white fill-white" />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <img
+                                        src={item.url}
+                                        alt={`Gallery item ${index + 1}`}
+                                        className="w-full h-auto object-contain"
+                                        loading="lazy"
+                                    />
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Lightbox */}
             {showLightbox && (
-                <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center">
+                <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
                     <button
                         onClick={() => setShowLightbox(false)}
                         className="absolute top-4 right-4 text-white hover:bg-white/20 p-2 rounded-full transition z-50"
@@ -223,36 +236,30 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                         <X size={24} />
                     </button>
 
-                    {currentItem.type === 'image' ? (
+                    {currentItem.type === 'youtube' ? (
+                        <div className="relative w-full max-w-4xl bg-black" style={{ paddingBottom: '56.25%' }}>
+                            <iframe
+                                src={embedUrl!}
+                                title={`YouTube video ${selectedIndex + 1}`}
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="absolute top-0 left-0 w-full h-full"
+                            />
+                        </div>
+                    ) : currentItem.type === 'image' ? (
                         <img
                             src={currentItem.url}
                             alt={`Lightbox ${selectedIndex + 1}`}
-                            className="max-w-4xl max-h-[90vh] object-contain"
+                            className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
                         />
                     ) : (
                         <video
                             controls
                             autoPlay
-                            className="max-w-4xl max-h-[90vh]"
+                            className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
                             src={currentItem.url}
                         />
-                    )}
-
-                    {items.length > 1 && (
-                        <>
-                            <button
-                                onClick={handlePrev}
-                                className="absolute left-4 text-white hover:bg-white/20 p-2 rounded-full transition z-50"
-                            >
-                                <ChevronLeft size={32} />
-                            </button>
-                            <button
-                                onClick={handleNext}
-                                className="absolute right-4 text-white hover:bg-white/20 p-2 rounded-full transition z-50"
-                            >
-                                <ChevronRight size={32} />
-                            </button>
-                        </>
                     )}
                 </div>
             )}
@@ -264,6 +271,8 @@ const FeedCard: React.FC<FeedCardProps> = ({
     post,
     author
 }) => {
+    const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
+
     // Check if has gallery or single media
     const hasGallery = post.gallery && post.gallery.length > 0;
     const hasSingleMedia = post.media_url && !hasGallery;
@@ -271,7 +280,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
     const embedUrl = isYoutube ? getYouTubeEmbedUrl(post.media_url!) : null;
 
     return (
-        <Card className="w-full max-w-4xl bg-secondary text-foreground border-border mb-4">
+        <Card className="w-full max-w-2xl bg-secondary text-foreground border-border mb-4">
 
             {/* HEADER */}
             <CardHeader className="flex flex-row items-center gap-3 px-4 -mt-3 pb-0">
@@ -303,7 +312,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
                 <div className="flex-1 min-w-0">
                     {/* Text Content */}
                     {post.content && (
-                        <p className="text-base leading-relaxed text-foreground whitespace-normal mb-1 wrap-break-words">
+                        <p className="text-sm leading-relaxed text-foreground whitespace-normal mb-1 wrap-break-words">
                             {post.content}
                         </p>
                     )}
@@ -312,33 +321,76 @@ const FeedCard: React.FC<FeedCardProps> = ({
                     {hasGallery ? (
                         <Gallery items={post.gallery!} />
                     ) : hasSingleMedia && (
-                        <div className="rounded-xl overflow-hidden border border-border mt-2 w-full">
-                            {embedUrl ? (
-                                <div className="relative w-full bg-black" style={{ paddingBottom: '56.25%' }}>
-                                    <iframe
-                                        src={embedUrl}
-                                        title="YouTube video"
-                                        frameBorder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                        className="absolute top-0 left-0 w-full h-full"
+                        <>
+                            <div
+                                className="rounded-lg overflow-hidden mt-2 w-full cursor-pointer"
+                                onClick={() => setShowSingleMediaLightbox(true)}
+                            >
+                                {embedUrl ? (
+                                    <div className="relative w-full bg-black" style={{ paddingBottom: '56.25%' }}>
+                                        <iframe
+                                            src={embedUrl}
+                                            title="YouTube video"
+                                            frameBorder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                            className="absolute top-0 left-0 w-full h-full"
+                                        />
+                                    </div>
+                                ) : post.media_type === 'video' ? (
+                                    <video
+                                        controls
+                                        className="media-content max-h-96 w-full object-cover"
+                                        src={post.media_url!}
                                     />
+                                ) : (
+                                    <img
+                                        src={post.media_url!}
+                                        alt="Post media"
+                                        className="media-content w-full h-auto object-contain object-left"
+                                        loading="lazy"
+                                    />
+                                )}
+                            </div>
+
+                            {/* Single Media Lightbox */}
+                            {showSingleMediaLightbox && (
+                                <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
+                                    <button
+                                        onClick={() => setShowSingleMediaLightbox(false)}
+                                        className="absolute top-4 right-4 text-white hover:bg-white/20 p-2 rounded-full transition z-50"
+                                    >
+                                        <X size={24} />
+                                    </button>
+
+                                    {embedUrl ? (
+                                        <div className="relative w-full max-w-4xl bg-black" style={{ paddingBottom: '56.25%' }}>
+                                            <iframe
+                                                src={embedUrl}
+                                                title="YouTube video"
+                                                frameBorder="0"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowFullScreen
+                                                className="absolute top-0 left-0 w-full h-full"
+                                            />
+                                        </div>
+                                    ) : post.media_type === 'video' ? (
+                                        <video
+                                            controls
+                                            autoPlay
+                                            className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
+                                            src={post.media_url!}
+                                        />
+                                    ) : (
+                                        <img
+                                            src={post.media_url!}
+                                            alt="Post media lightbox"
+                                            className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
+                                        />
+                                    )}
                                 </div>
-                            ) : post.media_type === 'video' ? (
-                                <video
-                                    controls
-                                    className="media-content"
-                                    src={post.media_url!}
-                                />
-                            ) : (
-                                <img
-                                    src={post.media_url!}
-                                    alt="Post media"
-                                    className="media-content"
-                                    loading="lazy"
-                                />
                             )}
-                        </div>
+                        </>
                     )}
                 </div>
                 <div className="spacer-column"></div>
