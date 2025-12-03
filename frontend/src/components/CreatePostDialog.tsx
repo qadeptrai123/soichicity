@@ -2,7 +2,6 @@ import React, { useState, useRef } from "react";
 import {
   Image as ImageIcon,
   AtSign,
-  Smile,
   X
 } from "lucide-react";
 import {
@@ -14,12 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  EmojiPicker,
-  EmojiPickerContent,
-  EmojiPickerFooter,
-  EmojiPickerSearch,
-} from "@/components/ui/emoji-picker";
+
 
 import {
   DropdownMenu,
@@ -28,11 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+
 import EmojiButton from "./EmojiButton";
 
 type MediaFile = { url: string; type: "image" | "video" };
@@ -48,7 +38,7 @@ const MOCK_USERS = [
 export default function CreatePostDialog() {
   const [content, setContent] = useState<string>("");
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
-  const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- LOGIC ---
@@ -69,7 +59,7 @@ export default function CreatePostDialog() {
   const handleReset = () => {
     setContent("");
     setMediaFiles([]);
-    setShowEmojiPicker(false);
+
   };
 
   const handlePost = () => {
@@ -79,7 +69,7 @@ export default function CreatePostDialog() {
 
   const onEmojiClick = (emoji: string) => {
     setContent((prev) => prev + emoji);
-    setShowEmojiPicker(false);
+
   };
 
   const handleTagUser = (username: string) => {
