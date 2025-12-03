@@ -11,9 +11,6 @@ def create_post(
     post: PostCreate,
     user = Depends(get_current_user)   # đã có user từ auth
 ):
-    # Thêm dòng này để debug
-    # print(f"DEBUG USER DATA: {user}")
-
     created = PostService.create_post(
         user_id=user["id"],
         content=post.content,
