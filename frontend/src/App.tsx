@@ -7,7 +7,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Feed from "./pages/Feed";
 // import CreatePostDialog from './components/CreatePostDialog';
 
-function App() {
+
+export default function App() {
   return (
     <BrowserRouter>
       <Routes>
@@ -21,4 +22,3 @@ function App() {
   )
 }
 
-export default App
