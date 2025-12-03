@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Bookmark, Repeat2, Heart, Send, MoreHorizontal, X, Play } from "lucide-react";
-
+import { MessageSquare, Bookmark, Repeat2, Heart, Send, MoreHorizontal, X, Play, Edit3, Ban, Link2 } from "lucide-react";
+import { DropdownExtend } from './DropdownExtend';
 // 1. Định nghĩa kiểu dữ liệu cho Post (khớp với Firestore)
 export interface MediaItem {
     url: string;
@@ -120,10 +120,10 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                         {items.map((item, index) => (
                             <div
                                 key={index}
-                                className="shrink-0 bg-black snap-start relative flex items-center justify-center"
+                                className="shrink-0 bg-black snap-start relative"
                                 style={{
                                     width: 'calc(50% - 4px)',
-                                    minHeight: '240px'
+                                    height: '240px'
                                 }}
                                 onClick={() => {
                                     setSelectedIndex(index);
@@ -135,7 +135,7 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                                         <img
                                             src={`https://img.youtube.com/vi/${item.url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)?.[1]}/mqdefault.jpg`}
                                             alt="YouTube thumbnail"
-                                            className="w-full h-full object-contain"
+                                            className="w-full h-full object-cover"
                                         />
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
                                             <Play size={32} className="text-white fill-white" />
@@ -144,7 +144,7 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                                 ) : item.type === 'video' ? (
                                     <>
                                         <video
-                                            className="w-full h-full object-contain"
+                                            className="w-full h-full object-cover"
                                             src={item.url}
                                         />
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
@@ -155,7 +155,7 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                                     <img
                                         src={item.url}
                                         alt={`Gallery item ${index + 1}`}
-                                        className="w-full h-auto object-contain"
+                                        className="w-full h-full object-cover"
                                         loading="lazy"
                                     />
                                 )}
@@ -181,10 +181,10 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                         {items.map((item, index) => (
                             <div
                                 key={index}
-                                className="shrink-0 bg-black snap-start relative flex items-center justify-center"
+                                className="shrink-0 bg-black snap-start relative"
                                 style={{
                                     width: '100%',
-                                    minHeight: '400px'
+                                    height: '400px'
                                 }}
                                 onClick={() => {
                                     setSelectedIndex(index);
@@ -196,7 +196,7 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                                         <img
                                             src={`https://img.youtube.com/vi/${item.url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)?.[1]}/mqdefault.jpg`}
                                             alt="YouTube thumbnail"
-                                            className="w-full h-full object-contain"
+                                            className="w-full h-full object-cover"
                                         />
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
                                             <Play size={32} className="text-white fill-white" />
@@ -205,8 +205,9 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                                 ) : item.type === 'video' ? (
                                     <>
                                         <video
-                                            className="w-full h-full object-contain"
+                                            className="w-full h-full object-cover"
                                             src={item.url}
+                                            onLoadedMetadata={() => { }}
                                         />
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
                                             <Play size={32} className="text-white fill-white" />
@@ -216,7 +217,7 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                                     <img
                                         src={item.url}
                                         alt={`Gallery item ${index + 1}`}
-                                        className="w-full h-auto object-contain"
+                                        className="w-full h-full object-cover"
                                         loading="lazy"
                                     />
                                 )}
@@ -279,6 +280,51 @@ const FeedCard: React.FC<FeedCardProps> = ({
     const isYoutube = hasSingleMedia ? isYouTubeUrl(post.media_url!) : false;
     const embedUrl = isYoutube ? getYouTubeEmbedUrl(post.media_url!) : null;
 
+    const postActions = [
+        {
+            id: "bookmark",
+            label: "Save",
+            icon: <Bookmark size={16} />,
+            onClick: () => console.log("Save post", post.id),
+            isVisible: true,
+        },
+        {
+            id: "edit",
+            label: "Edit",
+            icon: <Edit3 size={16} />,
+            onClick: () => console.log("Edit post", post.id),
+            isVisible: post.author_id === "currentUserId",
+        },
+        {
+            id: "block",
+            label: "Block",
+            icon: <Ban size={16} />,
+            onClick: () => console.log("Block post", post.id),
+            isVisible: post.author_id !== "currentUserId",
+            showSeparatorAfter: true,
+        },
+        {
+            id: "copy-link",
+            label: "Copy link",
+            icon: <Link2 size={16} />,
+            onClick: () => {
+                const postUrl = `${window.location.origin}/post/${post.id}`;
+                navigator.clipboard.writeText(postUrl);
+                console.log("Link copied:", postUrl);
+            },
+            isVisible: true,
+            showSeparatorAfter: true,
+        },
+        {
+            id: "delete",
+            label: "Delete",
+            icon: <X size={16} />,
+            variant: "destructive" as const,
+            onClick: () => console.log("Delete post", post.id),
+            isVisible: post.author_id === "currentUserId",
+        },
+    ];
+
     return (
         <Card className="w-full max-w-2xl bg-secondary text-foreground border-border mb-4">
 
@@ -301,9 +347,11 @@ const FeedCard: React.FC<FeedCardProps> = ({
                         </span>
                     </div>
                 </div>
-                <Button variant="ghost" size="icon" className="w-8 h-8 shrink-0">
-                    <MoreHorizontal size={16} />
-                </Button>
+                <DropdownExtend
+                    actions={postActions}
+                    triggerType="icon"
+                    align="end"
+                />
             </CardHeader>
 
             {/* CONTENT */}
