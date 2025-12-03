@@ -6,22 +6,44 @@ import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 
 
-function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path='/' element={<LoginForm />} />
-        <Route path='/register' element={<Register />} />
-        <Route path='/forgot-password' element={<ForgotPassword />} />
-        <Route path='/reset-password' element={<ResetPassword />} />
-      </Routes>
-    </BrowserRouter>
-  )
-}
+// function App() {
+//   return (
+//     <BrowserRouter>
+//       <Routes>
+//         <Route path='/' element={<LoginForm />} />
+//         <Route path='/register' element={<Register />} />
+//         <Route path='/forgot-password' element={<ForgotPassword />} />
+//         <Route path='/reset-password' element={<ResetPassword />} />
+//       </Routes>
+//     </BrowserRouter>
+//   )
+// }
 // function App() {
 //   return (
 //     <CreatePostDialog />
 //   )
 // }
 
-export default App
+
+import { useState } from 'react';
+import CreatePostDialog from '@/components/CreatePostDialog'; 
+import { CURRENT_USER, MOCK_FRIENDS } from "@/MockData/data"; 
+import './App.css'
+
+export default function App() {
+    
+    const [isDialogOpen, setIsDialogOpen] = useState(true);
+
+    return (
+        <CreatePostDialog 
+            open={isDialogOpen} 
+            onOpenChange={setIsDialogOpen} 
+            currentUser={CURRENT_USER} 
+            mockFriends={MOCK_FRIENDS} 
+            onPost={(content, mediaFiles) => {
+                console.log("Đã gửi bài đăng với nội dung:", content, "và media:", mediaFiles);
+                // setIsDialogOpen(false); 
+            }}
+        />
+    );
+}
