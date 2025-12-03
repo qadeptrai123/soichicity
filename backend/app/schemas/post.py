@@ -1,21 +1,63 @@
-from pydantic import BaseModel, validator
+# from pydantic import BaseModel, validator
+# from typing import Optional, List
+# from datetime import datetime
+
+
+# class PostCreate(BaseModel):
+#     content: str
+#     link_url: Optional[List[str]] = [] 
+
+# class PostResponse(BaseModel):
+#     id: str
+#     content: str
+#     link_url: Optional[List[str]] = []   # là list
+#     created_at: datetime
+#     author_id: str
+
+#     @validator("link_url", pre=True)
+#     def ensure_list(cls, v):
+#         if isinstance(v, list):
+#             return v
+#         return [v]
+
+from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 from datetime import datetime
 
-
+# --- Schemas Input ---
 class PostCreate(BaseModel):
     content: str
     link_url: Optional[List[str]] = [] 
 
+class CommentCreate(BaseModel):
+    content: str
+
+# --- Schemas Output ---
+class CommentResponse(BaseModel):
+    id: str
+    user_id: str
+    user_avatar: Optional[str] = None
+    content: str
+    timestamp: int # Trả về dạng số như hình
+
 class PostResponse(BaseModel):
     id: str
     content: str
-    link_url: Optional[List[str]] = []   # là list
-    created_at: datetime
+    link_url: List[str] = []
+    created_at: str
     author_id: str
+    
+    # Các trường đếm (Map đúng tên field trong hình)
+    like_count: int = Field(alias="likeCount", default=0)
+    share_count: int = Field(alias="shareCount", default=0)
+    save_count: int = Field(alias="saveCount", default=0)
+    comment_count: int = Field(alias="commentCount", default=0)
+
+    class Config:
+        populate_by_name = True  # Cho phép map từ likeCount (DB) -> like_count (Code)
 
     @validator("link_url", pre=True)
     def ensure_list(cls, v):
-        if isinstance(v, list):
-            return v
-        return [v]
+        if v is None: return []
+        if isinstance(v, str): return [v]
+        return v
