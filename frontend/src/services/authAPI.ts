@@ -17,11 +17,11 @@ const googleProvider = new GoogleAuthProvider();
 const API_BASE_URL = "http://localhost:8000";
 
 export const authAPI = {
-    register: async (username: string, email: string, password: string) => {
+    register: async (full_name: string, username: string, email: string, password: string) => {
         const response = await fetch(`${API_BASE_URL}/api/v1/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, email, password }),
+            body: JSON.stringify({ full_name, username, email, password }),
         });
 
         if (!response.ok) {

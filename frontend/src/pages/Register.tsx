@@ -35,20 +35,35 @@ export default function Register() {
 
     const registerForm = useForm<RegisterValues>({
         resolver: zodResolver(registerSchema),
-        defaultValues: { username: "", email: "", password: "", confirmPassword: "" },
+        defaultValues: { full_name: "", username: "", email: "", password: "", confirmPassword: "" },
     });
 
     const onRegisterSubmit = async (data: RegisterValues) => {
         setIsLoading(true);
         try {
-            await authAPI.register(data.username, data.email, data.password);
+            await authAPI.register(data.full_name, data.username, data.email, data.password);
             alert("Registration successful! Please log in.");
             navigate("/");
         } catch (error) {
-            registerForm.setError("email", {
-                type: "manual",
-                message: error instanceof Error ? error.message : "Registration failed",
-            });
+            const errorMsg = error instanceof Error ? error.message : "Registration failed";
+
+            // Gắn lỗi vào field tương ứng dựa vào message
+            if (errorMsg.includes("Username already taken")) {
+                registerForm.setError("username", {
+                    type: "manual",
+                    message: errorMsg,
+                });
+            } else if (errorMsg.includes("Email already")) {
+                registerForm.setError("email", {
+                    type: "manual",
+                    message: errorMsg,
+                });
+            } else {
+                registerForm.setError("email", {
+                    type: "manual",
+                    message: errorMsg,
+                });
+            }
         } finally {
             setIsLoading(false);
         }
@@ -85,19 +100,19 @@ export default function Register() {
 
             <div className="flex flex-col items-center w-full mx-auto my-auto">
                 <Card className="w-full max-w-md bg-secondary backdrop-blur-xl border-border-secondary shadow-2xl shadow-black/50 mx-auto my-auto">
-                    <CardHeader className="flex flex-col items-center mb-2">
-                        <div className="w-15 h-15 bg-linear-to-tr bg-blue-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30">
+                    <CardHeader className="flex flex-col items-center mb-1">
+                        <div className="w-12 h-12 bg-linear-to-tr bg-blue-500 rounded-full flex items-center justify-center mb-2 shadow-lg shadow-blue-500/30">
                             <img src={LoginImage} alt="App Logo" />
                         </div>
-                        <CardTitle className="text-xl text-white text-hd tracking-tight">
+                        <CardTitle className="text-lg text-white text-hd tracking-tight">
                             Create Account
                         </CardTitle>
-                        <CardDescription className="text-slate-400 text-base text-center mt-2">
-                            Sign up to create your account
+                        <CardDescription className="text-slate-400 text-base text-center mt-1">
+                            Sign up to get started with yout account
                         </CardDescription>
                     </CardHeader>
 
-                    <CardContent className="space-y-6">
+                    <CardContent className="space-y-4">
                         <Button onClick={handleGoogleRegister} disabled={isGoogleLoading} variant="outline" className="w-full h-12 bg-white! text-slate-900 hover:bg-slate-50 border-0 text-base">
                             <svg className="w-8 h-8 mr-3" viewBox="0 0 24 24">
                                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -118,7 +133,25 @@ export default function Register() {
                         </div>
 
                         <Form {...registerForm}>
-                            <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-5">
+                            <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-2">
+                                <FormField
+                                    control={registerForm.control}
+                                    name="full_name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-base text-slate-300">Full Name</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="Enter your full name"
+                                                    className="flex items-center bg-input! border-border! text-foreground placeholder-text-text-muted text-base py-6"
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage className="text-red-400 text-base font-semibold mt-1" />
+                                        </FormItem>
+                                    )}
+                                />
+
                                 <FormField
                                     control={registerForm.control}
                                     name="username"
@@ -132,7 +165,7 @@ export default function Register() {
                                                     {...field}
                                                 />
                                             </FormControl>
-                                            <FormMessage className="text-base" />
+                                            <FormMessage className="text-red-400 text-base font-semibold mt-1" />
                                         </FormItem>
                                     )}
                                 />
@@ -151,7 +184,7 @@ export default function Register() {
                                                     {...field}
                                                 />
                                             </FormControl>
-                                            <FormMessage className="text-base" />
+                                            <FormMessage className="text-red-400 text-base font-semibold mt-1" />
                                         </FormItem>
                                     )}
                                 />
@@ -172,7 +205,7 @@ export default function Register() {
                                                     />
                                                 </div>
                                             </FormControl>
-                                            <FormMessage className="text-base" />
+                                            <FormMessage className="text-red-400 text-base font-semibold mt-1" />
                                         </FormItem>
                                     )}
                                 />
@@ -193,19 +226,19 @@ export default function Register() {
                                                     />
                                                 </div>
                                             </FormControl>
-                                            <FormMessage className="text-base" />
+                                            <FormMessage className="text-red-400 text-base font-semibold mt-1" />
                                         </FormItem>
                                     )}
                                 />
 
                                 <Button
                                     type="submit"
-                                    className="w-full bg-blue-600! hover:bg-blue-500! h-12 text-white"
+                                    className="w-full bg-blue-600! hover:bg-blue-500! h-12 text-sm mt-3"
                                     disabled={isLoading}
                                 >
                                     {isLoading ? (
                                         <>
-                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                             Creating Account...
                                         </>
                                     ) : (
@@ -217,7 +250,7 @@ export default function Register() {
                     </CardContent>
 
                     {/* Back to Login */}
-                    <div className="mt-1 text-center pb-1 px-8">
+                    <div className="mt-0 text-center pb-0 px-8">
                         <p className="text-base text-slate-400">
                             Already have an account?{" "}
                             <span

@@ -49,7 +49,7 @@ export default function LoginForm() {
 
             alert("Login successful!");
         } catch (error) {
-            loginForm.setError("identifier", {
+            loginForm.setError("password", {
                 type: "manual",
                 message: error instanceof Error ? error.message : "Login failed",
             });
@@ -175,7 +175,7 @@ export default function LoginForm() {
                                                     />
                                                 </div>
                                             </FormControl>
-                                            <FormMessage className="text-base" />
+                                            <FormMessage className="text-red-400 text-base font-semibold mt-1" />
                                         </FormItem>
                                     )}
                                 />

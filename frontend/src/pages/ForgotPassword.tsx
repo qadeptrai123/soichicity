@@ -66,7 +66,7 @@ export default function ForgotPassword() {
                             Forgot Password
                         </CardTitle>
                         <CardDescription className="text-slate-400 text-base text-center mt-2">
-                            Enter your email address and we'll send you a link to get back into your account.
+                            Enter your email address and we'll send you a link to <br /> get back into your account
                         </CardDescription>
                     </CardHeader>
 
