@@ -41,17 +41,37 @@
 }
 
 .text-ft {
-    font-size: 14px;
+    font-size: 15px;
 }
 
 /* Ẩn thanh cuộn cho Emoji Picker nhưng BẮT BUỘC cho phép lăn chuột */
 .no-scrollbar .epr-body::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+    display: none;
+    /* Chrome, Safari, Opera */
 }
+
 .no-scrollbar .epr-body {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-  
-  /* Dòng quan trọng nhất để sửa lỗi không lướt được: */
-  overflow-y: auto !important; 
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+
+    /* Dòng quan trọng nhất để sửa lỗi không lướt được: */
+    overflow-y: auto !important;
+}
+
+/* Target vào tất cả trạng thái autofill của input */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    /* 1. Dùng box-shadow đè lên màu nền mặc định */
+    /* Thay mã màu #1e293b bằng màu nền input hiện tại của bạn */
+    -webkit-box-shadow: 0 0 0 30px #0D1520 inset !important;
+
+    /* 2. Đổi màu chữ thành màu trắng (hoặc màu bạn muốn) */
+    -webkit-text-fill-color: white !important;
+
+    /* 3. (Tuỳ chọn) Trick để giữ màu nền lâu hơn nếu shadow chưa load kịp */
+    transition: background-color 5000s ease-in-out 0s;
 }
