@@ -4,7 +4,8 @@ import LoginForm from './pages/Login'
 import ResetPassword from "./pages/ResetPassword";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
-import CreatePostDialog from './components/CreatePostDialog';
+import Feed from "./pages/Feed";
+// import CreatePostDialog from './components/CreatePostDialog';
 
 function App() {
   return (
@@ -14,14 +15,10 @@ function App() {
         <Route path='/register' element={<Register />} />
         <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/reset-password' element={<ResetPassword />} />
+        <Route path='/feed' element={<Feed />} />
       </Routes>
     </BrowserRouter>
   )
 }
-// function App() {
-//   return (
-//     <CreatePostDialog />
-//   )
-// }
 
 export default App

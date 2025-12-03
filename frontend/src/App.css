@@ -31,9 +31,29 @@
     @apply [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border-secondary [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-text-secondary;
 }
 
+@utility spacer-column {
+    @apply w-10 shrink-0;
+}
+
+@utility action-button-base {
+    @apply text-[#99A1AF] hover:text-blue-accent hover:bg-secondary rounded-full;
+}
+
+@utility media-content {
+    @apply w-full h-auto object-cover max-h-[500px];
+}
+
+@utility small-text {
+    @apply text-xs text-[#99A1AF];
+}
+
 /* Typography */
 .text-base {
     font-size: 16px;
+}
+
+.text-p {
+    font-size: 14px;
 }
 
 .text-hd {
