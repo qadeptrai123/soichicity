@@ -4,6 +4,8 @@ import LoginForm from './pages/Login'
 import ResetPassword from "./pages/ResetPassword";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
+import Feed from "./pages/Feed";
+// import CreatePostDialog from './components/CreatePostDialog';
 
 
 export default function App() {
@@ -14,6 +16,7 @@ export default function App() {
         <Route path='/register' element={<Register />} />
         <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/reset-password' element={<ResetPassword />} />
+        <Route path='/feed' element={<Feed />} />
       </Routes>
     </BrowserRouter>
   )
