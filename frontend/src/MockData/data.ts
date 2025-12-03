@@ -1,4 +1,3 @@
-// import type { CurrentUser } from "@/MockData/type";
 import type {User } from "./type";
 
 export const CURRENT_USER: User = {

@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useRef } from "react";
 import { Image as ImageIcon, AtSign, X, Search } from "lucide-react"; 
 import {
@@ -32,7 +30,7 @@ type User = {
 interface CreatePostDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentUser: User; // THAY ĐỔI: Nhận dữ liệu người dùng qua props
+  currentUser: User; // Nhận dữ liệu người dùng qua props
   mockFriends: User[]; 
   onPost: (content: string, mediaFiles: MediaFile[]) => void;
 }
@@ -40,9 +38,9 @@ interface CreatePostDialogProps {
 export default function CreatePostDialog({ 
   open, 
   onOpenChange,
-  currentUser, // THAM SỐ
-  mockFriends, // THAM SỐ
-  onPost, // THAM SỐ
+  currentUser, 
+  mockFriends, 
+  onPost, 
 }: CreatePostDialogProps) {
   
   const [content, setContent] = useState<string>("");
@@ -231,7 +229,6 @@ export default function CreatePostDialog({
             </div>
           </div>
         </div>
-
         {/* FOOTER */}
         <DialogFooter className="p-6 pt-2 flex justify-end border-t border-border sm:justify-end">
           <Button

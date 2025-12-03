@@ -45,7 +45,6 @@ export default function App() {
     const [isDialogOpen, setIsDialogOpen] = useState(true);
 
     return (
-        // Chỉ trả về component Dialog duy nhất
         <CreatePostDialog 
             open={isDialogOpen} 
             onOpenChange={setIsDialogOpen} 

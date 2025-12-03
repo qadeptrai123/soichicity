@@ -3,4 +3,6 @@ export interface User {
   name: string | null;
   username: string;
   avatarUrl?: string;
+  
 }
+
