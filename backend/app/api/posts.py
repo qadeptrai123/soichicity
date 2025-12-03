@@ -11,14 +11,27 @@ def create_post(
     post: PostCreate,
     user = Depends(get_current_user)   # đã có user từ auth
 ):
+    # Thêm dòng này để debug
+    # print(f"DEBUG USER DATA: {user}")
+
     created = PostService.create_post(
-        user_id=user["uid"],
-        title=post.title,
-        content=post.content
+        user_id=user["id"],
+        content=post.content,
+        link_url=post.link_url   # thêm đây
     )
     return created
 
 
 @router.get("/posts", response_model=List[PostResponse])
-def get_posts():
-    return PostService.list_posts()
+def get_posts(
+    user = Depends(get_current_user),
+    limit: int = 20  # lấy tối đa 20 post
+):
+    return PostService.get_feed_posts(user["id"], limit)
+
+@router.post("/posts/{post_id}/seen")
+def mark_seen(post_id: str, user = Depends(get_current_user)):
+    PostService.mark_post_as_seen(user["id"], post_id)
+    return {"status": "ok"}
+
+

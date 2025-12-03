@@ -14,6 +14,9 @@ app.include_router(threads.router, prefix=settings.API_V1_STR, tags=["threads"])
 app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["auth"])
 
 # Posts router
+# app.include_router(posts.router)
+app.include_router(posts.router, prefix="/api/v1")
+
 app.include_router(posts.router)
 
 @app.get("/")
