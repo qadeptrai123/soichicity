@@ -262,10 +262,13 @@ const Feed = () => {
 
 
     return (
-        <div className="min-h-screen p-4 flex items-center flex-col">
-            <div className={`${isAuthenticated ? 'max-w-2xl' : 'max-w-7xl grid grid-cols-1 lg:grid-cols-3'}`}>
-                {/* Feed Posts - Center when authenticated, Left column when not */}
-                <div className={isAuthenticated ? 'w-full' : 'lg:col-span-2'}>
+        <div className="bg-backgroundfeed min-h-screen p-4">
+            <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-4 gap-4">
+                {/* Empty left column for spacing */}
+                <div className="hidden lg:block"></div>
+
+                {/* Feed Posts - Center */}
+                <div className="lg:col-span-2">
                     <div className="space-y-4">
                         {displayedPosts.length > 0 && displayedPosts.map((item) => (
                             <FeedCard
@@ -301,9 +304,9 @@ const Feed = () => {
                     </div>
                 </div>
 
-                {/* Login Prompt - Right Column (only show if not authenticated) */}
-                {!isAuthenticated && (
-                    <div className="lg:col-span-1">
+                {/* Login Prompt - Right Column */}
+                {isAuthenticated ? null : (
+                    <div className="lg:col-span-1 w-full">
                         <div className="sticky top-4">
                             <LoginPrompt />
                         </div>

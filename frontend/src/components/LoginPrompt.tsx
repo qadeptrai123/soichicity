@@ -13,9 +13,9 @@ export const LoginPrompt = () => {
 
             localStorage.setItem("access_token", response.access_token);
             localStorage.setItem("user_email", response.user.email || "");
-
-            alert("Login successful!");
-            navigate("/feed");
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
         } catch (error) {
             alert(error instanceof Error ? error.message : "Google login failed");
         } finally {
@@ -23,7 +23,7 @@ export const LoginPrompt = () => {
         }
     };
     return (
-        <div className="bg-secondary backdrop-blur-xl border rounded-2xl shadow-2xl shadow-black/50 p-8 w-full max-w-sm text-center">
+        <div className="bg-secondary backdrop-blur-xl border-2 border-border! rounded-2xl shadow-2xl shadow-black/50 p-5 w-full max-w-sm text-center">
             <h2 className="text-base font-bold text-white mb-3">
                 Log in or sign up for Sợi Chỉ City
             </h2>
@@ -61,7 +61,7 @@ export const LoginPrompt = () => {
             </Button>
 
             <Button
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/login")}
                 variant="ghost"
                 className="w-full text-text-muted hover:text-white text-base font-normal"
             >

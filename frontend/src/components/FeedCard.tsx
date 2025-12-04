@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Bookmark, Repeat2, Heart, Send, MoreHorizontal, X, Play, Edit3, Ban, Link2 } from "lucide-react";
+import { MessageSquare, Bookmark, Repeat2, Heart, Send, X, Play, Edit3, Ban, Link2 } from "lucide-react";
 import { DropdownExtend } from './DropdownExtend';
 // 1. Định nghĩa kiểu dữ liệu cho Post (khớp với Firestore)
 export interface MediaItem {
@@ -84,6 +84,8 @@ interface GalleryProps {
 const Gallery: React.FC<GalleryProps> = ({ items }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [showLightbox, setShowLightbox] = useState(false);
+    const [_, setImageDimensions] = useState<{ [key: number]: number }>({});
+    const [maxHeight, setMaxHeight] = useState<number | null>(null);
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
     if (!items || items.length === 0) return null;
@@ -91,6 +93,9 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
     const currentItem = items[selectedIndex];
     const embedUrl = currentItem.type === 'youtube' ? getYouTubeEmbedUrl(currentItem.url) : null;
     const isMultipleItems = items.length > 1;
+
+    // Dùng maxHeight động, nếu chưa load thì dùng default
+    const containerHeight = maxHeight ? `${maxHeight}px` : (isMultipleItems ? '280px' : '400px');
 
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const container = e.currentTarget;
@@ -100,30 +105,50 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
         setSelectedIndex(Math.min(newIndex, items.length - 1));
     };
 
+    const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>, index: number) => {
+        const img = e.currentTarget;
+        const actualHeight = img.naturalHeight;
+
+        setImageDimensions(prev => {
+            const updated = { ...prev, [index]: actualHeight };
+
+            const heights = Object.values(updated);
+            if (heights.length > 0) {
+                const maxH = Math.max(...heights);
+                const limitedMaxHeight = isMultipleItems ? Math.min(maxH, 300) : Math.min(maxH, 500);
+                setMaxHeight(limitedMaxHeight);
+            }
+
+            return updated;
+        });
+    };
+
     return (
         <>
             {/* Horizontal Carousel Layout for Multiple Items */}
             {isMultipleItems ? (
-                <div className="rounded-xl overflow-hidden border border-border mt-2 w-full bg-black relative group">
+                <div className="rounded-xl overflow-hidden mt-2 w-full bg-secondary relative group">
                     <div
                         ref={scrollContainerRef}
-                        className="flex bg-black overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide"
+                        className="flex bg-secondary overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide gap-2 px-2"
                         style={{
                             scrollBehavior: 'smooth',
                             scrollSnapType: 'x mandatory',
                             WebkitOverflowScrolling: 'touch',
                             msOverflowStyle: 'none',
-                            scrollbarWidth: 'none'
+                            scrollbarWidth: 'none',
+                            height: containerHeight
                         }}
                         onScroll={handleScroll}
                     >
                         {items.map((item, index) => (
                             <div
                                 key={index}
-                                className="shrink-0 bg-black snap-start relative"
+                                className="shrink-0 snap-start relative rounded overflow-hidden flex items-center justify-center"
                                 style={{
-                                    width: 'calc(50% - 4px)',
-                                    height: '240px'
+                                    width: 'auto',
+                                    height: '100%',
+                                    minWidth: '0'
                                 }}
                                 onClick={() => {
                                     setSelectedIndex(index);
@@ -131,11 +156,12 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                                 }}
                             >
                                 {item.type === 'youtube' ? (
-                                    <div className="w-full h-full bg-black flex items-center justify-center">
+                                    <div className="h-full bg-secondary flex items-center justify-center">
                                         <img
                                             src={`https://img.youtube.com/vi/${item.url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)?.[1]}/mqdefault.jpg`}
                                             alt="YouTube thumbnail"
-                                            className="w-full h-full object-cover"
+                                            className="h-full w-auto object-contain"
+                                            onLoad={(e) => handleImageLoad(e, index)}
                                         />
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
                                             <Play size={32} className="text-white fill-white" />
@@ -144,7 +170,7 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                                 ) : item.type === 'video' ? (
                                     <>
                                         <video
-                                            className="w-full h-full object-cover"
+                                            className="h-full w-auto object-contain"
                                             src={item.url}
                                         />
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
@@ -155,8 +181,9 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                                     <img
                                         src={item.url}
                                         alt={`Gallery item ${index + 1}`}
-                                        className="w-full h-full object-cover"
+                                        className="h-full w-auto object-contain"
                                         loading="lazy"
+                                        onLoad={(e) => handleImageLoad(e, index)}
                                     />
                                 )}
                             </div>
@@ -174,17 +201,18 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                             scrollSnapType: 'x mandatory',
                             WebkitOverflowScrolling: 'touch',
                             msOverflowStyle: 'none',
-                            scrollbarWidth: 'none'
+                            scrollbarWidth: 'none',
+                            height: containerHeight
                         }}
                         onScroll={handleScroll}
                     >
                         {items.map((item, index) => (
                             <div
                                 key={index}
-                                className="shrink-0 bg-black snap-start relative"
+                                className="shrink-0 bg-black snap-start relative rounded overflow-hidden flex items-center justify-center"
                                 style={{
                                     width: '100%',
-                                    height: '400px'
+                                    height: '100%'
                                 }}
                                 onClick={() => {
                                     setSelectedIndex(index);
@@ -196,7 +224,8 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                                         <img
                                             src={`https://img.youtube.com/vi/${item.url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)?.[1]}/mqdefault.jpg`}
                                             alt="YouTube thumbnail"
-                                            className="w-full h-full object-cover"
+                                            className="w-auto max-h-full object-contain"
+                                            onLoad={(e) => handleImageLoad(e, index)}
                                         />
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
                                             <Play size={32} className="text-white fill-white" />
@@ -205,9 +234,8 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                                 ) : item.type === 'video' ? (
                                     <>
                                         <video
-                                            className="w-full h-full object-cover"
+                                            className="w-auto max-h-full object-contain"
                                             src={item.url}
-                                            onLoadedMetadata={() => { }}
                                         />
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
                                             <Play size={32} className="text-white fill-white" />
@@ -217,8 +245,9 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                                     <img
                                         src={item.url}
                                         alt={`Gallery item ${index + 1}`}
-                                        className="w-full h-full object-cover"
+                                        className="w-auto max-h-full object-contain"
                                         loading="lazy"
+                                        onLoad={(e) => handleImageLoad(e, index)}
                                     />
                                 )}
                             </div>
@@ -287,6 +316,8 @@ const FeedCard: React.FC<FeedCardProps> = ({
             icon: <Bookmark size={16} />,
             onClick: () => console.log("Save post", post.id),
             isVisible: true,
+            showSeparatorAfter: true,
+
         },
         {
             id: "edit",
@@ -302,6 +333,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
             onClick: () => console.log("Block post", post.id),
             isVisible: post.author_id !== "currentUserId",
             showSeparatorAfter: true,
+            variant: "destructive" as const,
         },
         {
             id: "copy-link",
@@ -313,15 +345,6 @@ const FeedCard: React.FC<FeedCardProps> = ({
                 console.log("Link copied:", postUrl);
             },
             isVisible: true,
-            showSeparatorAfter: true,
-        },
-        {
-            id: "delete",
-            label: "Delete",
-            icon: <X size={16} />,
-            variant: "destructive" as const,
-            onClick: () => console.log("Delete post", post.id),
-            isVisible: post.author_id === "currentUserId",
         },
     ];
 
@@ -350,7 +373,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
                 <DropdownExtend
                     actions={postActions}
                     triggerType="icon"
-                    align="end"
+                    align="center"
                 />
             </CardHeader>
 
