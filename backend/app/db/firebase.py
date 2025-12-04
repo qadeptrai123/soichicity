@@ -1,7 +1,8 @@
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, storage
 from app.core.config import settings
 import os
+import uuid
 
 # Check if the app is already initialized
 if not firebase_admin._apps:
@@ -23,9 +24,12 @@ if not firebase_admin._apps:
             "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL")
         })
 
-    firebase_admin.initialize_app(cred)
+    firebase_admin.initialize_app(cred, {
+        'storageBucket': settings.FIREBASE_STORAGE_BUCKET
+    })
 
 db = firestore.client()
+bucket = storage.bucket()
 
 
 async def get_user_by_username(username: str):
@@ -47,3 +51,9 @@ async def create_new_user(user_data: dict):
 
 def get_db():
     return db
+
+def upload_file(file, filename: str, content_type: str, folder: str = "uploads") -> str:
+    blob = bucket.blob(f"{folder}/{uuid.uuid4()}_{filename}")
+    blob.upload_from_file(file, content_type=content_type)
+    blob.make_public()
+    return blob.public_url

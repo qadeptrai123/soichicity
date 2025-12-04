@@ -20,11 +20,10 @@ app.add_middleware(
 
 # Include routers
 app.include_router(users.router, prefix=settings.API_V1_STR, tags=["users"])
-app.include_router(threads.router, prefix=settings.API_V1_STR, tags=["threads"])
 app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["auth"])
 
 # Posts router
-app.include_router(posts.router, prefix="/api/v1")
+app.include_router(posts.router, prefix=settings.API_V1_STR, tags=["posts"])
 
 
 @app.get("/")

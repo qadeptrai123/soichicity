@@ -23,11 +23,21 @@
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 from datetime import datetime
+from fastapi import Form, File, UploadFile
 
 # --- Schemas Input ---
 class PostCreate(BaseModel):
     content: str
     link_url: Optional[List[str]] = [] 
+
+class PostCreateForm:
+    def __init__(
+        self,
+        content: str = Form(...),
+        files: List[UploadFile] = File(default=[])
+    ):
+        self.content = content
+        self.files = files
 
 class CommentCreate(BaseModel):
     content: str
