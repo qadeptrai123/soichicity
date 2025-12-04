@@ -68,6 +68,13 @@ import time  # Cần thêm để lấy timestamp dạng số (ms)
 from google.cloud import firestore # Cần thêm để dùng Increment
 
 class PostService:
+    
+    @staticmethod
+    def upload_file(file, filename: str, content_type: str) -> str:
+        blob = bucket.blob(f"posts/{uuid.uuid4()}_{filename}")
+        blob.upload_from_file(file, content_type=content_type)
+        blob.make_public()
+        return blob.public_url
 
     @staticmethod
     def create_post(user_id: str, content: str, link_url: list = None):

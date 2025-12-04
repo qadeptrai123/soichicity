@@ -31,10 +31,11 @@
 #     PostService.mark_post_as_seen(user["id"], post_id)
 #     return {"status": "ok"}
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
 from typing import List
 # Import thêm Comment schemas
-from app.schemas.post import PostCreate, PostResponse, CommentCreate, CommentResponse
+from app.schemas.post import PostCreate, PostResponse, CommentCreate, CommentResponse, PostCreateForm
+from app.db.firebase import upload_file
 from app.services.post_service import PostService
 from app.api.deps import get_current_user
 
@@ -42,13 +43,20 @@ router = APIRouter()
 
 @router.post("/posts", response_model=PostResponse)
 def create_post(
-    post: PostCreate,
+    form_data: PostCreateForm = Depends(),
     user = Depends(get_current_user)
 ):
+    image_urls = []
+    if form_data.files:
+        for file in form_data.files:
+            # file.file is the file-like object
+            url = upload_file(file.file, file.filename, file.content_type, folder="posts")
+            image_urls.append(url)
+
     created = PostService.create_post(
         user_id=user["id"],
-        content=post.content,
-        link_url=post.link_url 
+        content=form_data.content,
+        link_url=image_urls 
     )
     return created
 

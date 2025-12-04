@@ -262,8 +262,8 @@ const Feed = () => {
 
 
     return (
-        <div className="min-h-screen p-4">
-            <div className={`mx-auto mr-30 gap-0 ${isAuthenticated ? 'max-w-2xl' : 'max-w-7xl grid grid-cols-1 lg:grid-cols-3'}`}>
+        <div className="min-h-screen p-4 flex items-center flex-col">
+            <div className={`${isAuthenticated ? 'max-w-2xl' : 'max-w-7xl grid grid-cols-1 lg:grid-cols-3'}`}>
                 {/* Feed Posts - Center when authenticated, Left column when not */}
                 <div className={isAuthenticated ? 'w-full' : 'lg:col-span-2'}>
                     <div className="space-y-4">
@@ -303,7 +303,7 @@ const Feed = () => {
 
                 {/* Login Prompt - Right Column (only show if not authenticated) */}
                 {!isAuthenticated && (
-                    <div className="-ml-40 lg:col-span-1">
+                    <div className="lg:col-span-1">
                         <div className="sticky top-4">
                             <LoginPrompt />
                         </div>
