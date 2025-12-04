@@ -84,7 +84,7 @@ interface GalleryProps {
 const Gallery: React.FC<GalleryProps> = ({ items }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [showLightbox, setShowLightbox] = useState(false);
-    const [imageDimensions, setImageDimensions] = useState<{ [key: number]: number }>({});
+    const [_, setImageDimensions] = useState<{ [key: number]: number }>({});
     const [maxHeight, setMaxHeight] = useState<number | null>(null);
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -316,6 +316,8 @@ const FeedCard: React.FC<FeedCardProps> = ({
             icon: <Bookmark size={16} />,
             onClick: () => console.log("Save post", post.id),
             isVisible: true,
+            showSeparatorAfter: true,
+
         },
         {
             id: "edit",
@@ -331,6 +333,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
             onClick: () => console.log("Block post", post.id),
             isVisible: post.author_id !== "currentUserId",
             showSeparatorAfter: true,
+            variant: "destructive" as const,
         },
         {
             id: "copy-link",
@@ -342,15 +345,6 @@ const FeedCard: React.FC<FeedCardProps> = ({
                 console.log("Link copied:", postUrl);
             },
             isVisible: true,
-            showSeparatorAfter: true,
-        },
-        {
-            id: "delete",
-            label: "Delete",
-            icon: <X size={16} />,
-            variant: "destructive" as const,
-            onClick: () => console.log("Delete post", post.id),
-            isVisible: post.author_id === "currentUserId",
         },
     ];
 
@@ -379,7 +373,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
                 <DropdownExtend
                     actions={postActions}
                     triggerType="icon"
-                    align="end"
+                    align="center"
                 />
             </CardHeader>
 

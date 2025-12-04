@@ -43,7 +43,7 @@ export default function Register() {
         try {
             await authAPI.register(data.full_name, data.username, data.email, data.password);
             alert("Registration successful! Please log in.");
-            navigate("/");
+            navigate("/login");
         } catch (error) {
             const errorMsg = error instanceof Error ? error.message : "Registration failed";
 
