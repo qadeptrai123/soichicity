@@ -23,7 +23,7 @@ export const LoginPrompt = () => {
         }
     };
     return (
-        <div className="bg-secondary backdrop-blur-xl border-2 border-border! rounded-2xl shadow-2xl shadow-black/50 p-8 w-full max-w-sm text-center">
+        <div className="bg-secondary backdrop-blur-xl border-2 border-border! rounded-2xl shadow-2xl shadow-black/50 p-5 w-full max-w-sm text-center">
             <h2 className="text-base font-bold text-white mb-3">
                 Log in or sign up for Sợi Chỉ City
             </h2>
