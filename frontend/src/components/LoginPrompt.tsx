@@ -2,20 +2,18 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { authAPI } from "@/services/authAPI";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthProvider";
 
 export const LoginPrompt = () => {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const handleGoogleLogin = async () => {
         setIsGoogleLoading(true);
         try {
             const response = await authAPI.loginWithGoogle();
-
-            localStorage.setItem("access_token", response.access_token);
-            localStorage.setItem("user_email", response.user.email || "");
-            setTimeout(() => {
-                window.location.reload();
-            }, 500);
+            // Lưu token
+            login(response.access_token);
         } catch (error) {
             alert(error instanceof Error ? error.message : "Google login failed");
         } finally {

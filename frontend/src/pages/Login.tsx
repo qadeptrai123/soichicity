@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import LoginImage from "../assets/logo.png";
+import { useAuth } from "@/contexts/AuthProvider";
 // Shadcn Components
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,7 @@ export default function LoginForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const loginForm = useForm<LoginValues>({
         resolver: zodResolver(loginSchema),
@@ -44,8 +46,7 @@ export default function LoginForm() {
             const response = await authAPI.login(data.identifier, data.password);
 
             // Lưu token
-            localStorage.setItem("access_token", response.access_token);
-            localStorage.setItem("refresh_token", response.refresh_token);
+            login(response.access_token);
 
             alert("Login successful!");
             navigate("/");
@@ -64,8 +65,9 @@ export default function LoginForm() {
         try {
             const response = await authAPI.loginWithGoogle();
 
-            localStorage.setItem("access_token", response.access_token);
-            localStorage.setItem("user_email", response.user.email || "");
+
+            // Lưu token
+            login(response.access_token);
 
             alert("Login successful!");
             navigate("/");

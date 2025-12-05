@@ -10,23 +10,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         const token = localStorage.getItem("access_token");
         if (token) {
-            const payload = parseJwt(token);
-            setUser(payload);
+            try {
+                setUser(token as unknown as User); // Giả sử token chứa thông tin user
+            } catch (error) {
+                console.error("Invalid token:", error);
+                localStorage.removeItem("access_token");
+                setUser(null);
+            }
         }
     }, []);
 
     const login = (token: string) => {
-        localStorage.setItem("access_token", token);
-        const payload = parseJwt(token);
-        setUser(payload);
+        try {
+            localStorage.setItem("access_token", token);
+            setUser(token as unknown as User);
+            // Đợi state update xong
+            return new Promise(resolve => {
+                setTimeout(resolve, 100);
+            });
+        } catch (error) {
+            console.error("Invalid token:", error);
+            setUser(null);
+            throw error; // Throw error để LoginPrompt catch được
+        }
     };
-
 
     const logout = () => {
         localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
         setUser(null);
     };
-
 
     return (
         <AuthContext.Provider
@@ -48,9 +61,3 @@ export const useAuth = () => {
     return ctx;
 };
 
-
-const parseJwt = (token: string): User => {
-    const base64Payload = token.split(".")[1];
-    const payload = JSON.parse(atob(base64Payload));
-    return payload;
-}

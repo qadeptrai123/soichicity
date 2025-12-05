@@ -254,7 +254,7 @@ export default function Register() {
                         <p className="text-base text-slate-400">
                             Already have an account?{" "}
                             <span
-                                onClick={() => navigate("/")}
+                                onClick={() => navigate("/login")}
                                 className="text-primary hover:text-primary-hover! hover:underline transition-all cursor-pointer pl-10"
                             >
                                 Sign in
