@@ -73,8 +73,6 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Logout */}
-      {/* Logout */}
       <div className="flex justify-center">
         <button className="p-3 rounded-xl text-red-400 hover:bg-red-500/20 hover:text-red-500 transition"
           onClick={logout}
