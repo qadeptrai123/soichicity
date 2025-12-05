@@ -23,3 +23,17 @@ def read_users_me(current_user = Depends(get_current_user)):
     before returning this result.
     """
     return current_user
+
+@router.post("/users/{target_user_id}/follow", tags=["users"])
+def follow_user(target_user_id: str, db=Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Current user follows the target user.
+    """
+    return user_service.follow_user(db, current_user['id'], target_user_id)
+
+@router.post("/users/{target_user_id}/unfollow", tags=["users"])
+def unfollow_user(target_user_id: str, db=Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Current user unfollows the target user.
+    """
+    return user_service.unfollow_user(db, current_user['id'], target_user_id)
