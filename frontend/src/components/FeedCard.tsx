@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -303,6 +303,61 @@ const FeedCard: React.FC<FeedCardProps> = ({
 }) => {
     const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
 
+    // Optimistic UI: Local state cho action counts
+    const [localCounts, setLocalCounts] = useState({
+        likes: post.actions_count || 0,
+        replies: post.replies_count || 0,
+        bookmarks: post.bookmark_count || 0,
+        shares: post.shares_count || 0,
+    });
+
+    // Trạng thái để theo dõi actions đã được thực hiện (optimistic)
+    const [actionStates, setActionStates] = useState({
+        liked: false,
+        bookmarked: false,
+        shared: false,
+    });
+
+    // Hàm xử lý like với Optimistic UI
+    const handleLike = useCallback(() => {
+        setActionStates(prev => ({ ...prev, liked: !prev.liked }));
+        setLocalCounts(prev => ({
+            ...prev,
+            likes: prev.likes + (actionStates.liked ? -1 : 1),
+        }));
+        // TODO: Gửi request tới API
+        console.log("Like post:", post.id);
+    }, [actionStates.liked, post.id]);
+
+    // Hàm xử lý bookmark với Optimistic UI
+    const handleBookmark = useCallback(() => {
+        setActionStates(prev => ({ ...prev, bookmarked: !prev.bookmarked }));
+        setLocalCounts(prev => ({
+            ...prev,
+            bookmarks: prev.bookmarks + (actionStates.bookmarked ? -1 : 1),
+        }));
+        // TODO: Gửi request tới API
+        console.log("Bookmark post:", post.id);
+    }, [actionStates.bookmarked, post.id]);
+
+    // Hàm xử lý share với Optimistic UI
+    const handleShare = useCallback(() => {
+        setActionStates(prev => ({ ...prev, shared: !prev.shared }));
+        setLocalCounts(prev => ({
+            ...prev,
+            shares: prev.shares + (actionStates.shared ? -1 : 1),
+        }));
+        // TODO: Gửi request tới API
+        console.log("Share post:", post.id);
+    }, [actionStates.shared, post.id]);
+
+    // Hàm xử lý reply (comment)
+    const handleReply = useCallback(async () => {
+        // Sau khi API trả về thành công, mới tăng replies (Optimistic after actual post)
+        setLocalCounts(prev => ({ ...prev, replies: prev.replies + 1 }));
+        console.log('Comment posted for post:', post.id);
+    }, [post.id]);
+
     // Check if has gallery or single media
     const hasGallery = post.gallery && post.gallery.length > 0;
     const hasSingleMedia = post.media_url && !hasGallery;
@@ -471,10 +526,29 @@ const FeedCard: React.FC<FeedCardProps> = ({
             <CardFooter className="flex gap-3 px-4 -pb-3 -mb-3 -pt-10 -mt-5">
                 <div className="spacer-column"></div>
                 <div className="flex-1 flex gap-4 justify-start">
-                    <ActionButton icon={<Heart size={24} />} count={post.actions_count} />
-                    <ActionButton icon={<MessageSquare size={24} />} count={post.replies_count} />
-                    <ActionButton icon={<Bookmark size={24} />} count={post.bookmark_count} />
-                    <ActionButton icon={<Repeat2 size={24} />} count={post.shares_count} />
+                    <ActionButton 
+                        icon={<Heart size={24} />} 
+                        count={localCounts.likes}
+                        onClick={handleLike}
+                        isActive={actionStates.liked}
+                    />
+                    <ActionButton 
+                        icon={<MessageSquare size={24} />} 
+                        count={localCounts.replies}
+                        onClick={handleReply}
+                    />
+                    <ActionButton 
+                        icon={<Bookmark size={24} />} 
+                        count={localCounts.bookmarks}
+                        onClick={handleBookmark}
+                        isActive={actionStates.bookmarked}
+                    />
+                    <ActionButton 
+                        icon={<Repeat2 size={24} />} 
+                        count={localCounts.shares}
+                        onClick={handleShare}
+                        isActive={actionStates.shared}
+                    />
                     <ActionButton icon={<Send size={24} />} />
                 </div>
                 <div className="spacer-column"></div>
@@ -487,17 +561,25 @@ const FeedCard: React.FC<FeedCardProps> = ({
 interface ActionButtonProps {
     icon: React.ReactNode;
     count?: number;
+    onClick?: () => void;
+    isActive?: boolean;
 }
 
-const ActionButton: React.FC<ActionButtonProps> = ({ icon, count }) => (
+// const ActionButton: React.FC<ActionButtonProps> = ({ icon, count }) => (
+const ActionButton: React.FC<ActionButtonProps> = ({ icon, count, onClick, isActive }) => (
     <Button
         variant="ghost"
         size="icon"
-        className="action-button-base w-8 h-8 flex items-center gap-1"
+        onClick={onClick}
+        className={`action-button-base w-8 h-8 flex items-center gap-1 transition-all ${
+            isActive 
+                ? 'text-red-500 hover:text-red-600' 
+                : 'text-text-secondary hover:text-foreground'
+        }`}
     >
         {icon}
         {count !== undefined && count > 0 && (
-            <span className="small-text">{count}</span>
+            <span className="small-text text-xs">{count}</span>
         )}
     </Button>
 );
