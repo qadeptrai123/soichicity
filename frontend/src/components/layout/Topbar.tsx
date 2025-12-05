@@ -25,8 +25,8 @@ export default function Topbar() {
   };
 
   return (
-    <div className="relative h-16 w-full border-b border-[#1f2632] bg-[#0d1117] flex items-center justify-center">
-      
+    <div className="fixed top-0 left-0 right-0 h-16 z-20 border-b border-[#1F2937] bg-backgroundfeed flex items-center justify-center">
+
       {/* Button */}
       <button
         onClick={() => setOpen(!open)}
@@ -36,22 +36,7 @@ export default function Topbar() {
         <ChevronDown size={18} className={`${open ? "rotate-180" : ""} transition`} />
       </button>
 
-      {/* Dropdown */}
-      {open && (
-        <div className="absolute top-16 bg-[#0d1117] border border-[#1f2632] rounded-xl shadow-lg w-40 p-2">
-          {options.map((opt) => (
-            <button
-              key={opt}
-              onClick={() => handleSelect(opt)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-gray-200 hover:bg-[#1a222e] transition ${
-                selected === opt ? "bg-[#17212b]" : ""
-              }`}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-      )}
+
     </div>
   );
 }

@@ -24,7 +24,7 @@
 // export default function Layout() {
 //   return (
 //     <div className="relative bg-[#0b0f15] w-full min-h-screen">
-      
+
 //       {/* Sidebar overlay (absolute) */}
 //       <div className="fixed left-0 top-0 h-screen z-20">
 //         <Sidebar />
@@ -48,25 +48,22 @@ import { Outlet } from "react-router-dom";
 
 export default function Layout() {
   return (
-    <div className="bg-[#0b0f15] min-h-screen w-full flex">
+    <div className="bg-backgroundfeed min-h-screen w-full">
 
       {/* Sidebar (80px) */}
-      <div className="fixed left-0 top-0 h-screen w-20 z-30">
-        <Sidebar />
-      </div>
+      <Sidebar />
 
       {/* RIGHT AREA (Topbar + Content) */}
-      <div className="flex-1 ml-20"> 
-        {/* Topbar */}
-        <div className="fixed top-0 left-20 right-0 h-16 z-20">
-          <Topbar />
-        </div>
 
-        {/* MAIN CONTENT (scrollable) */}
-        <div className="pt-16">
-          <Outlet />
-        </div>
+      {/* Topbar */}
+      <Topbar />
+
+
+      {/* MAIN CONTENT (scrollable) */}
+      <div className="pt-16">
+        <Outlet />
       </div>
+
 
     </div>
   );
