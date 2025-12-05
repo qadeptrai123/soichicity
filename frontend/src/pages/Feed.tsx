@@ -307,7 +307,7 @@ const Feed = () => {
                 {/* Login Prompt - Right Column */}
                 {isAuthenticated ? null : (
                     <div className="lg:col-span-1 w-full">
-                        <div className="sticky top-4">
+                        <div className="sticky top-20">
                             <LoginPrompt />
                         </div>
                     </div>
