@@ -203,6 +203,7 @@ const Feed = () => {
     const [currentPage, setCurrentPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoginPromptDismissed, setIsLoginPromptDismissed] = useState(false);
     const { isAuthenticated } = useAuth();
     const observerTarget = useRef<HTMLDivElement>(null);
     // Load more posts
@@ -261,7 +262,16 @@ const Feed = () => {
 
                 {/* Feed Posts - Center */}
                 <div className="lg:col-span-2">
-                    <div className="space-y-4">
+                    {/* Mobile Login Prompt - Top */}
+                    {!isAuthenticated && !isLoginPromptDismissed && (
+                        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 p-4 flex justify-center">
+                            <div className="w-full max-w-sm">
+                                <LoginPrompt onClose={() => setIsLoginPromptDismissed(true)} />
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-4 pt-[140px] lg:pt-0">
                         {displayedPosts.length > 0 && displayedPosts.map((item, index) => (
                             <FeedCard
                                 key={`post-${item.id}-${index}`}  // Use combination for absolute uniqueness
@@ -296,9 +306,9 @@ const Feed = () => {
                     </div>
                 </div>
 
-                {/* Login Prompt - Right Column */}
+                {/* Login Prompt - Right Column (Desktop only) */}
                 {!isAuthenticated && (
-                    <div className="lg:col-span-1 w-full">
+                    <div className="hidden lg:block lg:col-span-1 w-full">
                         <div className="sticky top-20">
                             <LoginPrompt />
                         </div>
