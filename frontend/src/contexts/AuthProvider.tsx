@@ -1,5 +1,6 @@
 // src/context/AuthProvider.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { jwtDecode } from "jwt-decode";
 import type { User, AuthContextType } from "@/types/auth";
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -11,19 +12,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const token = localStorage.getItem("access_token");
         if (token) {
             try {
-                setUser(token as unknown as User); // Giả sử token chứa thông tin user
+                const decoded: any = jwtDecode(token);
+                const currentTime = Date.now() / 1000;
+
+                if (decoded.exp && decoded.exp < currentTime) {
+                    console.log("Token expired");
+                    logout();
+                } else {
+                    // Map decoded token to User object
+                    // Adjust these fields based on your actual JWT payload
+                    setUser({
+                        id: decoded.sub || decoded.user_id || decoded.id,
+                        username: decoded.username || decoded.sub,
+                        email: decoded.email || "",
+                        name: decoded.name || decoded.full_name || "",
+                        avatarUrl: decoded.avatar_url || decoded.picture
+                    });
+                }
             } catch (error) {
                 console.error("Invalid token:", error);
-                localStorage.removeItem("access_token");
-                setUser(null);
+                logout();
             }
         }
+
+        const handleLogoutEvent = () => logout();
+        window.addEventListener("auth:logout", handleLogoutEvent);
+        return () => window.removeEventListener("auth:logout", handleLogoutEvent);
     }, []);
 
     const login = (token: string) => {
         try {
+            const decoded: any = jwtDecode(token);
             localStorage.setItem("access_token", token);
-            setUser(token as unknown as User);
+
+            setUser({
+                id: decoded.sub || decoded.user_id || decoded.id,
+                username: decoded.username || decoded.sub,
+                email: decoded.email || "",
+                name: decoded.name || decoded.full_name || "",
+                avatarUrl: decoded.avatar_url || decoded.picture
+            });
+
             // Đợi state update xong
             return new Promise(resolve => {
                 setTimeout(resolve, 100);
@@ -31,7 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (error) {
             console.error("Invalid token:", error);
             setUser(null);
-            throw error; // Throw error để LoginPrompt catch được
+            throw error;
         }
     };
 
@@ -39,6 +68,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         setUser(null);
+        // Optional: Redirect to login page if not handled by protected routes
     };
 
     return (

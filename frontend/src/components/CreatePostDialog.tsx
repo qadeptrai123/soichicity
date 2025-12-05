@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from "react";
-import { Image as ImageIcon, AtSign, X, Search } from "lucide-react"; 
+import { Image as ImageIcon, AtSign, X, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -31,24 +31,24 @@ interface CreatePostDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentUser: User; // Nhận dữ liệu người dùng qua props
-  mockFriends: User[]; 
+  mockFriends: User[];
   onPost: (content: string, mediaFiles: MediaFile[]) => void;
 }
 
-export default function CreatePostDialog({ 
-  open, 
+export default function CreatePostDialog({
+  open,
   onOpenChange,
-  currentUser, 
-  mockFriends, 
-  onPost, 
+  currentUser,
+  mockFriends,
+  onPost,
 }: CreatePostDialogProps) {
-  
+
   const [content, setContent] = useState<string>("");
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
-  
+
   // 2. Thêm State cho thanh tìm kiếm
-  const [tagSearch, setTagSearch] = useState<string>(""); 
+  const [tagSearch, setTagSearch] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -79,12 +79,12 @@ export default function CreatePostDialog({
     setContent("");
     setMediaFiles([]);
     setShowEmojiPicker(false);
-    setTagSearch(""); 
+    setTagSearch("");
   };
 
   const handleClose = () => {
     handleReset();
-    // onOpenChange(false);
+    onOpenChange(false);
   };
 
   const handlePost = () => {
@@ -98,17 +98,15 @@ export default function CreatePostDialog({
   };
 
   const handleTagUser = (username: string) => {
-    setContent((prev) => prev + `@${username} ` );
-    setTagSearch(""); 
+    setContent((prev) => prev + `@${username} `);
+    setTagSearch("");
   };
 
   const isDisabled = !content && mediaFiles.length === 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] bg-secondary border-border p-0 shadow-2xl gap-0 overflow-visible [&>button]:hidden max-h-[90vh] flex flex-col -mt-9"
-                                onInteractOutside={(e) => e.preventDefault()} 
-                                onEscapeKeyDown={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-[600px] bg-secondary border-border p-0 shadow-2xl gap-0 overflow-visible [&>button]:hidden max-h-[90vh] flex flex-col -mt-9">
 
         {/* HEADER */}
         <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b border-border space-y-0">
@@ -127,7 +125,7 @@ export default function CreatePostDialog({
           <div className="flex flex-col items-center pt-1">
             <Avatar className="w-10 h-10 border border-border">
               <AvatarImage src={currentUser.avatarUrl} alt={currentUser.username} />
-              <AvatarFallback>{(currentUser.name || currentUser.username).charAt(0).toUpperCase()}</AvatarFallback>
+              <AvatarFallback>{(currentUser.name || currentUser.username)}</AvatarFallback>
             </Avatar>
             <div className="w-[2px] flex-1 bg-border my-3 rounded-full opacity-50"></div>
           </div>
@@ -140,7 +138,7 @@ export default function CreatePostDialog({
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder= "What's new?"
+              placeholder="What's new?"
               className="w-full bg-transparent border-none text-foreground placeholder-text-muted focus:ring-0 resize-none text-base outline-none p-0 min-h-[120px] leading-relaxed mb-4"
             />
 
@@ -179,20 +177,20 @@ export default function CreatePostDialog({
                     <AtSign size={20} />
                   </Button>
                 </DropdownMenuTrigger>
-                
-                <DropdownMenuContent 
+
+                <DropdownMenuContent
                   className="bg-secondary border-border text-foreground w-64 max-h-[280px] overflow-y-auto no-scrollbar p-0"
                   align="start"
                 >
                   <div className="sticky top-0 bg-secondary/95 backdrop-blur-sm p-2 z-10 border-b border-white/10">
                     <div className="relative flex items-center">
                       <Search className="absolute left-2 w-4 h-4 text-muted-foreground" />
-                      <input 
+                      <input
                         type="text"
                         placeholder="Search friends..."
                         value={tagSearch}
                         onChange={(e) => setTagSearch(e.target.value)}
-                        onClick={(e) => e.stopPropagation()} 
+                        onClick={(e) => e.stopPropagation()}
                         className="w-full bg-black/20 text-sm text-foreground rounded-md py-1.5 pl-8 pr-2 outline-none border border-transparent focus:border-white/20 placeholder:text-muted-foreground/50"
                         autoFocus={false}
                       />
@@ -202,9 +200,9 @@ export default function CreatePostDialog({
                   <div className="p-1">
                     {filteredFriends.length > 0 ? (
                       filteredFriends.map((user) => (
-                        <DropdownMenuItem 
-                          key={user.id} 
-                          onClick={() => handleTagUser(user.username)} 
+                        <DropdownMenuItem
+                          key={user.id}
+                          onClick={() => handleTagUser(user.username)}
                           className="cursor-pointer hover:bg-white/10 focus:bg-white/10 flex items-center gap-2 py-2 px-2 rounded-md"
                         >
                           <Avatar className="w-6 h-6">
@@ -217,9 +215,9 @@ export default function CreatePostDialog({
                         </DropdownMenuItem>
                       ))
                     ) : (
-                       <div className="text-center py-4 text-sm text-muted-foreground">
-                         No users found
-                       </div>
+                      <div className="text-center py-4 text-sm text-muted-foreground">
+                        No users found
+                      </div>
                     )}
                   </div>
                 </DropdownMenuContent>

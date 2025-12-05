@@ -25,6 +25,10 @@ apiClient.interceptors.request.use(async (config) => {
 apiClient.interceptors.response.use((response) => {
     return response.data;
 }, (error) => {
+    if (error.response?.status === 401) {
+        // Dispatch custom event for AuthProvider to handle logout
+        window.dispatchEvent(new Event("auth:logout"));
+    }
     const message = error.response?.data?.detail || error.message;
     console.error('API Error:', message);
     return Promise.reject(error);
