@@ -3,6 +3,7 @@ import FeedCard from '@/components/FeedCard';
 import { LoginPrompt } from '@/components/LoginPrompt';
 import type { PostData, AuthorData, MediaItem } from '@/components/FeedCard';
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthProvider';
 
 // --- BẮT ĐẦU: DỮ LIỆU MOCK MỚI VỚI YOUTUBE LINKS ---
 
@@ -202,15 +203,8 @@ const Feed = () => {
     const [currentPage, setCurrentPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const { isAuthenticated } = useAuth();
     const observerTarget = useRef<HTMLDivElement>(null);
-
-    // Check authentication on mount
-    useEffect(() => {
-        const accessToken = localStorage.getItem('access_token');
-        setIsAuthenticated(!!accessToken);
-    }, []);
-
     // Load more posts
     const loadMorePosts = useCallback(() => {
         if (isLoading || !hasMore) return;
@@ -259,8 +253,6 @@ const Feed = () => {
         };
     }, [loadMorePosts, hasMore, isLoading]);
 
-
-
     return (
         <div className="bg-backgroundfeed min-h-screen p-4">
             <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -270,9 +262,9 @@ const Feed = () => {
                 {/* Feed Posts - Center */}
                 <div className="lg:col-span-2">
                     <div className="space-y-4">
-                        {displayedPosts.length > 0 && displayedPosts.map((item) => (
+                        {displayedPosts.length > 0 && displayedPosts.map((item, index) => (
                             <FeedCard
-                                key={item.id}
+                                key={`post-${item.id}-${index}`}  // Use combination for absolute uniqueness
                                 post={{
                                     id: item.id,
                                     content: item.content,
@@ -305,7 +297,7 @@ const Feed = () => {
                 </div>
 
                 {/* Login Prompt - Right Column */}
-                {isAuthenticated ? null : (
+                {!isAuthenticated && (
                     <div className="lg:col-span-1 w-full">
                         <div className="sticky top-20">
                             <LoginPrompt />
