@@ -1,24 +1,21 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
-import LoginForm from './pages/Login'
-import ResetPassword from "./pages/ResetPassword";
-import Register from "./pages/Register";
-import ForgotPassword from "./pages/ForgotPassword";
-import Feed from "./pages/Feed";
+import { CURRENT_USER, MOCK_FRIENDS, MOCK_TARGET_POST } from "@/MockData/data"; 
+import Comment from './components/Comment';
 // import CreatePostDialog from './components/CreatePostDialog';
 
 
 export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path='/login' element={<LoginForm />} />
-        <Route path='/register' element={<Register />} />
-        <Route path='/forgot-password' element={<ForgotPassword />} />
-        <Route path='/reset-password' element={<ResetPassword />} />
-        <Route path='/' element={<Feed />} />
-      </Routes>
-    </BrowserRouter>
-  )
-}
 
+    return (
+        <Comment  
+            open={true} 
+            onOpenChange={() => {}} 
+            currentUser={CURRENT_USER} 
+            targetPost={MOCK_TARGET_POST}
+            mockFriends={MOCK_FRIENDS} 
+            onPost={(content, mediaFiles) => {
+                console.log("Đã gửi comment với nội dung:", content, "và media:", mediaFiles);
+            }}
+        />
+    );
+}

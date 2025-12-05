@@ -1,4 +1,13 @@
-import type { User } from "./type";
+import type { User, TargetPost } from "./type";
+
+// Hàm format ngày tháng năm hiện tại theo định dạng DD/MM/YYYY
+const getCurrentDate = (): string => {
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, "0");
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const year = today.getFullYear();
+  return `${day}/${month}/${year}`;
+};
 
 export const CURRENT_USER: User = {
   id: "user_99",
@@ -24,3 +33,15 @@ export const MOCK_FRIENDS: User[] = [
   { id: "14", name: "Nina", username: "nina_simone" },
   { id: "15", name: "Oscar", username: "oscar_wilde" },
 ];
+
+export const MOCK_TARGET_POST: TargetPost = {
+  id: 1,
+  user: {
+    id: "target_user_1",
+    username: "loc.tran0411",
+    name: "TranHuuLoc",
+    avatarUrl: "https://i.pravatar.cc/150?u=cat",
+  },
+  content: 'Ôi, Sợ nhóm trưởng quá. Huhu !!!"',
+  date: getCurrentDate(),
+};
