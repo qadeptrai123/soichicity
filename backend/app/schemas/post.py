@@ -50,6 +50,24 @@ class CommentResponse(BaseModel):
     content: str
     timestamp: int # Trả về dạng số như hình
 
+class AuthorResponse(BaseModel):
+    id: str
+    username: str
+    avatar: Optional[str] = None
+    full_name: Optional[str] = None
+
+class PaginatedComments(BaseModel):
+    items: List[CommentResponse] = []
+    total: int = 0
+    page: int = 1
+    page_size: int = 10
+    total_pages: int = 0
+
+class UserInteractionStatus(BaseModel):
+    is_liked: bool = False
+    is_saved: bool = False
+    is_shared: bool = False
+
 class PostResponse(BaseModel):
     id: str
     content: str
@@ -71,3 +89,33 @@ class PostResponse(BaseModel):
         if v is None: return []
         if isinstance(v, str): return [v]
         return v
+
+class PostDetailResponse(BaseModel):
+    # Post metadata
+    id: str
+    content: str
+    link_url: List[str] = []
+    created_at: str
+    
+    # Author info
+    author: AuthorResponse
+    
+    # Engagement counts
+    like_count: int = Field(alias="likeCount", default=0)
+    share_count: int = Field(alias="shareCount", default=0)
+    save_count: int = Field(alias="saveCount", default=0)
+    comment_count: int = Field(alias="commentCount", default=0)
+    
+    # Comments with pagination
+    comments: PaginatedComments = PaginatedComments()
+    
+    # Engagement lists (optional, for UI needs)
+    likes: List[str] = []  # List of user IDs who liked
+    reposts: List[str] = []  # List of user IDs who reposted
+    
+    # Current user's interaction status
+    current_user_interaction: UserInteractionStatus = UserInteractionStatus()
+    
+    class Config:
+        populate_by_name = True
+
