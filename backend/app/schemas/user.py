@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, field_validator
-from typing import Optional
+from typing import List, Optional
 from email_validator import validate_email, EmailNotValidError
 import re
 
@@ -46,7 +46,13 @@ class UserInDB(UserBase):
 
 # Information returned to client (hides password)
 class UserResponse(UserBase):
-    pass
+    id:str
+    followers: List[str] = []
+    following: List[str] = []
+
+    follower_count : int = 0
+    following_count : int = 0
+    
 
 class PasswordRecoveryRequest(BaseModel):
     email: EmailStr
