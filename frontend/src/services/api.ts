@@ -70,3 +70,14 @@ export const api = {
         deleteComment: (post_id: string, comment_id: string) => apiClient.delete(`/api/v1/posts/${post_id}/comments/${comment_id}`),
     },
 };
+
+export const getThreadDetail = async (threadId: string) => {
+  // Đường dẫn này tùy thuộc vào Backend của bạn
+  const response = await apiClient.get(`/posts/${threadId}`);
+  return response.data;
+};
+
+export const getThreadActivity = async (threadId: string) => {
+    const response = await apiClient.get(`/posts/${threadId}/activity`);
+    return response.data;
+}
