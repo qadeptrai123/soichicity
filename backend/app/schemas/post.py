@@ -72,8 +72,9 @@ class PaginatedComments(BaseModel):
 
 class UserInteractionStatus(BaseModel):
     is_liked: bool = False
-    is_saved: bool = False
     is_shared: bool = False
+    is_reposted: bool = False
+    is_saved: bool = False
 
 class PostResponse(BaseModel):
     id: str
@@ -88,11 +89,13 @@ class PostResponse(BaseModel):
     # Interaction status for current user
     is_liked: bool = False
     is_shared: bool = False
+    is_reposted: bool = False
     is_saved: bool = False
     
     # Các trường đếm (Map đúng tên field trong hình)
     like_count: int = Field(alias="likeCount", default=0)
     share_count: int = Field(alias="shareCount", default=0)
+    repost_count: int = Field(alias="repostCount", default=0)
     save_count: int = Field(alias="saveCount", default=0)
     comment_count: int = Field(alias="commentCount", default=0)
 
@@ -118,6 +121,7 @@ class PostDetailResponse(BaseModel):
     # Engagement counts
     like_count: int = Field(alias="likeCount", default=0)
     share_count: int = Field(alias="shareCount", default=0)
+    repost_count: int = Field(alias="repostCount", default=0)
     save_count: int = Field(alias="saveCount", default=0)
     comment_count: int = Field(alias="commentCount", default=0)
     

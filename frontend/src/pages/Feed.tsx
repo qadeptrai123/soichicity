@@ -105,7 +105,8 @@ function getRandomCounts() {
     actions_count: Math.floor(Math.random() * 500),
     replies_count: Math.floor(Math.random() * 100),
     bookmark_count: Math.floor(Math.random() * 200),
-    shares_count: Math.floor(Math.random() * 50),
+    shares_count: Math.floor(Math.random() * 30),
+    reposts_count: Math.floor(Math.random() * 50),
   };
 }
 
@@ -230,6 +231,7 @@ for (let i = 1; i <= totalPosts; i++) {
     replies_count: counts.replies_count,
     bookmark_count: counts.bookmark_count,
     shares_count: counts.shares_count,
+    reposts_count: counts.reposts_count,
     author: authorData,
   });
 }
@@ -357,9 +359,11 @@ const Feed = () => {
       replies_count: apiPost.commentCount || 0,
       bookmark_count: apiPost.saveCount || 0,
       shares_count: apiPost.shareCount || 0,
+      reposts_count: apiPost.repostCount || 0,
       is_liked: apiPost.is_liked || false,
       is_bookmarked: apiPost.is_saved || false,
       is_shared: apiPost.is_shared || false,
+      is_reposted: apiPost.is_reposted || false,
       author: {
         id: apiPost.author?.id || apiPost.author_id,
         username:
@@ -435,9 +439,11 @@ const Feed = () => {
                     replies_count: item.replies_count,
                     bookmark_count: item.bookmark_count,
                     shares_count: item.shares_count,
+                    reposts_count: item.reposts_count,
                     is_liked: item.is_liked,
                     is_bookmarked: item.is_bookmarked,
                     is_shared: item.is_shared,
+                    is_reposted: item.is_reposted,
                   }}
                   author={item.author}
                   onReply={handleReply}

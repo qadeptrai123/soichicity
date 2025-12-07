@@ -27,8 +27,35 @@ export const useLikePost = () => {
   });
 };
 
-export const useSharePost = () => useMutation({ mutationFn: api.posts.share });
-export const useSavePost = () => useMutation({ mutationFn: api.posts.save });
+export const useSharePost = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: api.posts.share,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+};
+
+export const useRepostPost = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: api.posts.repost,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+};
+
+export const useSavePost = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: api.posts.save,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+};
 
 export const useAddComment = () => {
   const queryClient = useQueryClient();

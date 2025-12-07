@@ -26,12 +26,14 @@ export type Post = {
     // Counts
     likeCount: number;
     shareCount: number;
+    repostCount: number;
     saveCount: number;
     commentCount: number;
 
     // Interaction status
     is_liked: boolean;
     is_shared: boolean;
+    is_reposted: boolean;
     is_saved: boolean;
 };
 
@@ -61,6 +63,7 @@ export const api = {
         // Interactions
         like: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/like`),
         share: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/share`),
+        repost: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/repost`),
         save: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/save`),
 
         // Comments

@@ -22,7 +22,12 @@ import {
 } from "lucide-react";
 import { DropdownExtend } from "./DropdownExtend";
 import { useNavigate } from "react-router-dom";
-import { useLikePost } from "@/hooks/api/use-posts";
+import {
+  useLikePost,
+  useSavePost,
+  useSharePost,
+  useRepostPost,
+} from "@/hooks/api/use-posts";
 
 // 1. Định nghĩa các Interfaces
 export interface MediaItem {
@@ -42,11 +47,13 @@ export interface PostData {
   replies_count?: number;
   bookmark_count?: number;
   shares_count?: number;
+  reposts_count?: number;
 
   // Interaction status from API
   is_liked?: boolean;
   is_bookmarked?: boolean;
   is_shared?: boolean;
+  is_reposted?: boolean;
 }
 
 export interface AuthorData {
@@ -316,6 +323,9 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
   const navigate = useNavigate();
   const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
   const likeMutation = useLikePost();
+  const saveMutation = useSavePost();
+  const shareMutation = useSharePost();
+  const repostMutation = useRepostPost();
 
   // Optimistic UI State - khởi tạo từ props
   const [localCounts, setLocalCounts] = useState({
@@ -323,12 +333,14 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
     replies: post.replies_count || 0,
     bookmarks: post.bookmark_count || 0,
     shares: post.shares_count || 0,
+    reposts: post.reposts_count || 0,
   });
 
   const [actionStates, setActionStates] = useState({
     liked: post.is_liked || false,
     bookmarked: post.is_bookmarked || false,
     shared: post.is_shared || false,
+    reposted: post.is_reposted || false,
   });
 
   // Sync state với props khi data từ API thay đổi (sau khi invalidateQueries)
@@ -338,24 +350,28 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
       replies: post.replies_count || 0,
       bookmarks: post.bookmark_count || 0,
       shares: post.shares_count || 0,
+      reposts: post.reposts_count || 0,
     });
     setActionStates({
       liked: post.is_liked || false,
       bookmarked: post.is_bookmarked || false,
       shared: post.is_shared || false,
+      reposted: post.is_reposted || false,
     });
   }, [
     post.actions_count,
     post.replies_count,
     post.bookmark_count,
     post.shares_count,
+    post.reposts_count,
     post.is_liked,
     post.is_bookmarked,
     post.is_shared,
+    post.is_reposted,
   ]);
 
   // --- Xử lý click chuyển trang ---
-  const handleCardClick = (e: React.MouseEvent) => {
+  const handleCardClick = () => {
     // Nếu người dùng đang bôi đen text thì không chuyển trang
     const selection = window.getSelection();
     if (selection && selection.toString().length > 0) return;
@@ -386,9 +402,9 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
         ...prev,
         bookmarks: prev.bookmarks + (actionStates.bookmarked ? -1 : 1),
       }));
-      console.log("Bookmark post:", post.id);
+      saveMutation.mutate(post.id);
     },
-    [actionStates.bookmarked, post.id]
+    [actionStates.bookmarked, post.id, saveMutation]
   );
 
   const handleShare = useCallback(
@@ -399,9 +415,22 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
         ...prev,
         shares: prev.shares + (actionStates.shared ? -1 : 1),
       }));
-      console.log("Share post:", post.id);
+      shareMutation.mutate(post.id);
     },
-    [actionStates.shared, post.id]
+    [actionStates.shared, post.id, shareMutation]
+  );
+
+  const handleRepost = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      setActionStates((prev) => ({ ...prev, reposted: !prev.reposted }));
+      setLocalCounts((prev) => ({
+        ...prev,
+        reposts: prev.reposts + (actionStates.reposted ? -1 : 1),
+      }));
+      repostMutation.mutate(post.id);
+    },
+    [actionStates.reposted, post.id, repostMutation]
   );
 
   const handleReply = useCallback(
@@ -628,18 +657,18 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
             isActive={actionStates.bookmarked}
           />
           <ActionButton
-            actionId="share"
+            actionId="repost"
             icon={<Repeat2 size={24} />}
+            count={localCounts.reposts}
+            onClick={handleRepost}
+            isActive={actionStates.reposted}
+          />
+          <ActionButton
+            actionId="share"
+            icon={<Send size={24} />}
             count={localCounts.shares}
             onClick={handleShare}
             isActive={actionStates.shared}
-          />
-          <ActionButton
-            icon={<Send size={24} />}
-            onClick={(e) => {
-              e?.stopPropagation();
-              console.log("Send click");
-            }}
           />
         </div>
         <div className="spacer-column"></div>
