@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ChevronDown, ArrowLeft } from "lucide-react"; // Nhớ import ArrowLeft
 import { useLocation, useNavigate } from "react-router-dom"; // Import hook router
 
-export default function Topbar() {
+export default function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState("For you");
   

@@ -45,26 +45,25 @@
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { Outlet } from "react-router-dom";
+import { useState } from "react";
 
 export default function Layout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="bg-backgroundfeed min-h-screen w-full">
-
       {/* Sidebar (80px) */}
-      <Sidebar />
+      <Sidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
 
       {/* RIGHT AREA (Topbar + Content) */}
 
       {/* Topbar */}
-      <Topbar />
-
+      <Topbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
 
       {/* MAIN CONTENT (scrollable) */}
       <div className="pt-16">
         <Outlet />
       </div>
-
-
     </div>
   );
 }

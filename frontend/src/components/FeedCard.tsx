@@ -85,7 +85,8 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
 
     if (!items || items.length === 0) return null;
 
-    const currentItem = items[selectedIndex];
+    const sortedItems = sortMediaItems(items);
+    const currentItem = sortedItems[selectedIndex];
     const embedUrl = currentItem.type === 'youtube' ? getYouTubeEmbedUrl(currentItem.url) : null;
     const isMultipleItems = items.length > 1;
     const containerHeight = maxHeight ? `${maxHeight}px` : (isMultipleItems ? '280px' : '400px');
@@ -95,7 +96,7 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
         const scrollLeft = container.scrollLeft;
         const containerWidth = container.offsetWidth;
         const newIndex = Math.round(scrollLeft / containerWidth);
-        setSelectedIndex(Math.min(newIndex, items.length - 1));
+        setSelectedIndex(Math.min(newIndex, sortedItems.length - 1));
     };
 
     const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>, index: number) => {
@@ -415,7 +416,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
                                     <img
                                         src={post.media_url!}
                                         alt="Post media"
-                                        className="media-content w-full h-auto object-contain object-left"
+                                        className="media-content max-h-96 w-full h-auto object-contain object-left"
                                         loading="lazy"
                                     />
                                 )}
@@ -473,29 +474,29 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
             <CardFooter className="flex gap-3 px-4 -pb-3 -mb-3 -pt-10 -mt-5">
                 <div className="spacer-column"></div>
                 <div className="flex-1 flex gap-4 justify-start">
-                    <ActionButton 
+                    <ActionButton
                         actionId="like"
-                        icon={<Heart size={24} />} 
+                        icon={<Heart size={24} />}
                         count={localCounts.likes}
                         onClick={handleLike}
                         isActive={actionStates.liked}
                     />
-                    <ActionButton 
+                    <ActionButton
                         actionId="reply"
-                        icon={<MessageSquare size={24} />} 
+                        icon={<MessageSquare size={24} />}
                         count={localCounts.replies}
                         onClick={handleReply}
                     />
-                    <ActionButton 
+                    <ActionButton
                         actionId="bookmark"
-                        icon={<Bookmark size={24} />} 
+                        icon={<Bookmark size={24} />}
                         count={localCounts.bookmarks}
                         onClick={handleBookmark}
                         isActive={actionStates.bookmarked}
                     />
-                    <ActionButton 
+                    <ActionButton
                         actionId="share"
-                        icon={<Repeat2 size={24} />} 
+                        icon={<Repeat2 size={24} />}
                         count={localCounts.shares}
                         onClick={handleShare}
                         isActive={actionStates.shared}

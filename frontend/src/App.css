@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
+:root {
+    --bg-color: #0A0E1A;
+}
+
 @theme {
     /* Background Colors */
     --color-background: #0A1628;

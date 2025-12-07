@@ -6,3 +6,9 @@ export interface User {
   
 }
 
+export interface TargetPost {
+  id: string | number;
+  user: User;
+  content: string;
+  date: string;
+}

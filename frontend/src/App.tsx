@@ -1,5 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
+import { CURRENT_USER, MOCK_FRIENDS, MOCK_TARGET_POST } from "@/MockData/data"; 
+import Comment from './components/comment';
+// import CreatePostDialog from './components/CreatePostDialog';
 
 import LoginForm from './pages/Login'
 import ResetPassword from "./pages/ResetPassword"
