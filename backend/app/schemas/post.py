@@ -30,6 +30,7 @@ class PostCreate(BaseModel):
     content: str
     link_url: Optional[List[str]] = [] 
 
+
 class PostCreateForm:
     def __init__(
         self,
@@ -39,8 +40,14 @@ class PostCreateForm:
         self.content = content
         self.files = files
 
-class CommentCreate(BaseModel):
-    content: str
+class CommentCreate:
+    def __init__(
+        self,
+        content: str = Form(...),
+        files: List[UploadFile] = File(default=[])
+    ):
+        self.content = content
+        self.files = files
 
 # --- Schemas Output ---
 class CommentResponse(BaseModel):
@@ -74,6 +81,11 @@ class PostResponse(BaseModel):
     link_url: List[str] = []
     created_at: str
     author_id: str
+    
+    # Interaction status for current user
+    is_liked: bool = False
+    is_shared: bool = False
+    is_saved: bool = False
     
     # Các trường đếm (Map đúng tên field trong hình)
     like_count: int = Field(alias="likeCount", default=0)

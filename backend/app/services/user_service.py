@@ -2,6 +2,7 @@
 from firebase_admin import auth
 from app.schemas.user import UserCreate
 from fastapi import HTTPException
+from google.cloud import firestore
 import uuid
 
 def get_user(db, user_id: str):
@@ -92,3 +93,80 @@ def sync_google_user(db, decoded_token):
     db.collection('users').document(uid).set(user_data)
     
     return {"id": uid, **user_data}
+
+def follow_user(db, current_user_id:str, target_user_id:str):
+    """
+    Docstring for follow_user
+    
+    1. Add target_user_id to current_user's following list
+    2. Add current_user_id to target_user's followers list
+    """
+
+    if current_user_id == target_user_id:
+        raise HTTPException(status_code=400, detail="You cannot follow yourself.")
+    
+    target_ref = db.collection('users').document(target_user_id)
+    current_ref = db.collection('users').document(current_user_id)
+
+    # Check existence of target user
+    if not target_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Target user not found.")
+    
+    batch = db.batch()
+
+    # Update current user's following list
+    batch.update(current_ref, {
+        "following": firestore.ArrayUnion([target_user_id]),
+        "following_count": firestore.Increment(1)
+    })
+
+    # Update target user's followers list
+    batch.update(target_ref, {
+        "followers": firestore.ArrayUnion([current_user_id]),
+        "follower_count": firestore.Increment(1)
+    })
+    
+    try:
+        batch.commit()
+        return {"status": "success", "message": f"User {current_user_id} followed {target_user_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error following user: {str(e)}")
+    
+def unfollow_user(db, current_user_id:str, target_user_id:str):
+    """
+    Docstring for unfollow_user
+    1. Remove target_user_id from current_user's following list
+    2. Remove current_user_id from target_user's followers list
+    """
+
+    if current_user_id == target_user_id:
+        raise HTTPException(status_code=400, detail="You cannot unfollow yourself.")
+    
+    target_ref = db.collection('users').document(target_user_id)
+    current_ref = db.collection('users').document(current_user_id)
+
+    # Check existence of target user
+    if not target_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Target user not found.")
+    
+    batch = db.batch()
+
+    # Update current user's following list
+    batch.update(current_ref, {
+        "following": firestore.ArrayRemove([target_user_id]),
+        "following_count": firestore.Increment(-1)
+    })
+
+    # Update target user's followers list
+    batch.update(target_ref, {
+        "followers": firestore.ArrayRemove([current_user_id]),
+        "follower_count": firestore.Increment(-1)
+    })
+    
+    try:
+        batch.commit()
+        return {"status": "success", "message": f"User {current_user_id} unfollowed {target_user_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error unfollowing user: {str(e)}")
+    
+    

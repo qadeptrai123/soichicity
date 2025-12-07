@@ -53,3 +53,30 @@ async def get_current_user(
         user = user_service.sync_google_user(db, decoded_token)
     
     return user
+
+async def get_current_user_optional(
+    token_str: Optional[str] = Depends(oauth2_scheme),
+    token_obj: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+    db = Depends(get_db)
+):
+    """
+    Returns user object if authenticated, else None.
+    Does NOT raise 401.
+    """
+    final_token = None
+    if token_str:
+        final_token = token_str
+    elif token_obj:
+        final_token = token_obj.credentials
+    
+    if final_token is None:
+        return None
+
+    try:
+        decoded_token = auth.verify_id_token(final_token)
+        uid = decoded_token['uid']
+        user = user_service.get_user(db, user_id=uid)
+        return user
+    except Exception:
+        # Ignore invalid tokens for optional auth
+        return None

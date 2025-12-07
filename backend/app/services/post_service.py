@@ -134,6 +134,18 @@ class PostService:
             post_ref.update({count_field: firestore.Increment(1)})
             return {"status": "added"}
 
+    # @staticmethod
+    # def remove_interaction(collection_name: str, count_field: str, post_id: str, user_id: str):
+    #     post_ref = db.collection("posts").document(post_id)
+    #     sub_ref = post_ref.collection(collection_name).document(user_id)
+        
+    #     doc = sub_ref.get()
+    #     if doc.exists:
+    #         sub_ref.delete()
+    #         post_ref.update({count_field: firestore.Increment(-1)})
+    #         return {"status": "removed"}
+    #     return {"status": "not_found"}
+
     # --- NEW: Hàm xử lý Comment ---
     @staticmethod
     def create_comment(post_id: str, user_id: str, user_avatar: str, content: str):
@@ -154,15 +166,32 @@ class PostService:
             "user_id": user_id,
             "userAvatar": user_avatar,
             "content": content,
+            "link_url": files,
             "timestamp": int(time.time() * 1000)
         }
         
         post_ref.collection("comments").document(comment_id).set(payload)
         
-        # Tăng biến đếm comment
         post_ref.update({"commentCount": firestore.Increment(1)})
         
         return payload
+
+    @staticmethod
+    def delete_comment(post_id: str, comment_id: str, user_id: str):
+        post_ref = db.collection("posts").document(post_id)
+        comment_ref = post_ref.collection("comments").document(comment_id)
+        
+        doc = comment_ref.get()
+        if not doc.exists:
+            return {"error": "Comment not found"}
+            
+        data = doc.to_dict()
+        if data["user_id"] != user_id:
+            return {"error": "Permission denied"}
+            
+        comment_ref.delete()
+        post_ref.update({"commentCount": firestore.Increment(-1)})
+        return {"status": "deleted"}
 
     @staticmethod
     def list_posts():
@@ -171,12 +200,13 @@ class PostService:
         return result
     
     @staticmethod
-    def get_feed_posts(user_id: str, limit: int = 20):
-        # 1) Lấy danh sách post user đã xem
-        seen_ref = db.collection("users_seen_posts").document(user_id).get()
+    def get_feed_posts(user_id: str = None, limit: int = 20):
+        # 1) Lấy danh sách post user đã xem (Chỉ nếu đã login)
         seen_posts = []
-        if seen_ref.exists:
-            seen_posts = seen_ref.to_dict().get("seen", [])
+        if user_id:
+            seen_ref = db.collection("users_seen_posts").document(user_id).get()
+            if seen_ref.exists:
+                seen_posts = seen_ref.to_dict().get("seen", [])
 
         # 2) Query tất cả posts
         # (Lưu ý: Cách này sẽ chậm khi dữ liệu lớn, nên tối ưu query bằng 'not-in' hoặc phân trang sau này)
@@ -196,7 +226,39 @@ class PostService:
         random.shuffle(unseen)
 
         # 5) Giới hạn số lượng
-        return unseen[:limit]
+        final_posts = unseen[:limit]
+        
+        # 6) Populate interaction status (is_liked, is_shared, is_saved)
+        # Note: This performs N*3 reads per request. Optimize by batching or denormalizing if scale increases.
+        for post in final_posts:
+            if user_id:
+                p_id = post["id"]
+                post_ref = db.collection("posts").document(p_id)
+                
+                # Check Like
+                if post_ref.collection("likes").document(user_id).get().exists:
+                    post["is_liked"] = True
+                else:
+                     post["is_liked"] = False
+                     
+                # Check Share
+                if post_ref.collection("shares").document(user_id).get().exists:
+                    post["is_shared"] = True
+                else:
+                     post["is_shared"] = False
+                     
+                # Check Save
+                if post_ref.collection("saves").document(user_id).get().exists:
+                    post["is_saved"] = True
+                else:
+                     post["is_saved"] = False
+            else:
+                # Guest user -> all false
+                post["is_liked"] = False
+                post["is_shared"] = False
+                post["is_saved"] = False
+
+        return final_posts
     
     @staticmethod
     def mark_post_as_seen(user_id: str, post_id: str):

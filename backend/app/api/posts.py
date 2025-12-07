@@ -1,43 +1,13 @@
-# from fastapi import APIRouter, Depends
-# from app.schemas.post import PostCreate, PostResponse
-# from app.services.post_service import PostService
-# from typing import List
-# from app.api.deps import get_current_user
-
-# router = APIRouter()
-
-# @router.post("/posts", response_model=PostResponse)
-# def create_post(
-#     post: PostCreate,
-#     user = Depends(get_current_user)   # đã có user từ auth
-# ):
-#     created = PostService.create_post(
-#         user_id=user["id"],
-#         content=post.content,
-#         link_url=post.link_url   # thêm đây
-#     )
-#     return created
-
-
-# @router.get("/posts", response_model=List[PostResponse])
-# def get_posts(
-#     user = Depends(get_current_user),
-#     limit: int = 20  # lấy tối đa 20 post
-# ):
-#     return PostService.get_feed_posts(user["id"], limit)
-
-# @router.post("/posts/{post_id}/seen")
-# def mark_seen(post_id: str, user = Depends(get_current_user)):
-#     PostService.mark_post_as_seen(user["id"], post_id)
-#     return {"status": "ok"}
-
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
 from typing import List
 # Import thêm Comment schemas
 from app.schemas.post import PostCreate, PostResponse, CommentCreate, CommentResponse, PostCreateForm
 from app.db.firebase import upload_file
 from app.services.post_service import PostService
-from app.api.deps import get_current_user
+from app.services.video_service import VideoService
+from app.services.video_service import VideoService
+from app.api.deps import get_current_user, get_current_user_optional
+import os
 
 router = APIRouter()
 
@@ -50,7 +20,24 @@ def create_post(
     if form_data.files:
         for file in form_data.files:
             # file.file is the file-like object
-            url = upload_file(file.file, file.filename, file.content_type, folder="posts")
+            if file.content_type.startswith("video/"):
+                # 1. Compress Video
+                compressed_path = VideoService.compress_video(file.file, file.filename)
+                
+                # 2. Upload to Firebase Storage
+                with open(compressed_path, "rb") as f:
+                    # Upload with same name but maybe different extension or keep it
+                    # We'll rely on unique naming in upload_file or pass a new name
+                    new_filename = os.path.basename(compressed_path)
+                    url = upload_file(f, new_filename, "video/mp4", folder="posts")
+                
+                # 3. Cleanup compressed file
+                if os.path.exists(compressed_path):
+                    os.remove(compressed_path)
+            else:
+                # Upload to Firebase Storage
+                url = upload_file(file.file, file.filename, file.content_type, folder="posts")
+            
             image_urls.append(url)
 
     created = PostService.create_post(
@@ -62,11 +49,12 @@ def create_post(
 
 @router.get("/posts", response_model=List[PostResponse])
 def get_posts(
-    user = Depends(get_current_user),
+    user = Depends(get_current_user_optional),
     limit: int = 20
 ):
     # Logic lấy feed (đã lọc bài đã xem)
-    return PostService.get_feed_posts(user["id"], limit)
+    user_id = user["id"] if user else None
+    return PostService.get_feed_posts(user_id, limit)
 
 # --- CÁC API MỚI CHO SUB-COLLECTIONS (LIKE, SHARE, COMMENT) ---
 
@@ -86,6 +74,15 @@ def like_post(post_id: str, user = Depends(get_current_user)):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+# @router.delete("/posts/{post_id}/like")
+# def unlike_post(post_id: str, user = Depends(get_current_user)):
+#     return PostService.remove_interaction(
+#         collection_name="likes", 
+#         count_field="likeCount", 
+#         post_id=post_id, 
+#         user_id=user["id"]
+#     )
+
 @router.post("/posts/{post_id}/share")
 def share_post(post_id: str, user = Depends(get_current_user)):
     avatar = user.get("avatar", "") or user.get("picture", "")
@@ -100,6 +97,15 @@ def share_post(post_id: str, user = Depends(get_current_user)):
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+# @router.delete("/posts/{post_id}/share")
+# def unshare_post(post_id: str, user = Depends(get_current_user)):
+#     return PostService.remove_interaction(
+#         collection_name="shares", 
+#         count_field="shareCount", 
+#         post_id=post_id, 
+#         user_id=user["id"]
+#     )
 
 @router.post("/posts/{post_id}/save")
 def save_post(post_id: str, user = Depends(get_current_user)):
@@ -116,10 +122,19 @@ def save_post(post_id: str, user = Depends(get_current_user)):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+# @router.delete("/posts/{post_id}/save")
+# def unsave_post(post_id: str, user = Depends(get_current_user)):
+#     return PostService.remove_interaction(
+#         collection_name="saves", 
+#         count_field="saveCount", 
+#         post_id=post_id, 
+#         user_id=user["id"]
+#     )
+
 @router.post("/posts/{post_id}/comments", response_model=CommentResponse)
 def add_comment(
-    post_id: str, 
-    comment: CommentCreate, 
+    post_id: str,
+    form_data: CommentCreate = Depends(),
     user = Depends(get_current_user)
 ):
     avatar = user.get("avatar", "") or user.get("picture", "")
@@ -133,6 +148,17 @@ def add_comment(
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+@router.delete("/posts/{post_id}/comments/{comment_id}")
+def delete_comment(
+    post_id: str, 
+    comment_id: str,
+    user = Depends(get_current_user)
+):
+    result = PostService.delete_comment(post_id, comment_id, user["id"])
+    if "error" in result:
+        raise HTTPException(status_code=403, detail=result["error"])
+    return result
 
 @router.post("/posts/{post_id}/seen")
 def mark_seen(post_id: str, user = Depends(get_current_user)):
