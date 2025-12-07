@@ -13,10 +13,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import EmojiButton from "./EmojiButton";
+import { useAddComment } from "@/hooks/api/use-posts";
 
 
-
-type MediaFile = { url: string; type: "image" | "video" };
+type MediaFile = { url: string; type: "image" | "video"; file: File;};
 
 type User = {
   id: string | number;
@@ -54,6 +54,7 @@ export default function ReplyCommentDialog({
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [tagSearch, setTagSearch] = useState<string>(""); 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const addComment = useAddComment();
 
 //   const createComment = useCreateComment();
 
@@ -69,6 +70,7 @@ export default function ReplyCommentDialog({
       const newFiles: MediaFile[] = Array.from(e.target.files).map((file) => ({
         url: URL.createObjectURL(file),
         type: file.type.startsWith("video/") ? "video" : "image",
+        file: file,
       }));
       setMediaFiles((prev) => [...prev, ...newFiles]);
     }
@@ -84,22 +86,32 @@ export default function ReplyCommentDialog({
     setTagSearch(""); 
   };
 
-  const handlePost = () => {
-    onPost(content, mediaFiles);
-    handleReset();
-    onOpenChange(false);
+  const handlePost = async () => {
+    const formData = new FormData();
+    formData.append("content", content);
+
+    if (mediaFiles.length > 0) {
+      const blobs = await Promise.all(
+        mediaFiles.map(item =>
+          fetch(item.url)
+            .then(res => res.blob())
+            .then(blob => new File([blob], "media", { type: blob.type }))
+        )
+      );
+
+      blobs.forEach(file => formData.append("files", file));
+    }
+
+    addComment.mutate(
+      { postId: String(targetPost.id), data: formData },
+      {
+        onSuccess: () => {
+          handleReset();
+          onOpenChange(false);
+        }
+      }
+    );
   };
-
-//   const handlePost = async () => {
-//   createComment.mutate({
-//     thread_id: targetPost.id,
-//     content: content,
-//     media: mediaFiles
-//   });
-
-//   handleReset();
-//   onOpenChange(false);
-// };
 
   const onEmojiClick = (emoji: string) => {
     setContent((prev) => prev + emoji);
