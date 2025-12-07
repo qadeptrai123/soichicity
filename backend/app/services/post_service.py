@@ -164,9 +164,8 @@ class PostService:
         payload = {
             "id": comment_id,
             "user_id": user_id,
-            "userAvatar": user_avatar,
+            "user_avatar": user_avatar,
             "content": content,
-            "link_url": files,
             "timestamp": int(time.time() * 1000)
         }
         
@@ -228,7 +227,21 @@ class PostService:
         # 5) Giới hạn số lượng
         final_posts = unseen[:limit]
         
-        # 6) Populate interaction status (is_liked, is_shared, is_saved)
+        # 6) Populate author info
+        for post in final_posts:
+            author_id = post.get("author_id")
+            if author_id:
+                user_ref = db.collection("users").document(author_id).get()
+                if user_ref.exists:
+                    user_data = user_ref.to_dict()
+                    post["author"] = {
+                        "id": author_id,
+                        "username": user_data.get("username", ""),
+                        "full_name": user_data.get("full_name"),
+                        "avatar": user_data.get("avatar_url") or user_data.get("avatar") or user_data.get("picture"),
+                    }
+        
+        # 7) Populate interaction status (is_liked, is_shared, is_saved)
         # Note: This performs N*3 reads per request. Optimize by batching or denormalizing if scale increases.
         for post in final_posts:
             if user_id:

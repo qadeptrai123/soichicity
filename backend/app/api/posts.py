@@ -144,7 +144,7 @@ def add_comment(
             post_id=post_id,
             user_id=user["id"],
             user_avatar=avatar,
-            content=comment.content
+            content=form_data.content
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

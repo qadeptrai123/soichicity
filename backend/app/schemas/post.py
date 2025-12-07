@@ -82,6 +82,9 @@ class PostResponse(BaseModel):
     created_at: str
     author_id: str
     
+    # Author info
+    author: Optional[AuthorResponse] = None
+    
     # Interaction status for current user
     is_liked: bool = False
     is_shared: bool = False
