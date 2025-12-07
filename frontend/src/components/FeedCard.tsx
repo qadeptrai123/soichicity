@@ -320,6 +320,15 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
 
 // --- MAIN FEED CARD COMPONENT ---
 const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
+    // Add mock author data fallback
+    const mockAuthor: AuthorData = {
+        name: 'Unknown User',
+        handle: '@user',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+    };
+
+    const displayAuthor = author || mockAuthor;
+
     const navigate = useNavigate(); // Hook chuyển trang
     const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
     const [isGalleryDragging, setIsGalleryDragging] = useState(false);
@@ -406,6 +415,10 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
     const hasSingleMedia = post.media_url && !hasGallery;
     const isYoutube = hasSingleMedia ? isYouTubeUrl(post.media_url!) : false;
     const embedUrl = isYoutube ? getYouTubeEmbedUrl(post.media_url!) : null;
+    // Phát hiện media type chính xác
+    const actualMediaType = hasSingleMedia
+        ? (isYoutube ? 'youtube' : post.media_type)
+        : null;
 
     // Dropdown Actions
     const postActions = [
@@ -455,22 +468,22 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
             {/* HEADER */}
             <CardHeader className="flex flex-row items-center gap-3 px-4 -mt-3 pb-0" onClick={(e) => e.stopPropagation()}>
                 <Avatar className="w-10 h-10 shrink-0">
-                    <AvatarImage src={author.avatar} alt={author.name} />
-                    <AvatarFallback>{author.name ? author.name.charAt(0).toUpperCase() : "U"}</AvatarFallback>
+                    <AvatarImage src={displayAuthor?.avatar || ''} alt={displayAuthor?.name || 'User'} />
+                    <AvatarFallback>{displayAuthor?.name ? displayAuthor.name.charAt(0).toUpperCase() : "U"}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col flex-1">
                     <div className="flex items-center gap-2">
                         <span
                             className="text hover:underline cursor-pointer text-foreground"
                             onClick={(e) => {
-                                e.stopPropagation(); // Chặn click tên user
+                                e.stopPropagation();
                                 console.log("Go to profile");
                             }}
                         >
-                            {author.name}
+                            {displayAuthor?.name || 'Unknown User'}
                         </span>
                         <span className="text-text-secondary text-ft">
-                            {author.handle}
+                            {displayAuthor?.handle || ''}
                         </span>
                         <span className="text-text-muted text-xs">
                             {formatTime(post.created_at)}
@@ -522,22 +535,22 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
                             <div
                                 className="rounded-lg overflow-hidden mt-2 w-fit cursor-pointer"
                                 onClick={(e) => {
-                                    e.stopPropagation(); // Chặn click media lẻ
+                                    e.stopPropagation();
                                     setShowSingleMediaLightbox(true);
                                 }}
                             >
-                                {embedUrl ? (
+                                {isYoutube ? (
                                     <div className="relative w-full bg-black" style={{ paddingBottom: '56.25%' }}>
                                         <iframe
-                                            src={embedUrl}
+                                            src={embedUrl!}
                                             title="YouTube video"
                                             frameBorder="0"
                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                             allowFullScreen
-                                            className="absolute top-0 left-0 w-full h-full pointer-events-none" // pointer-events-none để click xuyên qua div cha
+                                            className="absolute top-0 left-0 w-full h-full pointer-events-none"
                                         />
                                     </div>
-                                ) : post.media_type === 'video' ? (
+                                ) : actualMediaType === 'video' ? (
                                     <video
                                         controls
                                         className="media-content max-h-96 w-full object-cover"
@@ -568,10 +581,10 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
                                         <X size={24} />
                                     </button>
 
-                                    {embedUrl ? (
+                                    {isYoutube ? (
                                         <div className="relative w-full max-w-4xl bg-black" style={{ paddingBottom: '56.25%' }}>
                                             <iframe
-                                                src={embedUrl}
+                                                src={embedUrl!}
                                                 title="YouTube video"
                                                 frameBorder="0"
                                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -579,7 +592,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
                                                 className="absolute top-0 left-0 w-full h-full"
                                             />
                                         </div>
-                                    ) : post.media_type === 'video' ? (
+                                    ) : actualMediaType === 'video' ? (
                                         <video
                                             controls
                                             autoPlay
