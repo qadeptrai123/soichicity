@@ -66,6 +66,15 @@ const getYouTubeEmbedUrl = (url: string): string | null => {
     }
 };
 
+const sortMediaItems = (items: MediaItem[]): MediaItem[] => {
+    if (!items || items.length === 0) return items;
+
+    const videos = items.filter(item => item.type === 'video' || item.type === 'youtube');
+    const images = items.filter(item => item.type === 'image');
+
+    return [...videos, ...images];
+};
+
 const isYouTubeUrl = (url: string): boolean => {
     if (!url) return false;
     return /(?:youtube\.com|youtu\.be)/.test(url);
@@ -180,7 +189,7 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
 
             {/* Lightbox */}
             {showLightbox && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
                     onClick={(e) => e.stopPropagation()} // Chặn click xuyên qua lightbox
                 >
@@ -246,14 +255,14 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
         // Nếu người dùng đang bôi đen text thì không chuyển trang
         const selection = window.getSelection();
         if (selection && selection.toString().length > 0) return;
-        
+
         navigate(`/thread/${post.id}`);
     };
 
     // --- Các handlers có chặn sự kiện (stopPropagation) ---
-    
+
     const handleLike = useCallback((e?: React.MouseEvent) => {
-        e?.stopPropagation(); 
+        e?.stopPropagation();
         setActionStates(prev => ({ ...prev, liked: !prev.liked }));
         setLocalCounts(prev => ({
             ...prev,
@@ -335,7 +344,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
     ];
 
     return (
-        <Card 
+        <Card
             className="w-full max-w-2xl bg-secondary text-foreground border-border mb-4 cursor-pointer hover:bg-secondary/80 transition-colors"
             onClick={handleCardClick} // Gắn sự kiện click vào đây
         >
@@ -347,7 +356,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
                 </Avatar>
                 <div className="flex flex-col flex-1">
                     <div className="flex items-center gap-2">
-                        <span 
+                        <span
                             className="text hover:underline cursor-pointer text-foreground"
                             onClick={(e) => {
                                 e.stopPropagation(); // Chặn click tên user
@@ -423,7 +432,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
                             </div>
 
                             {showSingleMediaLightbox && (
-                                <div 
+                                <div
                                     className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
                                     onClick={(e) => e.stopPropagation()}
                                 >
@@ -501,11 +510,11 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
                         onClick={handleShare}
                         isActive={actionStates.shared}
                     />
-                    <ActionButton 
-                        icon={<Send size={24} />} 
+                    <ActionButton
+                        icon={<Send size={24} />}
                         onClick={(e) => {
-                             e?.stopPropagation(); 
-                             console.log("Send click");
+                            e?.stopPropagation();
+                            console.log("Send click");
                         }}
                     />
                 </div>
