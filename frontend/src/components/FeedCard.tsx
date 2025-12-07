@@ -259,6 +259,15 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
         navigate(`/thread/${post.id}`);
     };
 
+    // --- Xử lý click vào vùng content text ---
+    const handleContentClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const selection = window.getSelection();
+        if (selection && selection.toString().length > 0) return;
+
+        navigate(`/thread/${post.id}`);
+    };
+
     // --- Các handlers có chặn sự kiện (stopPropagation) ---
 
     const handleLike = useCallback((e?: React.MouseEvent) => {
@@ -349,7 +358,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
             onClick={handleCardClick} // Gắn sự kiện click vào đây
         >
             {/* HEADER */}
-            <CardHeader className="flex flex-row items-center gap-3 px-4 -mt-3 pb-0">
+            <CardHeader className="flex flex-row items-center gap-3 px-4 -mt-3 pb-0" onClick={(e) => e.stopPropagation()}>
                 <Avatar className="w-10 h-10 shrink-0">
                     <AvatarImage src={author.avatar} alt={author.name} />
                     <AvatarFallback>{author.name ? author.name.charAt(0).toUpperCase() : "U"}</AvatarFallback>
@@ -386,7 +395,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
             {/* CONTENT */}
             <CardContent className="py-0 pb-0 flex gap-3 px-4 -mt-4">
                 <div className="spacer-column"></div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0" onClick={handleContentClick}>
                     {post.content && (
                         <p className="text-sm leading-relaxed text-foreground whitespace-normal mb-1 wrap-break-words">
                             {post.content}
