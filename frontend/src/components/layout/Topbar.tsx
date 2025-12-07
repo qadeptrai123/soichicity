@@ -11,9 +11,9 @@
 //   );
 // }
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Menu } from "lucide-react";
 
-export default function Topbar() {
+export default function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState("For you");
 
@@ -25,17 +25,24 @@ export default function Topbar() {
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 h-16 z-20 border-b border-[#1F2937] bg-backgroundfeed flex items-center justify-center">
+    <div className="fixed top-0 left-0 right-0 h-16 z-20 border-b border-[#1F2937] bg-backgroundfeed flex items-center px-4 gap-4">
 
-      {/* Button */}
+      {/* Mobile hamburger menu - left side */}
+      <button
+        onClick={onMenuClick}
+        className="md:hidden p-2 text-gray-400 hover:text-white hover:bg-[#1a222e] rounded-lg transition"
+      >
+        <Menu size={24} />
+      </button>
+
+      {/* Button - centered */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1 text-gray-200 text-lg font-medium hover:opacity-80 transition"
+        className="flex items-center gap-1 text-gray-200 text-lg font-medium hover:opacity-80 transition mx-auto"
       >
         {selected}
         <ChevronDown size={18} className={`${open ? "rotate-180" : ""} transition`} />
       </button>
-
 
     </div>
   );

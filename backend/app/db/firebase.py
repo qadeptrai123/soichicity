@@ -57,3 +57,122 @@ def upload_file(file, filename: str, content_type: str, folder: str = "uploads")
     blob.upload_from_file(file, content_type=content_type)
     blob.make_public()
     return blob.public_url
+
+# --- NEW: Firebase Query Helpers ---
+
+def get_subcollection_docs(collection: str, doc_id: str, subcollection: str, order_by: str = None, direction = None, limit: int = None, offset: int = None):
+    """
+    Efficiently fetch documents from a subcollection with optional filtering.
+    
+    Args:
+        collection: Parent collection name (e.g., 'posts')
+        doc_id: Parent document ID
+        subcollection: Subcollection name (e.g., 'comments', 'likes')
+        order_by: Field to order by
+        direction: firestore.Query.DESCENDING or firestore.Query.ASCENDING
+        limit: Max documents to return
+        offset: Number of documents to skip
+    
+    Returns:
+        List of documents as dicts
+    """
+    query = db.collection(collection).document(doc_id).collection(subcollection)
+    
+    if order_by:
+        direction = direction or firestore.Query.ASCENDING
+        query = query.order_by(order_by, direction=direction)
+    
+    if offset:
+        query = query.offset(offset)
+    
+    if limit:
+        query = query.limit(limit)
+    
+    return [doc.to_dict() for doc in query.stream()]
+
+def count_subcollection(collection: str, doc_id: str, subcollection: str) -> int:
+    """
+    Efficiently count documents in a subcollection.
+    
+    Args:
+        collection: Parent collection name
+        doc_id: Parent document ID
+        subcollection: Subcollection name
+    
+    Returns:
+        Count of documents
+    """
+    docs = db.collection(collection).document(doc_id).collection(subcollection).stream()
+    return sum(1 for _ in docs)
+
+def get_subcollection_ids(collection: str, doc_id: str, subcollection: str) -> list:
+    """
+    Get all document IDs from a subcollection (e.g., user IDs who liked/shared).
+    
+    Args:
+        collection: Parent collection name
+        doc_id: Parent document ID
+        subcollection: Subcollection name
+    
+    Returns:
+        List of document IDs
+    """
+    return [doc.id for doc in db.collection(collection).document(doc_id).collection(subcollection).stream()]
+
+def batch_get_users(user_ids: list) -> dict:
+    """
+    Batch fetch multiple user documents by their IDs.
+    
+    Args:
+        user_ids: List of user IDs to fetch
+    
+    Returns:
+        Dictionary with user_id as key and user data as value
+    """
+    if not user_ids:
+        return {}
+    
+    users = {}
+    for user_id in user_ids:
+        user_doc = db.collection("users").document(user_id).get()
+        if user_doc.exists:
+            users[user_id] = user_doc.to_dict()
+        else:
+            users[user_id] = {
+                "id": user_id,
+                "username": "Unknown",
+                "avatar": None,
+                "full_name": None
+            }
+    
+    return users
+
+def get_user_by_id(user_id: str) -> dict:
+    """
+    Fetch a single user document by ID.
+    
+    Args:
+        user_id: User ID
+    
+    Returns:
+        User data dict or None if not found
+    """
+    user_doc = db.collection("users").document(user_id).get()
+    if user_doc.exists:
+        return user_doc.to_dict()
+    return None
+
+def check_subcollection_doc_exists(collection: str, doc_id: str, subcollection: str, sub_doc_id: str) -> bool:
+    """
+    Check if a specific document exists in a subcollection.
+    
+    Args:
+        collection: Parent collection name
+        doc_id: Parent document ID
+        subcollection: Subcollection name
+        sub_doc_id: Subcollection document ID
+    
+    Returns:
+        True if exists, False otherwise
+    """
+    return db.collection(collection).document(doc_id).collection(subcollection).document(sub_doc_id).get().exists()
