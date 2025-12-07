@@ -13,6 +13,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import EmojiButton from "./EmojiButton";
+import { useCreateComment } from "@/hooks/api/use-comment";
+
 
 type MediaFile = { url: string; type: "image" | "video" };
 
@@ -53,6 +55,8 @@ export default function ReplyCommentDialog({
   const [tagSearch, setTagSearch] = useState<string>(""); 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const createComment = useCreateComment();
+
   const filteredFriends = mockFriends.filter((user) => {
     const query = tagSearch.toLowerCase();
     const matchName = user.name ? user.name.toLowerCase().includes(query) : false;
@@ -80,11 +84,22 @@ export default function ReplyCommentDialog({
     setTagSearch(""); 
   };
 
-  const handlePost = () => {
-    onPost(content, mediaFiles);
-    handleReset();
-    onOpenChange(false);
-  };
+  // const handlePost = () => {
+  //   onPost(content, mediaFiles);
+  //   handleReset();
+  //   onOpenChange(false);
+  // };
+
+  const handlePost = async () => {
+  createComment.mutate({
+    thread_id: targetPost.id,
+    content: content,
+    media: mediaFiles
+  });
+
+  handleReset();
+  onOpenChange(false);
+};
 
   const onEmojiClick = (emoji: string) => {
     setContent((prev) => prev + emoji);

@@ -20,6 +20,12 @@ export type CreateThreadData = {
     content: string;
 };
 
+export type CreateCommentData = {
+    thread_id: string | number;  
+    content: string;
+    media?: { url: string; type: "image" | "video" }[];
+};
+
 export const api = {
     users: {
         getAll: () => apiClient.get<User[]>('/api/v1/users/'),
@@ -31,4 +37,10 @@ export const api = {
         get: (id: string) => apiClient.get<Thread>(`/api/v1/threads/${id}`),
         create: (data: CreateThreadData) => apiClient.post<Thread>('/api/v1/threads/', data),
     },
+    comments: {
+        create: (data: CreateCommentData) =>
+            apiClient.post('/api/v1/comments/', data),
+    },
 };
+
+
