@@ -83,14 +83,19 @@ const isYouTubeUrl = (url: string): boolean => {
 // --- GALLERY COMPONENT ---
 interface GalleryProps {
     items: MediaItem[];
+    onDragStateChange?: (isDragging: boolean) => void;
 }
 
-const Gallery: React.FC<GalleryProps> = ({ items }) => {
+const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [showLightbox, setShowLightbox] = useState(false);
     const [_, setImageDimensions] = useState<{ [key: number]: number }>({});
     const [maxHeight, setMaxHeight] = useState<number | null>(null);
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const scrollStartRef = React.useRef<number>(0);
+    const mouseStartRef = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+    const isDraggingRef = React.useRef(false);
 
     if (!items || items.length === 0) return null;
 
@@ -100,12 +105,56 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
     const isMultipleItems = items.length > 1;
     const containerHeight = maxHeight ? `${maxHeight}px` : (isMultipleItems ? '280px' : '400px');
 
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (!isMultipleItems) return;
+
+        e.preventDefault();
+        scrollStartRef.current = scrollContainerRef.current?.scrollLeft || 0;
+        mouseStartRef.current = { x: e.clientX, y: e.clientY };
+        isDraggingRef.current = false;
+        setIsDragging(false);
+        onDragStateChange?.(false);
+
+        const handleMouseMoveGlobal = (moveEvent: MouseEvent) => {
+            const deltaX = moveEvent.clientX - mouseStartRef.current.x;
+            const deltaY = Math.abs(moveEvent.clientY - mouseStartRef.current.y);
+
+            if (Math.abs(deltaX) > 5 && !isDraggingRef.current && deltaY < 50) {
+                isDraggingRef.current = true;
+                setIsDragging(true);
+                onDragStateChange?.(true);
+            }
+
+            // Scroll container khi dragging
+            if (isDraggingRef.current && scrollContainerRef.current) {
+                scrollContainerRef.current.scrollLeft = scrollStartRef.current - deltaX;
+            }
+        };
+
+        const handleMouseUpGlobal = () => {
+            document.removeEventListener('mousemove', handleMouseMoveGlobal);
+            document.removeEventListener('mouseup', handleMouseUpGlobal);
+            isDraggingRef.current = false;
+            setTimeout(() => {
+                setIsDragging(false);
+                onDragStateChange?.(false);
+            }, 0);
+        };
+
+        document.addEventListener('mousemove', handleMouseMoveGlobal);
+        document.addEventListener('mouseup', handleMouseUpGlobal);
+    };
+
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const container = e.currentTarget;
         const scrollLeft = container.scrollLeft;
+        const scrollWidth = container.scrollWidth;
         const containerWidth = container.offsetWidth;
-        const newIndex = Math.round(scrollLeft / containerWidth);
-        setSelectedIndex(Math.min(newIndex, sortedItems.length - 1));
+
+        // Tính toán index dựa trên phần trăm scroll
+        const scrollProgress = scrollLeft / (scrollWidth - containerWidth);
+        const newIndex = Math.round(scrollProgress * (sortedItems.length - 1));
+        setSelectedIndex(Math.max(0, Math.min(newIndex, sortedItems.length - 1)));
     };
 
     const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>, index: number) => {
@@ -126,8 +175,12 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
     // Hàm mở ảnh không làm trigger click bài viết
     const handleOpenMedia = (e: React.MouseEvent, index: number) => {
         e.stopPropagation();
-        setSelectedIndex(index);
-        setShowLightbox(true);
+
+        // Chỉ mở lightbox nếu không phải drag
+        if (!isDragging && !isDraggingRef.current) {
+            setSelectedIndex(index);
+            setShowLightbox(true);
+        }
     };
 
     return (
@@ -136,23 +189,29 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
             <div className={`rounded-xl overflow-hidden mt-2 w-full relative group ${isMultipleItems ? 'bg-secondary' : 'bg-black border border-border'}`}>
                 <div
                     ref={scrollContainerRef}
-                    className={`flex overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide ${isMultipleItems ? 'bg-secondary gap-2 px-2' : 'bg-black'}`}
+                    className={`flex overflow-x-auto scrollbar-hide user-select-none ${isMultipleItems ? 'bg-secondary gap-2 px-2 cursor-grab active:cursor-grabbing' : 'bg-black'}`}
                     style={{
-                        scrollBehavior: 'smooth',
-                        scrollSnapType: 'x mandatory',
+                        scrollBehavior: 'auto',
                         WebkitOverflowScrolling: 'touch',
                         msOverflowStyle: 'none',
                         scrollbarWidth: 'none',
-                        height: containerHeight
+                        height: containerHeight,
+                        pointerEvents: 'auto',
                     }}
                     onScroll={handleScroll}
+                    onMouseDown={handleMouseDown}
                 >
                     {items.map((item, index) => (
                         <div
                             key={index}
-                            className={`shrink-0 snap-start relative rounded overflow-hidden flex items-center justify-center ${isMultipleItems ? '' : 'bg-black'}`}
-                            style={{ width: isMultipleItems ? 'auto' : '100%', height: '100%', minWidth: '0' }}
-                            onClick={(e) => handleOpenMedia(e, index)} // Stop Propagation here
+                            className={`shrink-0 relative rounded overflow-hidden flex items-center justify-center ${isMultipleItems ? '' : 'bg-black'}`}
+                            style={{
+                                width: isMultipleItems ? 'auto' : '100%',
+                                height: '100%',
+                                minWidth: '0',
+                                pointerEvents: 'auto',
+                            }}
+                            onClick={(e) => handleOpenMedia(e, index)}
                         >
                             {item.type === 'youtube' ? (
                                 <div className={`flex items-center justify-center ${isMultipleItems ? 'h-full bg-secondary' : 'w-full h-full bg-black'}`}>
@@ -186,6 +245,34 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
                     ))}
                 </div>
             </div>
+
+            {/* Indicators Dots - Chỉ hiển thị khi có nhiều items */}
+            {isMultipleItems && (
+                <div className="flex justify-center gap-1.5 mt-2">
+                    {sortedItems.map((_, index) => (
+                        <button
+                            key={index}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (scrollContainerRef.current) {
+                                    const container = scrollContainerRef.current;
+                                    const scrollWidth = container.scrollWidth;
+                                    const containerWidth = container.offsetWidth;
+                                    const maxScroll = scrollWidth - containerWidth;
+                                    const targetScroll = (index / (sortedItems.length - 1)) * maxScroll;
+                                    container.scrollLeft = targetScroll;
+                                    setSelectedIndex(index);
+                                }
+                            }}
+                            className={`h-1.5 rounded-full transition-all duration-200 ${index === selectedIndex
+                                ? 'bg-foreground w-6'
+                                : 'bg-text-secondary hover:bg-text-muted w-1.5'
+                                }`}
+                            aria-label={`Go to item ${index + 1}`}
+                        />
+                    ))}
+                </div>
+            )}
 
             {/* Lightbox */}
             {showLightbox && (
@@ -233,8 +320,18 @@ const Gallery: React.FC<GalleryProps> = ({ items }) => {
 
 // --- MAIN FEED CARD COMPONENT ---
 const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
+    // Add mock author data fallback
+    const mockAuthor: AuthorData = {
+        name: 'Unknown User',
+        handle: '@user',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+    };
+
+    const displayAuthor = author || mockAuthor;
+
     const navigate = useNavigate(); // Hook chuyển trang
     const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
+    const [isGalleryDragging, setIsGalleryDragging] = useState(false);
 
     // Optimistic UI State
     const [localCounts, setLocalCounts] = useState({
@@ -252,7 +349,23 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
 
     // --- Xử lý click chuyển trang ---
     const handleCardClick = (e: React.MouseEvent) => {
+        if (isGalleryDragging) return;
+
         // Nếu người dùng đang bôi đen text thì không chuyển trang
+        const selection = window.getSelection();
+        if (selection && selection.toString().length > 0) return;
+
+        navigate(`/thread/${post.id}`);
+    };
+
+    // --- Xử lý click vào vùng content text ---
+    const handleContentClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        if (isGalleryDragging) return;
+
+        // Không navigate khi đang drag
+
         const selection = window.getSelection();
         if (selection && selection.toString().length > 0) return;
 
@@ -302,6 +415,10 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
     const hasSingleMedia = post.media_url && !hasGallery;
     const isYoutube = hasSingleMedia ? isYouTubeUrl(post.media_url!) : false;
     const embedUrl = isYoutube ? getYouTubeEmbedUrl(post.media_url!) : null;
+    // Phát hiện media type chính xác
+    const actualMediaType = hasSingleMedia
+        ? (isYoutube ? 'youtube' : post.media_type)
+        : null;
 
     // Dropdown Actions
     const postActions = [
@@ -349,24 +466,24 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
             onClick={handleCardClick} // Gắn sự kiện click vào đây
         >
             {/* HEADER */}
-            <CardHeader className="flex flex-row items-center gap-3 px-4 -mt-3 pb-0">
+            <CardHeader className="flex flex-row items-center gap-3 px-4 -mt-3 pb-0" onClick={(e) => e.stopPropagation()}>
                 <Avatar className="w-10 h-10 shrink-0">
-                    <AvatarImage src={author.avatar} alt={author.name} />
-                    <AvatarFallback>{author.name ? author.name.charAt(0).toUpperCase() : "U"}</AvatarFallback>
+                    <AvatarImage src={displayAuthor?.avatar || ''} alt={displayAuthor?.name || 'User'} />
+                    <AvatarFallback>{displayAuthor?.name ? displayAuthor.name.charAt(0).toUpperCase() : "U"}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col flex-1">
                     <div className="flex items-center gap-2">
                         <span
                             className="text hover:underline cursor-pointer text-foreground"
                             onClick={(e) => {
-                                e.stopPropagation(); // Chặn click tên user
+                                e.stopPropagation();
                                 console.log("Go to profile");
                             }}
                         >
-                            {author.name}
+                            {displayAuthor?.name || 'Unknown User'}
                         </span>
                         <span className="text-text-secondary text-ft">
-                            {author.handle}
+                            {displayAuthor?.handle || ''}
                         </span>
                         <span className="text-text-muted text-xs">
                             {formatTime(post.created_at)}
@@ -386,7 +503,22 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
             {/* CONTENT */}
             <CardContent className="py-0 pb-0 flex gap-3 px-4 -mt-4">
                 <div className="spacer-column"></div>
-                <div className="flex-1 min-w-0">
+                <div
+                    className="flex-1 min-w-0"
+                    onClick={handleContentClick}
+                    ref={(el) => {
+                        if (el) {
+                            const updateDragRef = () => {
+                                const gallery = el.querySelector('[data-gallery="true"]');
+                                if (gallery) {
+                                    const scrollContainer = gallery.querySelector('[data-scroll-container="true"]');
+                                    // Will be updated from Gallery component
+                                }
+                            };
+                            updateDragRef();
+                        }
+                    }}
+                >
                     {post.content && (
                         <p className="text-sm leading-relaxed text-foreground whitespace-normal mb-1 wrap-break-words">
                             {post.content}
@@ -394,28 +526,31 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
                     )}
 
                     {hasGallery ? (
-                        <Gallery items={post.gallery!} />
+                        <Gallery
+                            items={post.gallery!}
+                            onDragStateChange={setIsGalleryDragging}
+                        />
                     ) : hasSingleMedia && (
                         <>
                             <div
-                                className="rounded-lg overflow-hidden mt-2 w-full cursor-pointer"
+                                className="rounded-lg overflow-hidden mt-2 w-fit cursor-pointer"
                                 onClick={(e) => {
-                                    e.stopPropagation(); // Chặn click media lẻ
+                                    e.stopPropagation();
                                     setShowSingleMediaLightbox(true);
                                 }}
                             >
-                                {embedUrl ? (
+                                {isYoutube ? (
                                     <div className="relative w-full bg-black" style={{ paddingBottom: '56.25%' }}>
                                         <iframe
-                                            src={embedUrl}
+                                            src={embedUrl!}
                                             title="YouTube video"
                                             frameBorder="0"
                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                             allowFullScreen
-                                            className="absolute top-0 left-0 w-full h-full pointer-events-none" // pointer-events-none để click xuyên qua div cha
+                                            className="absolute top-0 left-0 w-full h-full pointer-events-none"
                                         />
                                     </div>
-                                ) : post.media_type === 'video' ? (
+                                ) : actualMediaType === 'video' ? (
                                     <video
                                         controls
                                         className="media-content max-h-96 w-full object-cover"
@@ -446,10 +581,10 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
                                         <X size={24} />
                                     </button>
 
-                                    {embedUrl ? (
+                                    {isYoutube ? (
                                         <div className="relative w-full max-w-4xl bg-black" style={{ paddingBottom: '56.25%' }}>
                                             <iframe
-                                                src={embedUrl}
+                                                src={embedUrl!}
                                                 title="YouTube video"
                                                 frameBorder="0"
                                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -457,7 +592,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author }) => {
                                                 className="absolute top-0 left-0 w-full h-full"
                                             />
                                         </div>
-                                    ) : post.media_type === 'video' ? (
+                                    ) : actualMediaType === 'video' ? (
                                         <video
                                             controls
                                             autoPlay
