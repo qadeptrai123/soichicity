@@ -4,6 +4,8 @@ import { LoginPrompt } from "@/components/LoginPrompt";
 import type { PostData, AuthorData, MediaItem } from "@/components/FeedCard";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
+import ReplyCommentDialog, { type TargetPost } from "@/components/comment";
+import { usePosts } from "@/hooks/api/use-posts";
 
 // --- BẮT ĐẦU: DỮ LIỆU MOCK MỚI VỚI YOUTUBE LINKS ---
 
@@ -19,99 +21,30 @@ const Feed = () => {
   // Infinite scroll states
   const [displayedCount, setDisplayedCount] = useState(10);
   const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const observerTarget = useRef<HTMLDivElement>(null);
-  const postsRef = useRef<any[]>([]);
-
-  const {
-    data: postsData,
-    isLoading: isPostsLoading,
-    error: postsError,
-  } = usePosts();
-
-  // Transform API data to add author object
-  const transformedPosts = Array.isArray(postsData)
-    ? postsData.map((post: any) => ({
-        ...post,
-        media_url: post.link_url?.[0] || null,
-        media_type: post.link_url?.[0] ? "image" : null,
-        gallery:
-          post.link_url && post.link_url.length > 1
-            ? post.link_url.map((url: string) => ({
-                url,
-                type: "image" as const,
-              }))
-            : undefined,
-        actions_count: post.likeCount || 0,
-        replies_count: post.commentCount || 0,
-        bookmark_count: post.saveCount || 0,
-        shares_count: post.shareCount || 0,
-        author: {
-          id: post.author_id,
-          name: "User",
-          handle: "@user",
-          avatar:
-            "https://api.dicebear.com/7.x/avataaars/svg?seed=" + post.author_id,
-        },
-      }))
-    : [];
-
-  // Update ref when data changes
-  useEffect(() => {
-    postsRef.current = transformedPosts;
-  }, [transformedPosts]);
-
-  // Debug API Response
-  useEffect(() => {
-    console.log("=== TRANSFORMED DATA ===");
-    console.log("transformedPosts:", transformedPosts);
-    console.log("========================");
-  }, [transformedPosts]);
 
   // Lấy data từ API
-  const { data: postsData, isLoading, isError } = usePosts();
+  const { data: postsData, isLoading, error: postsError } = usePosts();
 
   // Load more posts function
   const loadMorePosts = useCallback(() => {
-    if (isLoadingMore || !hasMore || !postsRef.current.length) return;
+    if (isLoading || !hasMore) return;
 
-    setIsLoading(true);
     setTimeout(() => {
-      const startIndex = currentPage * postsPerPage;
-      const endIndex = startIndex + postsPerPage;
-      const newPosts = postsRef.current.slice(startIndex, endIndex);
-
-      if (newPosts.length === 0) {
-        setHasMore(false);
-      } else {
-        setDisplayedPosts((prev) => [...prev, ...newPosts]);
-        setCurrentPage((prev) => prev + 1);
-      }
-      setIsLoading(false);
+      setDisplayedCount((prev) => {
+        const newCount = prev + 10;
+        const allPosts = Array.isArray(postsData) ? postsData : [];
+        if (newCount >= allPosts.length) setHasMore(false);
+        return newCount;
+      });
     }, 300);
-  }, [currentPage, postsPerPage, isLoading, hasMore]);
-
-  // Initial load
-  useEffect(() => {
-    if (
-      !isPostsLoading &&
-      postsRef.current.length > 0 &&
-      displayedPosts.length === 0
-    ) {
-      loadMorePosts();
-    }
-  }, [isPostsLoading, displayedPosts.length, loadMorePosts]);
+  }, [postsData, isLoading, hasMore]);
 
   // Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          hasMore &&
-          !isLoadingMore &&
-          !isLoading
-        ) {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
           loadMorePosts();
         }
       },
@@ -127,7 +60,7 @@ const Feed = () => {
         observer.unobserve(observerTarget.current);
       }
     };
-  }, [loadMorePosts, hasMore, isLoadingMore, isLoading]);
+  }, [loadMorePosts, hasMore, isLoading]);
 
   // Reset displayedCount when postsData changes
   useEffect(() => {

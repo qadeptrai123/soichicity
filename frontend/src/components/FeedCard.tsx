@@ -122,80 +122,85 @@ const isYouTubeUrl = (url: string): boolean => {
 
 // --- GALLERY COMPONENT ---
 interface GalleryProps {
-    items: MediaItem[];
-    onDragStateChange?: (isDragging: boolean) => void;
+  items: MediaItem[];
+  onDragStateChange?: (isDragging: boolean) => void;
 }
 
 const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
-    const [selectedIndex, setSelectedIndex] = useState(0);
-    const [showLightbox, setShowLightbox] = useState(false);
-    const [_, setImageDimensions] = useState<{ [key: number]: number }>({});
-    const [maxHeight, setMaxHeight] = useState<number | null>(null);
-    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
-    const [isDragging, setIsDragging] = useState(false);
-    const scrollStartRef = React.useRef<number>(0);
-    const mouseStartRef = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-    const isDraggingRef = React.useRef(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [showLightbox, setShowLightbox] = useState(false);
+  const [_, setImageDimensions] = useState<{ [key: number]: number }>({});
+  const [maxHeight, setMaxHeight] = useState<number | null>(null);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const scrollStartRef = React.useRef<number>(0);
+  const mouseStartRef = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const isDraggingRef = React.useRef(false);
 
   if (!items || items.length === 0) return null;
 
-    const sortedItems = sortMediaItems(items);
-    const currentItem = sortedItems[selectedIndex];
-    const embedUrl = currentItem.type === 'youtube' ? getYouTubeEmbedUrl(currentItem.url) : null;
-    const isMultipleItems = items.length > 1;
-    const containerHeight = maxHeight ? `${maxHeight}px` : (isMultipleItems ? '280px' : '400px');
+  const sortedItems = sortMediaItems(items);
+  const currentItem = sortedItems[selectedIndex];
+  const embedUrl =
+    currentItem.type === "youtube" ? getYouTubeEmbedUrl(currentItem.url) : null;
+  const isMultipleItems = items.length > 1;
+  const containerHeight = maxHeight
+    ? `${maxHeight}px`
+    : isMultipleItems
+    ? "280px"
+    : "400px";
 
-    const handleMouseDown = (e: React.MouseEvent) => {
-        if (!isMultipleItems) return;
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!isMultipleItems) return;
 
-        e.preventDefault();
-        scrollStartRef.current = scrollContainerRef.current?.scrollLeft || 0;
-        mouseStartRef.current = { x: e.clientX, y: e.clientY };
-        isDraggingRef.current = false;
+    e.preventDefault();
+    scrollStartRef.current = scrollContainerRef.current?.scrollLeft || 0;
+    mouseStartRef.current = { x: e.clientX, y: e.clientY };
+    isDraggingRef.current = false;
+    setIsDragging(false);
+    onDragStateChange?.(false);
+
+    const handleMouseMoveGlobal = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - mouseStartRef.current.x;
+      const deltaY = Math.abs(moveEvent.clientY - mouseStartRef.current.y);
+
+      if (Math.abs(deltaX) > 5 && !isDraggingRef.current && deltaY < 50) {
+        isDraggingRef.current = true;
+        setIsDragging(true);
+        onDragStateChange?.(true);
+      }
+
+      // Scroll container khi dragging
+      if (isDraggingRef.current && scrollContainerRef.current) {
+        scrollContainerRef.current.scrollLeft = scrollStartRef.current - deltaX;
+      }
+    };
+
+    const handleMouseUpGlobal = () => {
+      document.removeEventListener("mousemove", handleMouseMoveGlobal);
+      document.removeEventListener("mouseup", handleMouseUpGlobal);
+      isDraggingRef.current = false;
+      setTimeout(() => {
         setIsDragging(false);
         onDragStateChange?.(false);
-
-        const handleMouseMoveGlobal = (moveEvent: MouseEvent) => {
-            const deltaX = moveEvent.clientX - mouseStartRef.current.x;
-            const deltaY = Math.abs(moveEvent.clientY - mouseStartRef.current.y);
-
-            if (Math.abs(deltaX) > 5 && !isDraggingRef.current && deltaY < 50) {
-                isDraggingRef.current = true;
-                setIsDragging(true);
-                onDragStateChange?.(true);
-            }
-
-            // Scroll container khi dragging
-            if (isDraggingRef.current && scrollContainerRef.current) {
-                scrollContainerRef.current.scrollLeft = scrollStartRef.current - deltaX;
-            }
-        };
-
-        const handleMouseUpGlobal = () => {
-            document.removeEventListener('mousemove', handleMouseMoveGlobal);
-            document.removeEventListener('mouseup', handleMouseUpGlobal);
-            isDraggingRef.current = false;
-            setTimeout(() => {
-                setIsDragging(false);
-                onDragStateChange?.(false);
-            }, 0);
-        };
-
-        document.addEventListener('mousemove', handleMouseMoveGlobal);
-        document.addEventListener('mouseup', handleMouseUpGlobal);
+      }, 0);
     };
 
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        const container = e.currentTarget;
-        const scrollLeft = container.scrollLeft;
-        const scrollWidth = container.scrollWidth;
-        const containerWidth = container.offsetWidth;
+    document.addEventListener("mousemove", handleMouseMoveGlobal);
+    document.addEventListener("mouseup", handleMouseUpGlobal);
+  };
 
-        // Tính toán index dựa trên phần trăm scroll
-        const scrollProgress = scrollLeft / (scrollWidth - containerWidth);
-        const newIndex = Math.round(scrollProgress * (sortedItems.length - 1));
-        setSelectedIndex(Math.max(0, Math.min(newIndex, sortedItems.length - 1)));
-    };
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const scrollLeft = container.scrollLeft;
+    const scrollWidth = container.scrollWidth;
+    const containerWidth = container.offsetWidth;
+
+    // Tính toán index dựa trên phần trăm scroll
+    const scrollProgress = scrollLeft / (scrollWidth - containerWidth);
+    const newIndex = Math.round(scrollProgress * (sortedItems.length - 1));
+    setSelectedIndex(Math.max(0, Math.min(newIndex, sortedItems.length - 1)));
+  };
 
   const handleImageLoad = (
     e: React.SyntheticEvent<HTMLImageElement>,
@@ -217,107 +222,138 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
     });
   };
 
-    // Hàm mở ảnh không làm trigger click bài viết
-    const handleOpenMedia = (e: React.MouseEvent, index: number) => {
-        e.stopPropagation();
+  // Hàm mở ảnh không làm trigger click bài viết
+  const handleOpenMedia = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
 
-        // Chỉ mở lightbox nếu không phải drag
-        if (!isDragging && !isDraggingRef.current) {
-            setSelectedIndex(index);
-            setShowLightbox(true);
-        }
-    };
+    // Chỉ mở lightbox nếu không phải drag
+    if (!isDragging && !isDraggingRef.current) {
+      setSelectedIndex(index);
+      setShowLightbox(true);
+    }
+  };
 
-    return (
-        <>
-            {/* Carousel Layout */}
-            <div className={`rounded-xl overflow-hidden mt-2 w-full relative group ${isMultipleItems ? 'bg-secondary' : 'bg-black border border-border'}`}>
+  return (
+    <>
+      {/* Carousel Layout */}
+      <div
+        className={`rounded-xl overflow-hidden mt-2 w-full relative group ${
+          isMultipleItems ? "bg-secondary" : "bg-black border border-border"
+        }`}
+      >
+        <div
+          ref={scrollContainerRef}
+          className={`flex overflow-x-auto scrollbar-hide user-select-none ${
+            isMultipleItems
+              ? "bg-secondary gap-2 px-2 cursor-grab active:cursor-grabbing"
+              : "bg-black"
+          }`}
+          style={{
+            scrollBehavior: "auto",
+            WebkitOverflowScrolling: "touch",
+            msOverflowStyle: "none",
+            scrollbarWidth: "none",
+            height: containerHeight,
+            pointerEvents: "auto",
+          }}
+          onScroll={handleScroll}
+          onMouseDown={handleMouseDown}
+        >
+          {items.map((item, index) => (
+            <div
+              key={index}
+              className={`shrink-0 relative rounded overflow-hidden flex items-center justify-center ${
+                isMultipleItems ? "" : "bg-black"
+              }`}
+              style={{
+                width: isMultipleItems ? "auto" : "100%",
+                height: "100%",
+                minWidth: "0",
+                pointerEvents: "auto",
+              }}
+              onClick={(e) => handleOpenMedia(e, index)}
+            >
+              {item.type === "youtube" ? (
                 <div
-                    ref={scrollContainerRef}
-                    className={`flex overflow-x-auto scrollbar-hide user-select-none ${isMultipleItems ? 'bg-secondary gap-2 px-2 cursor-grab active:cursor-grabbing' : 'bg-black'}`}
-                    style={{
-                        scrollBehavior: 'auto',
-                        WebkitOverflowScrolling: 'touch',
-                        msOverflowStyle: 'none',
-                        scrollbarWidth: 'none',
-                        height: containerHeight,
-                        pointerEvents: 'auto',
-                    }}
-                    onScroll={handleScroll}
-                    onMouseDown={handleMouseDown}
+                  className={`flex items-center justify-center ${
+                    isMultipleItems
+                      ? "h-full bg-secondary"
+                      : "w-full h-full bg-black"
+                  }`}
                 >
-                    {items.map((item, index) => (
-                        <div
-                            key={index}
-                            className={`shrink-0 relative rounded overflow-hidden flex items-center justify-center ${isMultipleItems ? '' : 'bg-black'}`}
-                            style={{
-                                width: isMultipleItems ? 'auto' : '100%',
-                                height: '100%',
-                                minWidth: '0',
-                                pointerEvents: 'auto',
-                            }}
-                            onClick={(e) => handleOpenMedia(e, index)}
-                        >
-                            {item.type === 'youtube' ? (
-                                <div className={`flex items-center justify-center ${isMultipleItems ? 'h-full bg-secondary' : 'w-full h-full bg-black'}`}>
-                                    <img
-                                        src={`https://img.youtube.com/vi/${item.url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)?.[1]}/mqdefault.jpg`}
-                                        alt="YouTube thumbnail"
-                                        className={`${isMultipleItems ? 'h-full w-auto' : 'w-auto max-h-full'} object-contain`}
-                                        onLoad={(e) => handleImageLoad(e, index)}
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
-                                        <Play size={32} className="text-white fill-white" />
-                                    </div>
-                                </div>
-                            ) : item.type === 'video' ? (
-                                <>
-                                    <video className={`${isMultipleItems ? 'h-full w-auto' : 'w-auto max-h-full'} object-contain`} src={item.url} />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
-                                        <Play size={32} className="text-white fill-white" />
-                                    </div>
-                                </>
-                            ) : (
-                                <img
-                                    src={item.url}
-                                    alt={`Gallery item ${index + 1}`}
-                                    className={`${isMultipleItems ? 'h-full w-auto' : 'w-auto max-h-full'} object-contain`}
-                                    loading="lazy"
-                                    onLoad={(e) => handleImageLoad(e, index)}
-                                />
-                            )}
-                        </div>
-                    ))}
+                  <img
+                    src={`https://img.youtube.com/vi/${
+                      item.url.match(
+                        /(?:youtube\.com\/watch\?v=|youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]+)/
+                      )?.[1]
+                    }/mqdefault.jpg`}
+                    alt="YouTube thumbnail"
+                    className={`${
+                      isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
+                    } object-contain`}
+                    onLoad={(e) => handleImageLoad(e, index)}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
+                    <Play size={32} className="text-white fill-white" />
+                  </div>
                 </div>
+              ) : item.type === "video" ? (
+                <>
+                  <video
+                    className={`${
+                      isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
+                    } object-contain`}
+                    src={item.url}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
+                    <Play size={32} className="text-white fill-white" />
+                  </div>
+                </>
+              ) : (
+                <img
+                  src={item.url}
+                  alt={`Gallery item ${index + 1}`}
+                  className={`${
+                    isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
+                  } object-contain`}
+                  loading="lazy"
+                  onLoad={(e) => handleImageLoad(e, index)}
+                />
+              )}
             </div>
+          ))}
+        </div>
+      </div>
 
-            {/* Indicators Dots - Chỉ hiển thị khi có nhiều items */}
-            {isMultipleItems && (
-                <div className="flex justify-center gap-1.5 mt-2">
-                    {sortedItems.map((_, index) => (
-                        <button
-                            key={index}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (scrollContainerRef.current) {
-                                    const container = scrollContainerRef.current;
-                                    const scrollWidth = container.scrollWidth;
-                                    const containerWidth = container.offsetWidth;
-                                    const maxScroll = scrollWidth - containerWidth;
-                                    const targetScroll = (index / (sortedItems.length - 1)) * maxScroll;
-                                    container.scrollLeft = targetScroll;
-                                    setSelectedIndex(index);
-                                }
-                            }}
-                            className={`h-1.5 rounded-full transition-all duration-200 ${index === selectedIndex
-                                ? 'bg-foreground w-6'
-                                : 'bg-text-secondary hover:bg-text-muted w-1.5'
-                                }`}
-                            aria-label={`Go to item ${index + 1}`}
-                        />
-                    ))}
-                </div>
-            )}
+      {/* Indicators Dots - Chỉ hiển thị khi có nhiều items */}
+      {isMultipleItems && (
+        <div className="flex justify-center gap-1.5 mt-2">
+          {sortedItems.map((_, index) => (
+            <button
+              key={index}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (scrollContainerRef.current) {
+                  const container = scrollContainerRef.current;
+                  const scrollWidth = container.scrollWidth;
+                  const containerWidth = container.offsetWidth;
+                  const maxScroll = scrollWidth - containerWidth;
+                  const targetScroll =
+                    (index / (sortedItems.length - 1)) * maxScroll;
+                  container.scrollLeft = targetScroll;
+                  setSelectedIndex(index);
+                }
+              }}
+              className={`h-1.5 rounded-full transition-all duration-200 ${
+                index === selectedIndex
+                  ? "bg-foreground w-6"
+                  : "bg-text-secondary hover:bg-text-muted w-1.5"
+              }`}
+              aria-label={`Go to item ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Lightbox */}
       {showLightbox && (
@@ -371,14 +407,14 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
 
 // --- MAIN FEED CARD COMPONENT ---
 const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
-    // Add mock author data fallback
-    const mockAuthor: AuthorData = {
-        name: 'Unknown User',
-        handle: '@user',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
-    };
+  // Add mock author data fallback
+  const mockAuthor: AuthorData = {
+    name: "Unknown User",
+    handle: "@user",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=default",
+  };
 
-    const displayAuthor = author || mockAuthor;
+  const displayAuthor = author || mockAuthor;
 
   const navigate = useNavigate();
   const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
@@ -386,7 +422,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
   const saveMutation = useSavePost();
   const shareMutation = useSharePost();
   const repostMutation = useRepostPost();
-    const [isGalleryDragging, setIsGalleryDragging] = useState(false);
+  const [isGalleryDragging, setIsGalleryDragging] = useState(false);
 
   // Optimistic UI State - khởi tạo từ props
   const [localCounts, setLocalCounts] = useState({
@@ -431,30 +467,30 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
     post.is_reposted,
   ]);
 
-    // --- Xử lý click chuyển trang ---
-    const handleCardClick = (e: React.MouseEvent) => {
-        if (isGalleryDragging) return;
+  // --- Xử lý click chuyển trang ---
+  const handleCardClick = () => {
+    if (isGalleryDragging) return;
 
-        // Nếu người dùng đang bôi đen text thì không chuyển trang
-        const selection = window.getSelection();
-        if (selection && selection.toString().length > 0) return;
+    // Nếu người dùng đang bôi đen text thì không chuyển trang
+    const selection = window.getSelection();
+    if (selection && selection.toString().length > 0) return;
 
-        navigate(`/thread/${post.id}`);
-    };
+    navigate(`/thread/${post.id}`);
+  };
 
-    // --- Xử lý click vào vùng content text ---
-    const handleContentClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
+  // --- Xử lý click vào vùng content text ---
+  const handleContentClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
 
-        if (isGalleryDragging) return;
+    if (isGalleryDragging) return;
 
-        // Không navigate khi đang drag
+    // Không navigate khi đang drag
 
-        const selection = window.getSelection();
-        if (selection && selection.toString().length > 0) return;
+    const selection = window.getSelection();
+    if (selection && selection.toString().length > 0) return;
 
-        navigate(`/thread/${post.id}`);
-    };
+    navigate(`/thread/${post.id}`);
+  };
 
   // --- Các handlers có chặn sự kiện (stopPropagation) ---
 
@@ -520,15 +556,17 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
     [post, author, onReply]
   );
 
-    // Media Checks
-    const hasGallery = post.gallery && post.gallery.length > 0;
-    const hasSingleMedia = post.media_url && !hasGallery;
-    const isYoutube = hasSingleMedia ? isYouTubeUrl(post.media_url!) : false;
-    const embedUrl = isYoutube ? getYouTubeEmbedUrl(post.media_url!) : null;
-    // Phát hiện media type chính xác
-    const actualMediaType = hasSingleMedia
-        ? (isYoutube ? 'youtube' : post.media_type)
-        : null;
+  // Media Checks
+  const hasGallery = post.gallery && post.gallery.length > 0;
+  const hasSingleMedia = post.media_url && !hasGallery;
+  const isYoutube = hasSingleMedia ? isYouTubeUrl(post.media_url!) : false;
+  const embedUrl = isYoutube ? getYouTubeEmbedUrl(post.media_url!) : null;
+  // Phát hiện media type chính xác
+  const actualMediaType = hasSingleMedia
+    ? isYoutube
+      ? "youtube"
+      : post.media_type
+    : null;
 
   // Dropdown Actions
   const postActions = [
@@ -569,111 +607,125 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
     },
   ];
 
-    return (
-        <Card
-            className="w-full max-w-2xl bg-secondary text-foreground border-border mb-4 cursor-pointer hover:bg-secondary/80 transition-colors"
-            onClick={handleCardClick} // Gắn sự kiện click vào đây
+  return (
+    <Card
+      className="w-full max-w-2xl bg-secondary text-foreground border-border mb-4 cursor-pointer hover:bg-secondary/80 transition-colors"
+      onClick={handleCardClick} // Gắn sự kiện click vào đây
+    >
+      {/* HEADER */}
+      <CardHeader
+        className="flex flex-row items-center gap-3 px-4 -mt-3 pb-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Avatar className="w-10 h-10 shrink-0">
+          <AvatarImage
+            src={displayAuthor?.avatar || ""}
+            alt={displayAuthor?.name || "User"}
+          />
+          <AvatarFallback>
+            {displayAuthor?.name
+              ? displayAuthor.name.charAt(0).toUpperCase()
+              : "U"}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col flex-1">
+          <div className="flex items-center gap-2">
+            <span
+              className="text hover:underline cursor-pointer text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log("Go to profile");
+              }}
+            >
+              {displayAuthor?.name || "Unknown User"}
+            </span>
+            <span className="text-text-secondary text-ft">
+              {displayAuthor?.handle || ""}
+            </span>
+            <span className="text-text-muted text-xs">
+              {formatTime(post.created_at)}
+            </span>
+          </div>
+        </div>
+        {/* Bọc Dropdown để chặn click */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <DropdownExtend
+            actions={postActions}
+            triggerType="icon"
+            align="center"
+          />
+        </div>
+      </CardHeader>
+
+      {/* CONTENT */}
+      <CardContent className="py-0 pb-0 flex gap-3 px-4 -mt-4">
+        <div className="spacer-column"></div>
+        <div
+          className="flex-1 min-w-0"
+          onClick={handleContentClick}
+          ref={(el) => {
+            if (el) {
+              const updateDragRef = () => {
+                const gallery = el.querySelector('[data-gallery="true"]');
+                if (gallery) {
+                  // Gallery scroll container will be updated from Gallery component
+                  gallery.querySelector('[data-scroll-container="true"]');
+                }
+              };
+              updateDragRef();
+            }
+          }}
         >
-            {/* HEADER */}
-            <CardHeader className="flex flex-row items-center gap-3 px-4 -mt-3 pb-0" onClick={(e) => e.stopPropagation()}>
-                <Avatar className="w-10 h-10 shrink-0">
-                    <AvatarImage src={displayAuthor?.avatar || ''} alt={displayAuthor?.name || 'User'} />
-                    <AvatarFallback>{displayAuthor?.name ? displayAuthor.name.charAt(0).toUpperCase() : "U"}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col flex-1">
-                    <div className="flex items-center gap-2">
-                        <span
-                            className="text hover:underline cursor-pointer text-foreground"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                console.log("Go to profile");
-                            }}
-                        >
-                            {displayAuthor?.name || 'Unknown User'}
-                        </span>
-                        <span className="text-text-secondary text-ft">
-                            {displayAuthor?.handle || ''}
-                        </span>
-                        <span className="text-text-muted text-xs">
-                            {formatTime(post.created_at)}
-                        </span>
-                    </div>
-                </div>
-                {/* Bọc Dropdown để chặn click */}
-                <div onClick={(e) => e.stopPropagation()}>
-                    <DropdownExtend
-                        actions={postActions}
-                        triggerType="icon"
-                        align="center"
-                    />
-                </div>
-            </CardHeader>
+          {post.content && (
+            <p className="text-sm leading-relaxed text-foreground whitespace-normal mb-1 wrap-break-words">
+              {post.content}
+            </p>
+          )}
 
-            {/* CONTENT */}
-            <CardContent className="py-0 pb-0 flex gap-3 px-4 -mt-4">
-                <div className="spacer-column"></div>
+          {hasGallery ? (
+            <Gallery
+              items={post.gallery!}
+              onDragStateChange={setIsGalleryDragging}
+            />
+          ) : (
+            hasSingleMedia && (
+              <>
                 <div
-                    className="flex-1 min-w-0"
-                    onClick={handleContentClick}
-                    ref={(el) => {
-                        if (el) {
-                            const updateDragRef = () => {
-                                const gallery = el.querySelector('[data-gallery="true"]');
-                                if (gallery) {
-                                    const scrollContainer = gallery.querySelector('[data-scroll-container="true"]');
-                                    // Will be updated from Gallery component
-                                }
-                            };
-                            updateDragRef();
-                        }
-                    }}
+                  className="rounded-lg overflow-hidden mt-2 w-fit cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowSingleMediaLightbox(true);
+                  }}
                 >
-                    {post.content && (
-                        <p className="text-sm leading-relaxed text-foreground whitespace-normal mb-1 wrap-break-words">
-                            {post.content}
-                        </p>
-                    )}
-
-                    {hasGallery ? (
-                        <Gallery
-                            items={post.gallery!}
-                            onDragStateChange={setIsGalleryDragging}
-                        />
-                    ) : hasSingleMedia && (
-                        <>
-                            <div
-                                className="rounded-lg overflow-hidden mt-2 w-fit cursor-pointer"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowSingleMediaLightbox(true);
-                                }}
-                            >
-                                {isYoutube ? (
-                                    <div className="relative w-full bg-black" style={{ paddingBottom: '56.25%' }}>
-                                        <iframe
-                                            src={embedUrl!}
-                                            title="YouTube video"
-                                            frameBorder="0"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                            allowFullScreen
-                                            className="absolute top-0 left-0 w-full h-full pointer-events-none"
-                                        />
-                                    </div>
-                                ) : actualMediaType === 'video' ? (
-                                    <video
-                                        controls
-                                        className="media-content max-h-96 w-full object-cover"
-                                        src={post.media_url!}
-                                    />
-                                ) : (
-                                    <img
-                                        src={post.media_url!}
-                                        alt="Post media"
-                                        className="media-content max-h-96 w-full h-auto object-contain object-left"
-                                        loading="lazy"
-                                    />
-                                )}
-                            </div>
+                  {isYoutube ? (
+                    <div
+                      className="relative w-full bg-black"
+                      style={{ paddingBottom: "56.25%" }}
+                    >
+                      <iframe
+                        src={embedUrl!}
+                        title="YouTube video"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                      />
+                    </div>
+                  ) : actualMediaType === "video" ? (
+                    <video
+                      controls
+                      className="media-content max-h-96 w-full object-cover"
+                      src={post.media_url!}
+                    />
+                  ) : (
+                    <img
+                      src={post.media_url!}
+                      alt="Post media"
+                      className="media-content max-h-96 w-full h-auto object-contain object-left"
+                      loading="lazy"
+                    />
+                  )}
+                </div>
 
                 {showSingleMediaLightbox && (
                   <div
@@ -690,38 +742,42 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
                       <X size={24} />
                     </button>
 
-                                    {isYoutube ? (
-                                        <div className="relative w-full max-w-4xl bg-black" style={{ paddingBottom: '56.25%' }}>
-                                            <iframe
-                                                src={embedUrl!}
-                                                title="YouTube video"
-                                                frameBorder="0"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowFullScreen
-                                                className="absolute top-0 left-0 w-full h-full"
-                                            />
-                                        </div>
-                                    ) : actualMediaType === 'video' ? (
-                                        <video
-                                            controls
-                                            autoPlay
-                                            className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-                                            src={post.media_url!}
-                                        />
-                                    ) : (
-                                        <img
-                                            src={post.media_url!}
-                                            alt="Post media lightbox"
-                                            className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-                                        />
-                                    )}
-                                </div>
-                            )}
-                        </>
+                    {isYoutube ? (
+                      <div
+                        className="relative w-full max-w-4xl bg-black"
+                        style={{ paddingBottom: "56.25%" }}
+                      >
+                        <iframe
+                          src={embedUrl!}
+                          title="YouTube video"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="absolute top-0 left-0 w-full h-full"
+                        />
+                      </div>
+                    ) : actualMediaType === "video" ? (
+                      <video
+                        controls
+                        autoPlay
+                        className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
+                        src={post.media_url!}
+                      />
+                    ) : (
+                      <img
+                        src={post.media_url!}
+                        alt="Post media lightbox"
+                        className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
+                      />
                     )}
-                </div>
-                <div className="spacer-column"></div>
-            </CardContent>
+                  </div>
+                )}
+              </>
+            )
+          )}
+        </div>
+        <div className="spacer-column"></div>
+      </CardContent>
 
       {/* FOOTER */}
       <CardFooter className="flex gap-3 px-4 -pb-3 -mb-3 -pt-10 -mt-5">
