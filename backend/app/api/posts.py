@@ -98,6 +98,21 @@ def share_post(post_id: str, user = Depends(get_current_user)):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+@router.post("/posts/{post_id}/repost")
+def repost_post(post_id: str, user = Depends(get_current_user)):
+    avatar = user.get("avatar", "") or user.get("picture", "")
+    
+    try:
+        return PostService.toggle_interaction(
+            collection_name="reposts", 
+            count_field="repostCount", 
+            post_id=post_id, 
+            user_id=user["id"],
+            user_avatar=avatar
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
 # @router.delete("/posts/{post_id}/share")
 # def unshare_post(post_id: str, user = Depends(get_current_user)):
 #     return PostService.remove_interaction(
@@ -144,7 +159,7 @@ def add_comment(
             post_id=post_id,
             user_id=user["id"],
             user_avatar=avatar,
-            content=comment.content
+            content=form_data.content
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

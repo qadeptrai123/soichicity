@@ -96,6 +96,7 @@ class PostService:
             # --- UPDATE: Thêm các biến đếm khởi tạo = 0 ---
             "likeCount": 0,
             "shareCount": 0,
+            "repostCount": 0,
             "saveCount": 0,
             "commentCount": 0
         }
@@ -107,8 +108,12 @@ class PostService:
     def toggle_interaction(collection_name: str, count_field: str, post_id: str, user_id: str, user_avatar: str = ""):
         """
         Hàm này dùng chung cho:
-        - collection_name: 'likes', 'shares', hoặc 'saves'
-        - count_field: 'likeCount', 'shareCount', hoặc 'saveCount'
+        - collection_name: 'likes', 'shares', 'reposts', hoặc 'saves'
+        - count_field: 'likeCount', 'shareCount', 'repostCount', hoặc 'saveCount'
+        
+        Lưu interaction ở 2 nơi:
+        1. posts/{post_id}/{collection_name}/{user_id} (để count và query "ai đã interact")
+        2. users/{user_id}/{collection_name}/{post_id} (để query "user này đã interact bài nào")
         """
         post_ref = db.collection("posts").document(post_id)
         
@@ -116,22 +121,37 @@ class PostService:
         if not post_ref.get().exists:
             raise ValueError(f"Post {post_id} not found")
         
-        # Key của doc là user_id -> đảm bảo 1 user chỉ like/share/save 1 lần
-        sub_ref = post_ref.collection(collection_name).document(user_id)
-
-        doc = sub_ref.get()
+        # Sub-collection trong posts
+        post_interaction_ref = post_ref.collection(collection_name).document(user_id)
+        # Sub-collection trong users
+        user_interaction_ref = db.collection("users").document(user_id).collection(collection_name).document(post_id)
+        
+        doc = post_interaction_ref.get()
+        timestamp = int(time.time() * 1000)
+        
         if doc.exists:
-            # Nếu đã tồn tại -> Xóa (Unlike/Unshare)
-            sub_ref.delete()
+            # Nếu đã tồn tại -> Xóa (Unlike/Unshare/Unrepost/Unsave)
+            post_interaction_ref.delete()
+            user_interaction_ref.delete()
             post_ref.update({count_field: firestore.Increment(-1)})
+            
             return {"status": "removed"}
         else:
-            # Nếu chưa -> Thêm mới (kèm timestamp & avatar như hình yêu cầu)
-            sub_ref.set({
-                "timestamp": int(time.time() * 1000),
-                "userAvatar": user_avatar
+            # Nếu chưa -> Thêm mới ở cả 2 nơi
+            # Lưu vào posts/{post_id}/{collection_name}/{user_id}
+            # (Không cần lưu user_id vì đã có trong document ID)
+            post_interaction_ref.set({
+                "timestamp": timestamp
             })
+            
+            # Lưu vào users/{user_id}/{collection_name}/{post_id}
+            # (Không cần lưu post_id vì đã có trong document ID)
+            user_interaction_ref.set({
+                "timestamp": timestamp
+            })
+            
             post_ref.update({count_field: firestore.Increment(1)})
+            
             return {"status": "added"}
 
     # @staticmethod
@@ -160,17 +180,27 @@ class PostService:
         
         # Comment dùng UUID vì 1 user có thể comment nhiều lần
         comment_id = str(uuid.uuid4())
+        timestamp = int(time.time() * 1000)
         
         payload = {
             "id": comment_id,
             "user_id": user_id,
-            "userAvatar": user_avatar,
+            "user_avatar": user_avatar,
             "content": content,
-            "link_url": files,
-            "timestamp": int(time.time() * 1000)
+            "timestamp": timestamp
         }
         
+        # Lưu vào posts/{post_id}/comments/{comment_id}
         post_ref.collection("comments").document(comment_id).set(payload)
+        
+        # Lưu vào users/{user_id}/comments/{comment_id} (để track comments của user)
+        # Không cần lưu comment_id vì đã có trong document ID
+        user_comment_ref = db.collection("users").document(user_id).collection("comments").document(comment_id)
+        user_comment_ref.set({
+            "post_id": post_id,
+            "content": content,
+            "timestamp": timestamp
+        })
         
         post_ref.update({"commentCount": firestore.Increment(1)})
         
@@ -189,7 +219,14 @@ class PostService:
         if data["user_id"] != user_id:
             return {"error": "Permission denied"}
             
+        # Xóa ở posts/{post_id}/comments/{comment_id}
         comment_ref.delete()
+        
+        # Xóa ở users/{user_id}/comments/{comment_id}
+        user_comment_ref = db.collection("users").document(user_id).collection("comments").document(comment_id)
+        if user_comment_ref.get().exists:
+            user_comment_ref.delete()
+        
         post_ref.update({"commentCount": firestore.Increment(-1)})
         return {"status": "deleted"}
 
@@ -228,8 +265,22 @@ class PostService:
         # 5) Giới hạn số lượng
         final_posts = unseen[:limit]
         
-        # 6) Populate interaction status (is_liked, is_shared, is_saved)
-        # Note: This performs N*3 reads per request. Optimize by batching or denormalizing if scale increases.
+        # 6) Populate author info
+        for post in final_posts:
+            author_id = post.get("author_id")
+            if author_id:
+                user_ref = db.collection("users").document(author_id).get()
+                if user_ref.exists:
+                    user_data = user_ref.to_dict()
+                    post["author"] = {
+                        "id": author_id,
+                        "username": user_data.get("username", ""),
+                        "full_name": user_data.get("full_name"),
+                        "avatar": user_data.get("avatar_url") or user_data.get("avatar") or user_data.get("picture"),
+                    }
+        
+        # 7) Populate interaction status (is_liked, is_shared, is_reposted, is_saved)
+        # Note: This performs N*4 reads per request. Optimize by batching or denormalizing if scale increases.
         for post in final_posts:
             if user_id:
                 p_id = post["id"]
@@ -247,6 +298,12 @@ class PostService:
                 else:
                      post["is_shared"] = False
                      
+                # Check Repost
+                if post_ref.collection("reposts").document(user_id).get().exists:
+                    post["is_reposted"] = True
+                else:
+                     post["is_reposted"] = False
+                     
                 # Check Save
                 if post_ref.collection("saves").document(user_id).get().exists:
                     post["is_saved"] = True
@@ -256,6 +313,7 @@ class PostService:
                 # Guest user -> all false
                 post["is_liked"] = False
                 post["is_shared"] = False
+                post["is_reposted"] = False
                 post["is_saved"] = False
 
         return final_posts
@@ -342,14 +400,15 @@ class PostService:
         likes_docs = db.collection("posts").document(post_id).collection("likes").stream()
         likes_list = [doc.id for doc in likes_docs]
         
-        reposts_docs = db.collection("posts").document(post_id).collection("shares").stream()
+        reposts_docs = db.collection("posts").document(post_id).collection("reposts").stream()
         reposts_list = [doc.id for doc in reposts_docs]
         
         # 5) Check current user's interaction status
         user_interaction = {
             "is_liked": False,
-            "is_saved": False,
-            "is_shared": False
+            "is_shared": False,
+            "is_reposted": False,
+            "is_saved": False
         }
         
         if current_user_id:
@@ -357,13 +416,17 @@ class PostService:
             if db.collection("posts").document(post_id).collection("likes").document(current_user_id).get().exists:
                 user_interaction["is_liked"] = True
             
-            # Check if current user saved
-            if db.collection("posts").document(post_id).collection("saves").document(current_user_id).get().exists:
-                user_interaction["is_saved"] = True
-            
             # Check if current user shared
             if db.collection("posts").document(post_id).collection("shares").document(current_user_id).get().exists:
                 user_interaction["is_shared"] = True
+            
+            # Check if current user reposted
+            if db.collection("posts").document(post_id).collection("reposts").document(current_user_id).get().exists:
+                user_interaction["is_reposted"] = True
+            
+            # Check if current user saved
+            if db.collection("posts").document(post_id).collection("saves").document(current_user_id).get().exists:
+                user_interaction["is_saved"] = True
         
         # 6) Build response
         response = {
@@ -374,6 +437,7 @@ class PostService:
             "author": author_data,
             "likeCount": post_data.get("likeCount", 0),
             "shareCount": post_data.get("shareCount", 0),
+            "repostCount": post_data.get("repostCount", 0),
             "saveCount": post_data.get("saveCount", 0),
             "commentCount": post_data.get("commentCount", 0),
             "comments": comments_data,
