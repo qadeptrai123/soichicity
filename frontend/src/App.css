@@ -11,6 +11,7 @@
     --color-secondary: #1A1F2E;
     --color-input: #0D1520;
     --color-backgroundfeed: #0A0E1A;
+    --color-inputSearch: #0D1520;
     /* Border Colors */
     --color-border: #374151;
     --color-border-secondary: #334155;
@@ -26,7 +27,6 @@
     --color-blue-600: #2563eb;
     --color-blue-500: #3b82f6;
     --color-blue-accent: #0ea5e9;
-
     /* Fonts */
     --font-sans: "Inter", sans-serif;
 }

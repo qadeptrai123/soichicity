@@ -27,20 +27,20 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl p-0 bg-gray-900 border-gray-800">
+            <DialogContent className="max-w-[600px]! p-0 bg-backgroundfeed border-border rounded-2xl [&>button]:hidden">
                 {/* Search Header */}
-                <div className="p-4 border-b border-gray-800">
-                    <div className="flex items-center gap-3 bg-gray-800 rounded-full px-4 py-2">
-                        <Search className="w-5 h-5 text-gray-400" />
+                <div className="p-4 border-b border-border">
+                    <div className="flex items-center gap-3 bg-input rounded-2xl px-4 py-2">
+                        <Search className="w-5 h-5 text-text-muted" />
                         <Input
                             type="text"
                             placeholder="Search"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="border-0 bg-transparent text-white placeholder:text-gray-400 focus-visible:ring-0"
+                            className="border-0 bg-input text-foreground placeholder:text-text-muted focus-visible:ring-0"
                         />
                         {searchQuery && (
-                            <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-white">
+                            <button onClick={() => setSearchQuery('')} className="text-text-muted hover:text-foreground">
                                 <X className="w-5 h-5" />
                             </button>
                         )}
@@ -48,16 +48,16 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
                 </div>
 
                 {/* Trending Section */}
-                <div className="p-4 border-b border-gray-800">
-                    <div className="flex items-center gap-2 mb-3 text-white">
+                <div className="p-4 border-b border-border">
+                    <div className="flex items-center gap-2 mb-3 text-foreground">
                         <TrendingUp className="w-5 h-5" />
-                        <h3 className="font-semibold">Trending</h3>
+                        <h3 className="">Trending</h3>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {trendingTags.map((tag) => (
                             <button
                                 key={tag}
-                                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-full text-sm text-gray-300"
+                                className="px-3 py-1.5 bg-input hover:bg-border rounded-full text-sm text-text-secondary"
                             >
                                 {tag}
                             </button>
@@ -67,17 +67,17 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
 
                 {/* Suggested Users */}
                 <div className="p-4">
-                    <h3 className="font-semibold text-white mb-4">Suggested</h3>
+                    <h3 className=" text-foreground mb-4">Suggested</h3>
                     <div className="space-y-3">
                         {suggestedUsers.map((user) => (
                             <div key={user.id} className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-white font-semibold">
+                                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-foreground ">
                                         {user.avatar}
                                     </div>
                                     <div>
-                                        <p className="text-white font-medium">{user.name}</p>
-                                        <p className="text-gray-400 text-sm">
+                                        <p className="text-foreground font-medium">{user.name}</p>
+                                        <p className="text-text-secondary text-sm">
                                             {user.username} {user.followers} followers
                                         </p>
                                     </div>
@@ -85,7 +85,7 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="bg-white text-black hover:bg-gray-200 rounded-full px-4"
+                                    className="bg-foreground! text-background! hover:bg-text-secondary! rounded-xl px-4"
                                 >
                                     Follow
                                 </Button>
