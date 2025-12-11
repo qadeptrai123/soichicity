@@ -11,6 +11,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
 import CreatePostDialog from "@/components/CreatePostDialog";
+import { SearchDialog } from "@/components/SearchDialog";
 import { useState } from "react";
 
 const items = [
@@ -26,6 +27,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
   const navigate = useNavigate();
   const { isAuthenticated, logout, user } = useAuth();
   const [openCreatePostDialog, setOpenCreatePostDialog] = useState(false);
+  const [openSearchDialog, setOpenSearchDialog] = useState(false);
 
   const mockFriends = [
     { id: 1, username: "johndoe", name: "John Doe", avatarUrl: "https://i.pravatar.cc/150?u=1" },
@@ -38,9 +40,11 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
     setOpenCreatePostDialog(false);
   };
 
-  const handleItemClick = (path: string, isCreate: boolean) => {
-    if (isCreate) {
+  const handleItemClick = (path: string, icon: any) => {
+    if (icon === PlusSquare) {
       setOpenCreatePostDialog(true);
+    } else if (icon === Search) {
+      setOpenSearchDialog(true);
     } else {
       navigate(path);
       onOpenChange(false); // Close sidebar on mobile after navigation
@@ -94,24 +98,20 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
           </div>
 
           {/* Logo */}
-          {/* {isAuthenticated && ( */}
           <div className="flex justify-center">
             <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center"></div>
           </div>
-          {/* )} */}
-
-
 
           {/* Menu */}
           <div className="flex flex-col items-center gap-8">
             {items.map((item, index) => {
               const Icon = item.icon;
-              const active = pathname === item.path;
+              const active = pathname === item.path && item.icon !== Search;
 
               return (
                 <button
                   key={index}
-                  onClick={() => handleItemClick(item.path, item.icon === PlusSquare)}
+                  onClick={() => handleItemClick(item.path, item.icon)}
                   className={`p-3 rounded-xl transition ${active
                     ? "bg-[#17212b] text-white"
                     : "text-gray-400 hover:bg-[#1a222e] hover:text-white"
@@ -145,6 +145,11 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
             onPost={handlePost}
           />
         )}
+
+        <SearchDialog
+          open={openSearchDialog}
+          onOpenChange={setOpenSearchDialog}
+        />
 
       </div>
     </>
