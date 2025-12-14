@@ -10,3 +10,4 @@ email-validator
 fastapi-mail
 requests
 moviepy
+algoliasearch==3.0.0

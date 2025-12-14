@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     # MAIL_PORT: int = 587
     # MAIL_SERVER: str = "smtp.gmail.com"
     # MAIL_FROM_NAME: str = "Soichi Threads App"
+    
+    # Algolia Configuration
+    ALGOLIA_APP_ID: str
+    ALGOLIA_API_KEY: str
+    ALGOLIA_ADMIN_API_KEY: str
+    ALGOLIA_USERS_INDEX_NAME: str = "UsersIndex"
 
         # --- CẤU HÌNH ĐỂ ĐỌC FILE .ENV ---
     class Config:
