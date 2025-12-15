@@ -43,6 +43,20 @@ export const CURRENT_USER: User = {
   name: "Trần Hữu Lộc",
   username: "LocTran0411",
   avatarUrl: "https://github.com/shadcn.png",
+  bio: "Milk Tea Lover ☕",
+  link: "https://www.facebook.com/share/1DXyXE4V4J/",
+  follower_count: 42,
+};
+
+export const OTHER_USER: User = {
+  id: "user_123",
+  name: "Chú mèo Tâm",
+  username: "tam.themeow",
+  avatarUrl: "https://i.pravatar.cc/300?img=3",
+  bio: "Tâm rất mèo 🐱",
+  link: "tiktok.com/@tam.themeow",
+  follower_count: 570,
+  following_count: 123,
 };
 
 export const MOCK_FRIENDS: User[] = [
@@ -74,3 +88,11 @@ export const MOCK_TARGET_POST: TargetPost = {
   content: 'Ôi, Sợ nhóm trưởng quá. Huhu !!!"',
   date: getCurrentDate(),
 };
+
+export const MOCK_BLOCKED_USERS: User[] = [
+  { id: "blocked_1", name: "User Block", username: "blocked.user1" },
+  { id: "blocked_2", name: "Spam Account", username: "spam.account" },
+  { id: "blocked_3", name: "Annoying User", username: "annoying.user" },
+  { id: "blocked_4", name: "Toxic Person", username: "toxic.person" },
+  { id: "blocked_5", name: "Blocked", username: "blocked.five" },
+];

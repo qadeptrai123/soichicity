@@ -39,7 +39,8 @@ export default function App() {
           <Route path="favorites" element={<div className="text-white">Favorites</div>} />
           <Route path="community" element={<div className="text-white">Community</div>} />
           <Route path="create" element={<div className="text-white">Create</div>} />
-          <Route path="/profile" element={<Profile/>} />  
+          <Route path="profile" element={<Profile/>} />
+          <Route path="profile/:id" element={<Profile/>} />  
         </Route>
 
       </Routes>

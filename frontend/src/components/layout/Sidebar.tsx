@@ -17,7 +17,8 @@ const items = [
   { icon: Home, path: "/" },
   { icon: Search, path: "/search" },
   { icon: Heart, path: "/favorites" },
-  { icon: Users, path: "/community" },
+  // { icon: Users, path: "/community" },
+  { icon: Users, path: "/profile" },
   { icon: PlusSquare, path: "/create" },
 ];
 
