@@ -71,7 +71,6 @@ export default function Profile() {
       const updated = prev.map((p) =>
         p.id === postId ? { ...p, pinned: !p.pinned } : p
       );
-      // Đưa bài ghim lên đầu
       updated.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
       return updated;
     });
@@ -190,7 +189,7 @@ export default function Profile() {
               placeholder="What's new?"
               className="flex-1 bg-transparent text-[15px] text-neutral-500 focus:outline-none placeholder:text-neutral-500"
             />
-            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white font-medium h-9 px-6 rounded-xl text-[15px]">
+            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] -translate-x-5 text-white font-medium h-8 px-6 rounded-xl text-[15px]">
               Post
             </Button>
           </div>
