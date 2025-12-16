@@ -1,19 +1,15 @@
-import React, { useState, useRef } from "react";
-import { Image as ImageIcon, AtSign, X, Search, Send } from "lucide-react"; 
+import React from "react";
+import { Send } from "lucide-react"; 
 import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import EmojiButton from "./EmojiButton";
+
 import { useAddComment } from "@/hooks/api/use-posts";
+import { usePostEditor } from "@/hooks/usePostEditor";
+import { MediaPreview, PostEditorActions } from "./PostEditorShared";
 
 
 type MediaFile = { url: string; type: "image" | "video"; file: File;};
@@ -50,41 +46,23 @@ export default function ReplyCommentDialog({
   onPost, 
 }: ReplyDialogProps) {
   
-  const [content, setContent] = useState<string>("");
-  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
-  const [tagSearch, setTagSearch] = useState<string>(""); 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const addComment = useAddComment();
-
-//   const createComment = useCreateComment();
-
-  const filteredFriends = mockFriends.filter((user) => {
-    const query = tagSearch.toLowerCase();
-    const matchName = user.name ? user.name.toLowerCase().includes(query) : false;
-    const matchUsername = user.username.toLowerCase().includes(query);
-    return matchName || matchUsername;
-  });
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const newFiles: MediaFile[] = Array.from(e.target.files).map((file) => ({
-        url: URL.createObjectURL(file),
-        type: file.type.startsWith("video/") ? "video" : "image",
-        file: file,
-      }));
-      setMediaFiles((prev) => [...prev, ...newFiles]);
-    }
-  };
-
-  const removeMedia = (indexToRemove: number) => {
-    setMediaFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
-  };
-
-  const handleReset = () => {
-    setContent("");
-    setMediaFiles([]);
-    setTagSearch(""); 
-  };
+  
+  // Use shared hook for post editor logic
+  const {
+    content,
+    setContent,
+    mediaFiles,
+    tagSearch,
+    setTagSearch,
+    fileInputRef,
+    filteredFriends,
+    handleFileUpload,
+    removeMedia,
+    handleReset,
+    onEmojiClick,
+    handleTagUser,
+  } = usePostEditor({ mockFriends });
 
   const handlePost = async () => {
     const formData = new FormData();
@@ -111,15 +89,6 @@ export default function ReplyCommentDialog({
         }
       }
     );
-  };
-
-  const onEmojiClick = (emoji: string) => {
-    setContent((prev) => prev + emoji);
-  };
-
-  const handleTagUser = (username: string) => {
-    setContent((prev) => prev + `@${username} `);
-    setTagSearch("");
   };
 
   // Nếu chưa có targetPost thì không hiển thị gì (đề phòng lỗi)
@@ -161,59 +130,22 @@ export default function ReplyCommentDialog({
                   style={{ height: content ? 'auto' : '60px' }}
                 />
 
-                <div className="flex items-center gap-1 ml-2 text-text-secondary">
-                  <input type="file" multiple accept="image/*,video/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                  
-                  <button onClick={() => fileInputRef.current?.click()} className="p-2 hover:text-foreground hover:bg-white/5 rounded-full transition outline-none">
-                    <ImageIcon size={20} />
-                  </button>
-
-                  <DropdownMenu onOpenChange={(isOpen) => !isOpen && setTagSearch("")}>
-                    <DropdownMenuTrigger asChild>
-                      <button className="p-2 hover:text-foreground hover:bg-white/5 rounded-full transition outline-none">
-                        <AtSign size={20} />
-                      </button>
-                    </DropdownMenuTrigger>
-                    
-                    <DropdownMenuContent className="bg-secondary border-border text-foreground w-64 p-0" align="end">
-                       <div className="p-2 border-b border-border">
-                          <div className="flex items-center bg-black/20 rounded-md px-2 border border-transparent focus-within:border-white/10">
-                             <Search size={14} className="text-text-secondary"/>
-                             <input 
-                               value={tagSearch}
-                               onChange={(e) => setTagSearch(e.target.value)}
-                               placeholder="Search..." 
-                               className="bg-transparent border-none text-sm p-2 w-full outline-none text-foreground placeholder:text-text-secondary"
-                             />
-                          </div>
-                       </div>
-                       <div className="max-h-[200px] overflow-y-auto no-scrollbar">
-                        {filteredFriends.map(u => (
-                          <DropdownMenuItem key={u.id} onClick={() => handleTagUser(u.username)} className="hover:bg-white/10 cursor-pointer text-foreground focus:bg-white/10 focus:text-foreground">
-                            {u.username}
-                          </DropdownMenuItem>
-                        ))}
-                       </div>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <div className="relative">
-                     <EmojiButton onSelect={onEmojiClick} /> 
-                  </div>
-                </div>
+                <PostEditorActions
+                  fileInputRef={fileInputRef}
+                  tagSearch={tagSearch}
+                  setTagSearch={setTagSearch}
+                  filteredFriends={filteredFriends}
+                  onFileUpload={handleFileUpload}
+                  onTagUser={handleTagUser}
+                  onEmojiClick={onEmojiClick}
+                />
               </div>
-              {mediaFiles.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto py-2 mt-2 no-scrollbar">
-                  {mediaFiles.map((item, index) => (
-                    <div key={index} className="relative w-20 h-20 rounded-md overflow-hidden border border-border flex-shrink-0 group">
-                      <img src={item.url} className="w-full h-full object-cover" alt="preview" />
-                      <button onClick={() => removeMedia(index)} className="absolute top-0 right-0 bg-black/50 p-1 text-white opacity-0 group-hover:opacity-100 transition">
-                        <X size={12}/>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              
+              <MediaPreview 
+                mediaFiles={mediaFiles} 
+                onRemove={removeMedia} 
+                variant="compact"
+              />
             </div>
           </div>
         </div>

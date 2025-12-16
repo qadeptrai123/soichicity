@@ -251,6 +251,10 @@ class PostService:
         result = []
         for p in posts:
             data = p.to_dict()
+            
+            # Thêm document ID vào data
+            data["id"] = p.id
+            
             # Đảm bảo data trả về có đủ field, tránh lỗi key cũ
             data.setdefault("likeCount", 0)
             data.setdefault("commentCount", 0)

@@ -1,6 +1,5 @@
 
-import React, { useState, useRef } from "react";
-import { Image as ImageIcon, AtSign, X, Search } from "lucide-react";
+import React from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,14 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
-import EmojiButton from "./EmojiButton";
+import { usePostEditor } from "@/hooks/usePostEditor";
+import { MediaPreview, PostEditorActions } from "./PostEditorShared";
 
 type MediaFile = { url: string; type: "image" | "video" };
 
@@ -43,44 +37,21 @@ export default function CreatePostDialog({
   onPost,
 }: CreatePostDialogProps) {
 
-  const [content, setContent] = useState<string>("");
-  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
-  const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
-
-  // 2. Thêm State cho thanh tìm kiếm
-  const [tagSearch, setTagSearch] = useState<string>("");
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // 3. Logic lọc danh sách bạn bè dựa trên từ khóa tìm kiếm
-  const filteredFriends = mockFriends.filter((user) => {
-    const query = tagSearch.toLowerCase();
-    const matchName = user.name ? user.name.toLowerCase().includes(query) : false;
-    const matchUsername = user.username.toLowerCase().includes(query);
-    return matchName || matchUsername;
-  });
-
-  // --- LOGIC ---
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const newFiles: MediaFile[] = Array.from(e.target.files).map((file) => ({
-        url: URL.createObjectURL(file),
-        type: file.type.startsWith("video/") ? "video" : "image",
-      }));
-      setMediaFiles((prev) => [...prev, ...newFiles]);
-    }
-  };
-
-  const removeMedia = (indexToRemove: number) => {
-    setMediaFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
-  };
-
-  const handleReset = () => {
-    setContent("");
-    setMediaFiles([]);
-    setShowEmojiPicker(false);
-    setTagSearch("");
-  };
+  // Use shared hook for post editor logic
+  const {
+    content,
+    setContent,
+    mediaFiles,
+    tagSearch,
+    setTagSearch,
+    fileInputRef,
+    filteredFriends,
+    handleFileUpload,
+    removeMedia,
+    handleReset,
+    onEmojiClick,
+    handleTagUser,
+  } = usePostEditor({ mockFriends });
 
   const handleClose = () => {
     handleReset();
@@ -90,16 +61,6 @@ export default function CreatePostDialog({
   const handlePost = () => {
     onPost(content, mediaFiles);
     handleReset();
-  };
-
-  const onEmojiClick = (emoji: string) => {
-    setContent((prev) => prev + emoji);
-
-  };
-
-  const handleTagUser = (username: string) => {
-    setContent((prev) => prev + `@${username} `);
-    setTagSearch("");
   };
 
   const isDisabled = !content && mediaFiles.length === 0;
@@ -143,88 +104,23 @@ export default function CreatePostDialog({
             />
 
             {/* Media Preview */}
-            {mediaFiles.length > 0 && (
-              <div className="flex gap-3 overflow-x-auto py-2 mb-4 scrollbar-hide">
-                {mediaFiles.map((item, index) => (
-                  <div key={index} className="relative flex-shrink-0 max-w-[480px] rounded-xl overflow-hidden border border-border">
-                    {item.type === "image" ? (
-                      <img src={item.url} alt="Preview" className="max-h-64 w-auto object-contain bg-black/10" />
-                    ) : (
-                      <video src={item.url} className="max-h-64 w-auto object-contain bg-black/10" controls />
-                    )}
-                    <button
-                      onClick={() => removeMedia(index)}
-                      className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 rounded-full p-1 transition border border-white/20"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <MediaPreview 
+              mediaFiles={mediaFiles} 
+              onRemove={removeMedia} 
+              variant="default"
+            />
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2 mt-auto relative mt-6! -ml-2!">
-              <Button onClick={() => fileInputRef.current?.click()} className="text-text-secondary hover:text-foreground transition bg-transparent border-none cursor-pointer p-2 rounded-full hover:bg-white/5">
-                <ImageIcon size={20} />
-              </Button>
-              <input type="file" multiple accept="image/*,video/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-
-              {/* Tag User Dropdown */}
-              <DropdownMenu onOpenChange={(isOpen) => !isOpen && setTagSearch("")}>
-                <DropdownMenuTrigger asChild>
-                  <Button className="text-text-secondary hover:text-foreground transition bg-transparent border-none cursor-pointer p-2 rounded-full hover:bg-white/5 outline-none">
-                    <AtSign size={20} />
-                  </Button>
-                </DropdownMenuTrigger>
-
-                <DropdownMenuContent
-                  className="bg-secondary border-border text-foreground w-64 max-h-[280px] overflow-y-auto no-scrollbar p-0"
-                  align="start"
-                >
-                  <div className="sticky top-0 bg-secondary/95 backdrop-blur-sm p-2 z-10 border-b border-white/10">
-                    <div className="relative flex items-center">
-                      <Search className="absolute left-2 w-4 h-4 text-muted-foreground" />
-                      <input
-                        type="text"
-                        placeholder="Search friends..."
-                        value={tagSearch}
-                        onChange={(e) => setTagSearch(e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-full bg-black/20 text-sm text-foreground rounded-md py-1.5 pl-8 pr-2 outline-none border border-transparent focus:border-white/20 placeholder:text-muted-foreground/50"
-                        autoFocus={false}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="p-1">
-                    {filteredFriends.length > 0 ? (
-                      filteredFriends.map((user) => (
-                        <DropdownMenuItem
-                          key={user.id}
-                          onClick={() => handleTagUser(user.username)}
-                          className="cursor-pointer hover:bg-white/10 focus:bg-white/10 flex items-center gap-2 py-2 px-2 rounded-md"
-                        >
-                          <Avatar className="w-6 h-6">
-                            <AvatarFallback className="text-[10px] bg-primary/20">{(user.name || user.username).charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium leading-none">{user.name || user.username}</span>
-                            <span className="text-[10px] text-muted-foreground">@{user.username}</span>
-                          </div>
-                        </DropdownMenuItem>
-                      ))
-                    ) : (
-                      <div className="text-center py-4 text-sm text-muted-foreground">
-                        No users found
-                      </div>
-                    )}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <EmojiButton onSelect={onEmojiClick} />
-            </div>
+            <PostEditorActions
+              fileInputRef={fileInputRef}
+              tagSearch={tagSearch}
+              setTagSearch={setTagSearch}
+              filteredFriends={filteredFriends}
+              onFileUpload={handleFileUpload}
+              onTagUser={handleTagUser}
+              onEmojiClick={onEmojiClick}
+              variant="inline"
+            />
           </div>
         </div>
         {/* FOOTER */}
