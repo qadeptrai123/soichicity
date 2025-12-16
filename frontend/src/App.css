@@ -11,14 +11,19 @@
     --color-secondary: #1A1F2E;
     --color-input: #0D1520;
     --color-backgroundfeed: #0A0E1A;
+    --color-inputSearch: #0D1520;
     /* Border Colors */
     --color-border: #374151;
     --color-border-secondary: #334155;
+    --color-border-accent: #1E2939;
+    --color-border-strong: #2A2F3E;
+    --color-border-hover: #101828;
 
     /* Text Colors */
     --color-foreground: #ffffff;
     --color-text-secondary: #94a3b8;
     --color-text-muted: #64748b;
+    --color-text-accent: #6A7282;
 
     /* Brand Colors */
     --color-primary: #2B7FFF;
@@ -26,7 +31,6 @@
     --color-blue-600: #2563eb;
     --color-blue-500: #3b82f6;
     --color-blue-accent: #0ea5e9;
-
     /* Fonts */
     --font-sans: "Inter", sans-serif;
 }

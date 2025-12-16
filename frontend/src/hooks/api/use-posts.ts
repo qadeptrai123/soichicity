@@ -81,10 +81,10 @@ export const useDeleteComment = () =>
 
 // --- MOCK DATA FIX CHUẨN ---
 const MOCK_THREAD_DATA = {
-  id: "thread-main-1",
+  post_id: "thread-main-1",
   content:
     "Cuối cùng cũng fix xong bug! Cảm giác thật yomost 🤣 Anh em nào đang code React thì giơ tay điểm danh nào!",
-  createdAt: new Date().toISOString(),
+  created_at: new Date().toISOString(),
 
   // Author của bài viết chính
   author: {
@@ -94,8 +94,19 @@ const MOCK_THREAD_DATA = {
     avatar: "https://github.com/shadcn.png",
   },
 
-  likes: 540,
-  // LƯU Ý: Đã xóa dòng "replies: 12" gây lỗi duplicate ở đây
+  author_id: "u1",
+
+  // Counts
+  likes_count: 540,
+  reposts_count: 0,
+  saves_count: 0,
+  comments_count: 12,
+
+  // Interactions
+  is_liked: false,
+  is_saved: false,
+  is_shared: false,
+  is_reposted: false,
 
   activity: [
     { type: "like", user: { name: "Nam", avatar: "" } },
@@ -103,42 +114,50 @@ const MOCK_THREAD_DATA = {
   ],
 
   // Danh sách comment
-  replies: [
-    {
-      id: "reply-1",
-      content: "Cố lên bác ơi, bug là tính năng mà :v",
-      created_at: new Date(Date.now() - 3600000).toISOString(),
-      author_id: "u2",
-      actions_count: 24,
-      replies_count: 0,
-      bookmark_count: 5,
-      shares_count: 1,
-      media_url: null,
-      // Author của comment 1
-      author: {
-        name: "Coder Qua Đường",
-        handle: "@passerby",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
+  comments: {
+    items: [
+      {
+        post_id: "reply-1",
+        content: "Cố lên bác ơi, bug là tính năng mà :v",
+        created_at: new Date(Date.now() - 3600000).toISOString(),
+        author_id: "u2",
+
+        likes_count: 24,
+        comments_count: 0,
+        saves_count: 5,
+        reposts_count: 1,
+        media_url: null,
+        // Author của comment 1
+        author: {
+          name: "Coder Qua Đường",
+          handle: "@passerby",
+          avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
+        },
       },
-    },
-    {
-      id: "reply-2",
-      content: "Xin vía fix bug nhanh gọn lẹ!",
-      created_at: new Date(Date.now() - 7200000).toISOString(),
-      author_id: "u3",
-      actions_count: 10,
-      replies_count: 0,
-      bookmark_count: 0,
-      shares_count: 0,
-      media_url: null,
-      // Author của comment 2
-      author: {
-        name: "Newbie",
-        handle: "@new_bie",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka",
+      {
+        post_id: "reply-2",
+        content: "Xin vía fix bug nhanh gọn lẹ!",
+        created_at: new Date(Date.now() - 7200000).toISOString(),
+        author_id: "u3",
+
+        likes_count: 10,
+        comments_count: 0,
+        saves_count: 0,
+        reposts_count: 0,
+        media_url: null,
+        // Author của comment 2
+        author: {
+          name: "Newbie",
+          handle: "@new_bie",
+          avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka",
+        },
       },
-    },
-  ],
+    ],
+    total: 2,
+    page: 1,
+    page_size: 10,
+    total_pages: 1
+  }
 };
 
 export const useThreadDetail = (threadId: string) => {

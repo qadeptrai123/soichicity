@@ -1,5 +1,4 @@
 
-import React, { useState, useRef } from "react";
 import { Image as ImageIcon, AtSign, X, Search } from "lucide-react";
 import {
   Dialog,
@@ -18,21 +17,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import EmojiButton from "./EmojiButton";
+import type { User } from "@/types/auth";
+import { usePostEditor } from "@/hooks/usePostEditor";
+import { useCreatePost } from "@/hooks/api/use-posts";
 
-type MediaFile = { url: string; type: "image" | "video" };
-
-type User = {
-  id: string | number;
-  username: string;
-  name: string | null;
-  avatarUrl?: string;
-};
 interface CreatePostDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentUser: User; // Nhận dữ liệu người dùng qua props
   mockFriends: User[];
-  onPost: (content: string, mediaFiles: MediaFile[]) => void;
 }
 
 export default function CreatePostDialog({
@@ -40,72 +33,67 @@ export default function CreatePostDialog({
   onOpenChange,
   currentUser,
   mockFriends,
-  onPost,
 }: CreatePostDialogProps) {
 
-  const [content, setContent] = useState<string>("");
-  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
-  const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
+  const {
+    content,
+    setContent,
+    mediaFiles,
+    tagSearch,
+    setTagSearch,
+    fileInputRef,
+    filteredFriends,
+    handleFileUpload,
+    removeMedia,
+    resetEditor,
+    onEmojiClick,
+    handleTagUser,
+  } = usePostEditor({ mockFriends });
 
-  // 2. Thêm State cho thanh tìm kiếm
-  const [tagSearch, setTagSearch] = useState<string>("");
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // 3. Logic lọc danh sách bạn bè dựa trên từ khóa tìm kiếm
-  const filteredFriends = mockFriends.filter((user) => {
-    const query = tagSearch.toLowerCase();
-    const matchName = user.name ? user.name.toLowerCase().includes(query) : false;
-    const matchUsername = user.username.toLowerCase().includes(query);
-    return matchName || matchUsername;
-  });
-
-  // --- LOGIC ---
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const newFiles: MediaFile[] = Array.from(e.target.files).map((file) => ({
-        url: URL.createObjectURL(file),
-        type: file.type.startsWith("video/") ? "video" : "image",
-      }));
-      setMediaFiles((prev) => [...prev, ...newFiles]);
-    }
-  };
-
-  const removeMedia = (indexToRemove: number) => {
-    setMediaFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
-  };
-
-  const handleReset = () => {
-    setContent("");
-    setMediaFiles([]);
-    setShowEmojiPicker(false);
-    setTagSearch("");
-  };
+  const createPostMutation = useCreatePost();
 
   const handleClose = () => {
-    handleReset();
+    resetEditor();
     onOpenChange(false);
   };
 
-  const handlePost = () => {
-    onPost(content, mediaFiles);
-    handleReset();
-  };
+  const handlePostSubmit = () => {
+    // Basic validation
+    if (!content.trim() && mediaFiles.length === 0) return;
 
-  const onEmojiClick = (emoji: string) => {
-    setContent((prev) => prev + emoji);
+    const formData = new FormData();
+    formData.append("content", content);
 
-  };
+    // Append files
+    mediaFiles.forEach((media) => {
+      if (media.file) {
+        formData.append("files", media.file);
+      }
+    });
 
-  const handleTagUser = (username: string) => {
-    setContent((prev) => prev + `@${username} `);
-    setTagSearch("");
+    // Note: If you want to handle specific media types or order, logic might be more complex
+    // backend expects 'files' for all media.
+
+    createPostMutation.mutate(formData, {
+      onSuccess: () => {
+        // Close and reset
+        handleClose();
+        // Maybe show toast? 
+      },
+      onError: (error) => {
+        console.error("Failed to create post", error);
+        // Handle error UI
+      }
+    });
   };
 
   const isDisabled = !content && mediaFiles.length === 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) resetEditor();
+      onOpenChange(isOpen);
+    }}>
       <DialogContent className="sm:max-w-[600px] bg-secondary border-border p-0 shadow-2xl gap-0 overflow-visible [&>button]:hidden max-h-[90vh] flex flex-col -mt-9">
 
         {/* HEADER */}
@@ -124,8 +112,8 @@ export default function CreatePostDialog({
         <div className="p-6 flex gap-4 min-h-[300px] overflow-y-auto flex-1">
           <div className="flex flex-col items-center pt-1">
             <Avatar className="w-10 h-10 border border-border">
-              <AvatarImage src={currentUser.avatarUrl} alt={currentUser.username} />
-              <AvatarFallback>{(currentUser.name || currentUser.username)}</AvatarFallback>
+              <AvatarImage src={currentUser.avatar_url} alt={currentUser.username} />
+              <AvatarFallback>{(currentUser.full_name || currentUser.username).charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="w-[2px] flex-1 bg-border my-3 rounded-full opacity-50"></div>
           </div>
@@ -140,6 +128,7 @@ export default function CreatePostDialog({
               onChange={(e) => setContent(e.target.value)}
               placeholder="What's new?"
               className="w-full bg-transparent border-none text-foreground placeholder-text-muted focus:ring-0 resize-none text-base outline-none p-0 min-h-[120px] leading-relaxed mb-4"
+              autoFocus
             />
 
             {/* Media Preview */}
@@ -201,15 +190,15 @@ export default function CreatePostDialog({
                     {filteredFriends.length > 0 ? (
                       filteredFriends.map((user) => (
                         <DropdownMenuItem
-                          key={user.id}
+                          key={user.uid}
                           onClick={() => handleTagUser(user.username)}
                           className="cursor-pointer hover:bg-white/10 focus:bg-white/10 flex items-center gap-2 py-2 px-2 rounded-md"
                         >
                           <Avatar className="w-6 h-6">
-                            <AvatarFallback className="text-[10px] bg-primary/20">{(user.name || user.username).charAt(0)}</AvatarFallback>
+                            <AvatarFallback className="text-[10px] bg-primary/20">{(user.full_name || user.username).charAt(0)}</AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col">
-                            <span className="text-sm font-medium leading-none">{user.name || user.username}</span>
+                            <span className="text-sm font-medium leading-none">{user.full_name || user.username}</span>
                             <span className="text-[10px] text-muted-foreground">@{user.username}</span>
                           </div>
                         </DropdownMenuItem>
@@ -230,11 +219,11 @@ export default function CreatePostDialog({
         {/* FOOTER */}
         <DialogFooter className="p-6 pt-2 flex justify-end border-t border-border sm:justify-end">
           <Button
-            onClick={handlePost}
-            disabled={isDisabled}
+            onClick={handlePostSubmit}
+            disabled={isDisabled || createPostMutation.isPending}
             className={`rounded-full font-semibold px-8 py-2 h-auto text-base transition-all border-none ${isDisabled ? "bg-primary/50 text-white/50 cursor-not-allowed" : "bg-primary text-white hover:bg-primary-hover shadow-lg shadow-blue-500/20"}`}
           >
-            Post
+            {createPostMutation.isPending ? "Posting..." : "Post"}
           </Button>
         </DialogFooter>
       </DialogContent>

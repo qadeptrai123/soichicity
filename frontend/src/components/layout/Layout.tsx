@@ -58,7 +58,7 @@ export default function Layout() {
       {/* RIGHT AREA (Topbar + Content) */}
 
       {/* Topbar */}
-      <Topbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+      <Topbar />
 
       {/* MAIN CONTENT (scrollable) */}
       <div className="pt-16">
