@@ -13,12 +13,14 @@ import { useAuth } from "@/contexts/AuthProvider";
 import CreatePostDialog from "@/components/CreatePostDialog";
 import { SearchDialog } from "@/components/SearchDialog";
 import { useState } from "react";
+import { MOCK_FRIENDS } from "@/MockData/data";
 
 const items = [
   { icon: Home, path: "/" },
   { icon: Search, path: "/search" },
   { icon: Heart, path: "/favorites" },
-  { icon: Users, path: "/community" },
+  // { icon: Users, path: "/community" },
+  { icon: Users, path: "/profile" },
   { icon: PlusSquare, path: "/create" },
 ];
 
@@ -29,19 +31,15 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
   const [openCreatePostDialog, setOpenCreatePostDialog] = useState(false);
   const [openSearchDialog, setOpenSearchDialog] = useState(false);
 
-  const mockFriends = [
-    { id: 1, username: "johndoe", name: "John Doe", avatarUrl: "https://i.pravatar.cc/150?u=1" },
-    { id: 2, username: "janedoe", name: "Jane Doe", avatarUrl: "https://i.pravatar.cc/150?u=2" },
-    { id: 3, username: "bobsmith", name: "Bob Smith", avatarUrl: "https://i.pravatar.cc/150?u=3" },
-  ];
 
-  const handlePost = (content: string, mediaFiles: any[]) => {
-    console.log("Posting:", content, mediaFiles);
-    setOpenCreatePostDialog(false);
-  };
 
+<<<<<<< HEAD
   const handleItemClick = (path: string, icon: any) => {
     if (icon === PlusSquare) {
+=======
+  const handleItemClick = (path: string) => {
+    if (path === "/create") {
+>>>>>>> 67f3880dbbc8b97e37bde05de3642d8f46342a4e
       setOpenCreatePostDialog(true);
     } else if (icon === Search) {
       setOpenSearchDialog(true);
@@ -61,7 +59,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
         />
       )}
 
-      <div className={`fixed top-0 left-0 z-55 w-20 h-screen bg-backgroundfeed backdrop-blur-md border-r border-[#1F2937] flex flex-col justify-between py-6 transition-transform duration-300 md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+      <div className={`fixed top-0 left-0 z-29 w-20 h-screen bg-backgroundfeed backdrop-blur-md border-r border-[#1F2937] flex flex-col justify-between py-6 transition-transform duration-300 md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}>
         {/* Top Section */}
         <div className="flex flex-col items-center gap-8">
@@ -111,7 +109,11 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
               return (
                 <button
                   key={index}
+<<<<<<< HEAD
                   onClick={() => handleItemClick(item.path, item.icon)}
+=======
+                  onClick={() => handleItemClick(item.path)}
+>>>>>>> 67f3880dbbc8b97e37bde05de3642d8f46342a4e
                   className={`p-3 rounded-xl transition ${active
                     ? "bg-[#17212b] text-white"
                     : "text-gray-400 hover:bg-[#1a222e] hover:text-white"
@@ -141,8 +143,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
             open={openCreatePostDialog}
             onOpenChange={setOpenCreatePostDialog}
             currentUser={user}
-            mockFriends={mockFriends}
-            onPost={handlePost}
+            mockFriends={MOCK_FRIENDS}
           />
         )}
 

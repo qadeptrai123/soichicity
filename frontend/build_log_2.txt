@@ -1,0 +1,10 @@
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+src/components/comment.tsx(19,6): error TS2300: Duplicate identifier 'MediaFile'.
+src/components/comment.tsx(21,10): error TS1484: 'User' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/comment.tsx(23,6): error TS2300: Duplicate identifier 'MediaFile'.
+src/components/comment.tsx(54,3): error TS6133: 'onPost' is declared but its value is never read.
+src/components/CreatePostDialog.tsx(82,5): error TS2304: Cannot find name 'setShowEmojiPicker'.
+src/components/layout/Topbar.tsx(5,32): error TS6133: 'onMenuClick' is declared but its value is never read.

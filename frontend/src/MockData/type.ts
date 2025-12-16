@@ -3,7 +3,12 @@ export interface User {
   name: string | null;
   username: string;
   avatarUrl?: string;
-  
+  bio?: string;
+  link?: string;
+  followers?: string[];
+  following?: string[];
+  follower_count?: number;
+  following_count?: number;
 }
 
 export interface TargetPost {
