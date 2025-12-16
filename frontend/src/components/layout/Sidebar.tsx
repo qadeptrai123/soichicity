@@ -11,6 +11,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
 import CreatePostDialog from "@/components/CreatePostDialog";
+import { SearchDialog } from "@/components/SearchDialog";
 import { useState } from "react";
 import { MOCK_FRIENDS } from "@/MockData/data";
 
@@ -28,12 +29,15 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
   const navigate = useNavigate();
   const { isAuthenticated, logout, user } = useAuth();
   const [openCreatePostDialog, setOpenCreatePostDialog] = useState(false);
+  const [openSearchDialog, setOpenSearchDialog] = useState(false);
 
 
 
-  const handleItemClick = (path: string) => {
-    if (path === "/create") {
+  const handleItemClick = (path: string, icon: any) => {
+    if (icon === PlusSquare) {
       setOpenCreatePostDialog(true);
+    } else if (icon === Search) {
+      setOpenSearchDialog(true);
     } else {
       navigate(path);
       onOpenChange(false); // Close sidebar on mobile after navigation
@@ -95,12 +99,12 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
           <div className="flex flex-col items-center gap-8">
             {items.map((item, index) => {
               const Icon = item.icon;
-              const active = pathname === item.path;
+              const active = pathname === item.path && item.icon !== Search;
 
               return (
                 <button
                   key={index}
-                  onClick={() => handleItemClick(item.path)}
+                  onClick={() => handleItemClick(item.path, item.icon)}
                   className={`p-3 rounded-xl transition ${active
                     ? "bg-[#17212b] text-white"
                     : "text-gray-400 hover:bg-[#1a222e] hover:text-white"
@@ -133,6 +137,11 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
             mockFriends={MOCK_FRIENDS}
           />
         )}
+
+        <SearchDialog
+          open={openSearchDialog}
+          onOpenChange={setOpenSearchDialog}
+        />
 
       </div>
     </>
