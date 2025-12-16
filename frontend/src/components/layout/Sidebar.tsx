@@ -33,13 +33,8 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
 
 
 
-<<<<<<< HEAD
   const handleItemClick = (path: string, icon: any) => {
     if (icon === PlusSquare) {
-=======
-  const handleItemClick = (path: string) => {
-    if (path === "/create") {
->>>>>>> 67f3880dbbc8b97e37bde05de3642d8f46342a4e
       setOpenCreatePostDialog(true);
     } else if (icon === Search) {
       setOpenSearchDialog(true);
@@ -109,11 +104,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
               return (
                 <button
                   key={index}
-<<<<<<< HEAD
                   onClick={() => handleItemClick(item.path, item.icon)}
-=======
-                  onClick={() => handleItemClick(item.path)}
->>>>>>> 67f3880dbbc8b97e37bde05de3642d8f46342a4e
                   className={`p-3 rounded-xl transition ${active
                     ? "bg-[#17212b] text-white"
                     : "text-gray-400 hover:bg-[#1a222e] hover:text-white"
