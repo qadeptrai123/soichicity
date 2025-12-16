@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     ALGOLIA_API_KEY: str
     ALGOLIA_ADMIN_API_KEY: str
     ALGOLIA_USERS_INDEX_NAME: str = "UsersIndex"
+    ALGOLIA_POSTS_INDEX_NAME: str = "PostsIndex"
 
         # --- CẤU HÌNH ĐỂ ĐỌC FILE .ENV ---
     class Config:
