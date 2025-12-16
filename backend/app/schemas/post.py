@@ -77,32 +77,35 @@ class UserInteractionStatus(BaseModel):
     is_saved: bool = False
 
 class PostResponse(BaseModel):
-    id: str
+    post_id: str
     content: str
-    link_url: List[str] = []
+    media_urls: List[str] = []
     created_at: str
     author_id: str
+    level: int = 0
+    reply_to_id: Optional[str] = None
+    root_id: Optional[str] = None
     
     # Author info
     author: Optional[AuthorResponse] = None
     
     # Interaction status for current user
     is_liked: bool = False
-    is_shared: bool = False
+    is_shared: bool = False  # Note: API might still return is_shared/reposted check
     is_reposted: bool = False
     is_saved: bool = False
     
-    # Các trường đếm (Map đúng tên field trong hình)
-    like_count: int = Field(alias="likeCount", default=0)
-    share_count: int = Field(alias="shareCount", default=0)
-    repost_count: int = Field(alias="repostCount", default=0)
-    save_count: int = Field(alias="saveCount", default=0)
-    comment_count: int = Field(alias="commentCount", default=0)
+    # Counts
+    # Counts
+    likes_count: int = 0
+    reposts_count: int = 0
+    saves_count: int = 0
+    comments_count: int = 0
 
     class Config:
-        populate_by_name = True  # Cho phép map từ likeCount (DB) -> like_count (Code)
+        populate_by_name = True
 
-    @validator("link_url", pre=True)
+    @validator("media_urls", pre=True)
     def ensure_list(cls, v):
         if v is None: return []
         if isinstance(v, str): return [v]
@@ -110,20 +113,23 @@ class PostResponse(BaseModel):
 
 class PostDetailResponse(BaseModel):
     # Post metadata
-    id: str
+    post_id: str
     content: str
-    link_url: List[str] = []
+    media_urls: List[str] = []
     created_at: str
+    level: int = 0
+    reply_to_id: Optional[str] = None
+    root_id: Optional[str] = None
     
     # Author info
     author: AuthorResponse
     
     # Engagement counts
-    like_count: int = Field(alias="likeCount", default=0)
-    share_count: int = Field(alias="shareCount", default=0)
-    repost_count: int = Field(alias="repostCount", default=0)
-    save_count: int = Field(alias="saveCount", default=0)
-    comment_count: int = Field(alias="commentCount", default=0)
+    # Engagement counts
+    likes_count: int = 0
+    reposts_count: int = 0
+    saves_count: int = 0
+    comments_count: int = 0
     
     # Comments with pagination
     comments: PaginatedComments = PaginatedComments()
@@ -137,4 +143,3 @@ class PostDetailResponse(BaseModel):
     
     class Config:
         populate_by_name = True
-

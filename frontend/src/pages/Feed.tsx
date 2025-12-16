@@ -6,6 +6,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
 import ReplyCommentDialog, { type TargetPost } from "@/components/comment";
 import { usePosts } from "@/hooks/api/use-posts";
+import { MOCK_FRIENDS } from "@/MockData/data";
 
 // --- BẮT ĐẦU: DỮ LIỆU MOCK MỚI VỚI YOUTUBE LINKS ---
 
@@ -25,7 +26,6 @@ const Feed = () => {
 
   // Lấy data từ API
   const { data: postsData, isLoading, error: postsError } = usePosts();
-
   // Load more posts function
   const loadMorePosts = useCallback(() => {
     if (isLoading || !hasMore) return;
@@ -80,14 +80,14 @@ const Feed = () => {
       return;
     }
     setReplyTarget({
-      id: post.id,
+      id: post.post_id,
       content: post.content,
       date: post.created_at,
       user: {
-        id: author.id || post.author_id,
+        uid: author.id || post.author_id,
         username: author.username || author.handle.replace("@", ""),
-        name: author.name,
-        avatarUrl: author.avatar,
+        full_name: author.name,
+        avatar_url: author.avatar,
       },
     });
     setIsReplyOpen(true);
@@ -95,10 +95,10 @@ const Feed = () => {
 
   // Transform API data về format FeedCard
   const transformPost = (apiPost: any) => {
-    // Chuyển link_url thành gallery
+    // Chuyển media_urls thành gallery
     let gallery: MediaItem[] | undefined;
-    if (apiPost.link_url && apiPost.link_url.length > 0) {
-      gallery = apiPost.link_url.map((url: string) => {
+    if (apiPost.media_urls && apiPost.media_urls.length > 0) {
+      gallery = apiPost.media_urls.map((url: string) => {
         // Phát hiện kiểu media
         const isYoutube = /(?:youtube\.com|youtu\.be)/.test(url);
         const isVideo = /\.(mp4|webm|ogg)$/i.test(url);
@@ -110,21 +110,22 @@ const Feed = () => {
     }
 
     return {
-      id: apiPost.id,
+      post_id: apiPost.post_id,
       content: apiPost.content,
       created_at: apiPost.created_at,
       author_id: apiPost.author_id,
       media_url: gallery && gallery.length === 1 ? gallery[0].url : null,
       media_type: gallery && gallery.length === 1 ? gallery[0].type : null,
       gallery: gallery && gallery.length > 1 ? gallery : undefined,
-      actions_count: apiPost.likeCount || 0,
-      replies_count: apiPost.commentCount || 0,
-      bookmark_count: apiPost.saveCount || 0,
-      shares_count: apiPost.shareCount || 0,
-      reposts_count: apiPost.repostCount || 0,
+      likes_count: apiPost.likes_count || 0,
+      comments_count: apiPost.comments_count || 0,
+      saves_count: apiPost.saves_count || 0,
+      reposts_count: apiPost.reposts_count || 0, // Maps api reposts_count -> reposts_count
+      shares_count: apiPost.reposts_count || 0, // Legacy support if needed
+
       is_liked: apiPost.is_liked || false,
-      is_bookmarked: apiPost.is_saved || false,
-      is_shared: apiPost.is_shared || false,
+      is_saved: apiPost.is_saved || false,
+      is_shared: apiPost.is_shared || false, // Should this be removed? Backend: legacy support 
       is_reposted: apiPost.is_reposted || false,
       author: {
         id: apiPost.author?.id || apiPost.author_id,
@@ -146,12 +147,11 @@ const Feed = () => {
       },
     };
   };
-
   // Transform và slice posts theo displayedCount
   const allTransformedPosts = Array.isArray(postsData)
     ? postsData.map(transformPost)
     : [];
-
+  console.log(allTransformedPosts)
   const displayedPosts = allTransformedPosts.slice(0, displayedCount);
 
   return (
@@ -182,22 +182,22 @@ const Feed = () => {
               displayedPosts.length > 0 &&
               displayedPosts.map((item, index) => (
                 <FeedCard
-                  key={`post-${item.id}-${index}`}
+                  key={`post-${item.post_id}-${index}`}
                   post={{
-                    id: item.id,
+                    post_id: item.post_id,
                     content: item.content,
                     created_at: item.created_at,
                     author_id: item.author_id,
                     media_url: item.media_url,
                     media_type: item.media_type,
                     gallery: item.gallery,
-                    actions_count: item.actions_count,
-                    replies_count: item.replies_count,
-                    bookmark_count: item.bookmark_count,
+                    likes_count: item.likes_count,
+                    comments_count: item.comments_count,
+                    saves_count: item.saves_count,
                     shares_count: item.shares_count,
                     reposts_count: item.reposts_count,
                     is_liked: item.is_liked,
-                    is_bookmarked: item.is_bookmarked,
+                    is_saved: item.is_saved,
                     is_shared: item.is_shared,
                     is_reposted: item.is_reposted,
                   }}
@@ -234,15 +234,9 @@ const Feed = () => {
         <ReplyCommentDialog
           open={isReplyOpen}
           onOpenChange={setIsReplyOpen}
-          currentUser={{
-            id: currentUser.id,
-            username: currentUser.username,
-            name: currentUser.name,
-            avatarUrl: (currentUser as any).avatar || "",
-          }}
+          currentUser={currentUser}
           targetPost={replyTarget}
-          mockFriends={[]}
-          onPost={() => {}}
+          mockFriends={MOCK_FRIENDS}
         />
       )}
     </div>

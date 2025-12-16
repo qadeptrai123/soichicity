@@ -22,11 +22,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     // Map decoded token to User object
                     // Adjust these fields based on your actual JWT payload
                     setUser({
-                        id: decoded.sub || decoded.user_id || decoded.id,
+                        uid: decoded.user_id || decoded.uid || decoded.sub,
                         username: decoded.username || decoded.sub,
                         email: decoded.email || "",
-                        name: decoded.name || decoded.full_name || "",
-                        avatarUrl: decoded.avatar_url || decoded.picture
+                        full_name: decoded.name || decoded.full_name || "",
+                        avatar_url: decoded.avatar_url || decoded.picture,
+                        bio: decoded.bio || "",
+                        is_active: decoded.is_active ?? true,
+                        provider: decoded.provider || "password",
+                        created_at: decoded.created_at || "",
+                        followers_count: decoded.followers_count || 0,
+                        followings_count: decoded.followings_count || 0,
+                        blocks_count: decoded.blocks_count || 0,
+                        reposts_count: decoded.reposts_count || 0,
+                        saves_count: decoded.saves_count || 0,
+                        likes_count: decoded.likes_count || 0,
+                        notifications_count: decoded.notifications_count || 0,
                     });
                 }
             } catch (error) {
@@ -46,11 +57,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             localStorage.setItem("access_token", token);
 
             setUser({
-                id: decoded.sub || decoded.user_id || decoded.id,
+                uid: decoded.user_id || decoded.uid || decoded.sub,
                 username: decoded.username || decoded.sub,
                 email: decoded.email || "",
-                name: decoded.name || decoded.full_name || "",
-                avatarUrl: decoded.avatar_url || decoded.picture
+                full_name: decoded.name || decoded.full_name || "",
+                avatar_url: decoded.avatar_url || decoded.picture,
+                bio: decoded.bio || "",
+                is_active: decoded.is_active ?? true,
+                provider: decoded.provider || "password",
+                created_at: decoded.created_at || "",
+                followers_count: decoded.followers_count || 0,
+                followings_count: decoded.followings_count || 0,
+                blocks_count: decoded.blocks_count || 0,
+                reposts_count: decoded.reposts_count || 0,
+                saves_count: decoded.saves_count || 0,
+                likes_count: decoded.likes_count || 0,
+                notifications_count: decoded.notifications_count || 0,
             });
 
             // Đợi state update xong

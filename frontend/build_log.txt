@@ -1,0 +1,19 @@
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+src/App.tsx(3,1): error TS6192: All imports in import declaration are unused.
+src/App.tsx(4,1): error TS6133: 'Comment' is declared but its value is never read.
+src/components/comment.tsx(19,6): error TS2300: Duplicate identifier 'MediaFile'.
+src/components/comment.tsx(21,10): error TS1484: 'User' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/comment.tsx(23,6): error TS2300: Duplicate identifier 'MediaFile'.
+src/components/comment.tsx(54,3): error TS6133: 'onPost' is declared but its value is never read.
+src/components/comment.tsx(196,52): error TS2339: Property 'id' does not exist on type 'User'.
+src/components/CreatePostDialog.tsx(20,10): error TS1484: 'User' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/CreatePostDialog.tsx(33,41): error TS2304: Cannot find name 'MediaFile'.
+src/components/CreatePostDialog.tsx(45,48): error TS2304: Cannot find name 'MediaFile'.
+src/components/CreatePostDialog.tsx(46,10): error TS6133: 'showEmojiPicker' is declared but its value is never read.
+src/components/CreatePostDialog.tsx(64,23): error TS2304: Cannot find name 'MediaFile'.
+src/components/CreatePostDialog.tsx(224,16): error TS2304: Cannot find name 'EmojiButton'.
+src/components/layout/Topbar.tsx(5,32): error TS6133: 'onMenuClick' is declared but its value is never read.
+src/MockData/data.ts(56,5): error TS2353: Object literal may only specify known properties, and 'email' does not exist in type '{ uid: string; username: string; full_name: string | null; avatar_url?: string | undefined; }'.

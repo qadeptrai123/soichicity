@@ -1,13 +1,21 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, Field, ConfigDict
 from typing import List, Optional
 from email_validator import validate_email, EmailNotValidError
 import re
+from datetime import datetime
 
 
 class UserBase(BaseModel):
     username: str
     email: EmailStr
-    full_name: Optional[str] = None
+    full_name: str # Not Null
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    is_active: bool = True # Not Null, default True
+    provider: str # "google"/"password"
+    created_at: datetime = Field(default_factory=datetime.now) # Not Null
+
+    model_config = ConfigDict(from_attributes=True)
 
 # Thông tin dùng để tạo user (có password)
 class UserCreate(UserBase):
@@ -26,6 +34,7 @@ class UserCreate(UserBase):
 
         # 3.Convert all to lowercase
         return v.lower()
+    
     @field_validator('email')
     @classmethod
     def validate_real_email(cls, v: str):
@@ -46,13 +55,19 @@ class UserInDB(UserBase):
 
 # Information returned to client (hides password)
 class UserResponse(UserBase):
-    id:str
+    uid: str
+    
+    # Lists might still be useful for checking relationships, but keeping counters is main req
     followers: List[str] = []
     following: List[str] = []
 
-    follower_count : int = 0
-    following_count : int = 0
-    
+    followers_count: int = 0
+    followings_count: int = 0
+    blocks_count: int = 0
+    reposts_count: int = 0
+    saves_count: int = 0
+    likes_count: int = 0
+    notifications_count: int = 0
 
 class PasswordRecoveryRequest(BaseModel):
     email: EmailStr
