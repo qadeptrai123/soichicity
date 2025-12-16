@@ -77,81 +77,123 @@ class PostService:
         return blob.public_url
 
     @staticmethod
-    def create_post(user_id: str, content: str, link_url: list = None):
+    def create_post(user_id: str, content: str, media_urls: list = None, level: int = 0, reply_to_id: str = None, root_id: str = None):
+        if media_urls is None:
+            media_urls = []
+        elif isinstance(media_urls, str):
+            media_urls = [media_urls]
+
+        # Auto generated ID
         post_id = str(uuid.uuid4())
         
-        # Đảm bảo link_url luôn là list
-        if link_url is None:
-            link_url = []
-        elif isinstance(link_url, str):
-            link_url = [link_url]
-
+        # Determine root_id if not provided for replies (if level > 0 and root_id is None, maybe it should be passed? 
+        # But if level 0, root_id is usuallly self or None. User said "Ref to Posts Collection".
+        # Let's trust the caller to pass it correctly for replies. For root post, it's None or we can set it to post_id if desired.
+        # Standard: Root post has level 0.
+        
         payload = {
-            "id": post_id,
+            "post_id": post_id, # DB field
             "content": content,
-            "link_url": link_url, 
+            "media_urls": media_urls, 
             "created_at": datetime.utcnow().isoformat(),
             "author_id": user_id,
+            "level": level,
+            "reply_to_id": reply_to_id,
+            "root_id": root_id,
             
-            # --- UPDATE: Thêm các biến đếm khởi tạo = 0 ---
-            "likeCount": 0,
-            "shareCount": 0,
-            "repostCount": 0,
-            "saveCount": 0,
-            "commentCount": 0
+            # Counts
+            "likes_count": 0,
+            "reposts_count": 0,
+            "saves_count": 0,
+            "comments_count": 0
         }
         db.collection("posts").document(post_id).set(payload)
         return payload
 
     # --- NEW: Hàm xử lý chung cho Like, Share, Save (Sub-collections) ---
+    # --- NEW: Hàm xử lý chung cho Like, Share, Save (Sub-collections) ---
     @staticmethod
     def toggle_interaction(collection_name: str, count_field: str, post_id: str, user_id: str, user_avatar: str = ""):
         """
-        Hàm này dùng chung cho:
-        - collection_name: 'likes', 'shares', 'reposts', hoặc 'saves'
-        - count_field: 'likeCount', 'shareCount', 'repostCount', hoặc 'saveCount'
-        
-        Lưu interaction ở 2 nơi:
-        1. posts/{post_id}/{collection_name}/{user_id} (để count và query "ai đã interact")
-        2. users/{user_id}/{collection_name}/{post_id} (để query "user này đã interact bài nào")
+        collection_name: 'likes', 'reposts', 'saves' (mapped from API)
+        count_field: 'likes_count', 'reposts_count', 'saves_count'
         """
+        from app.services.notification_service import NotificationService
+        from app.schemas.user_interactions import NotificationCreate
+        
+        # Normalize collection name (shares -> reposts) to match schema "Sub-collection Repost"
+        target_collection = collection_name
+        if collection_name == "shares":
+            target_collection = "reposts"
+
+        # Determine User Activity Collection Name
+        user_interaction_collection = target_collection # Default fallback
+        if target_collection == "likes":
+            user_interaction_collection = "activity_likes"
+        elif target_collection == "reposts":
+            user_interaction_collection = "activity_reposts"
+        elif target_collection == "saves":
+            user_interaction_collection = "activity_saves"
+        
         post_ref = db.collection("posts").document(post_id)
         
         # Check if post exists
-        if not post_ref.get().exists:
+        post_snap = post_ref.get()
+        if not post_snap.exists:
             raise ValueError(f"Post {post_id} not found")
+            
+        post_data = post_snap.to_dict()
+        author_id = post_data.get("author_id")
         
-        # Sub-collection trong posts
-        post_interaction_ref = post_ref.collection(collection_name).document(user_id)
-        # Sub-collection trong users
-        user_interaction_ref = db.collection("users").document(user_id).collection(collection_name).document(post_id)
+        # Timestamp
+        timestamp_iso = datetime.utcnow().isoformat()
+
+        # 1. Post Sub-collection: posts/{post_id}/{target_collection}/{user_id}
+        # Schema: user_id (PK), created_at
+        post_interaction_ref = post_ref.collection(target_collection).document(user_id)
+        
+        # 2. User Sub-collection: users/{user_id}/{user_interaction_collection}/{post_id}
+        user_interaction_ref = db.collection("users").document(user_id).collection(user_interaction_collection).document(post_id)
         
         doc = post_interaction_ref.get()
-        timestamp = int(time.time() * 1000)
         
         if doc.exists:
-            # Nếu đã tồn tại -> Xóa (Unlike/Unshare/Unrepost/Unsave)
+            # --- REMOVE (Unlike, Unrepost, Unsave) ---
             post_interaction_ref.delete()
             user_interaction_ref.delete()
             post_ref.update({count_field: firestore.Increment(-1)})
             
             return {"status": "removed"}
         else:
-            # Nếu chưa -> Thêm mới ở cả 2 nơi
-            # Lưu vào posts/{post_id}/{collection_name}/{user_id}
-            # (Không cần lưu user_id vì đã có trong document ID)
+            # --- ADD (Like, Repost, Save) ---
+            
+            # Save to Post Sub-collection
             post_interaction_ref.set({
-                "timestamp": timestamp
+                "user_id": user_id,
+                "created_at": timestamp_iso
             })
             
-            # Lưu vào users/{user_id}/{collection_name}/{post_id}
-            # (Không cần lưu post_id vì đã có trong document ID)
+            # Save to User Activity Sub-collection
             user_interaction_ref.set({
-                "timestamp": timestamp
+                "post_id": post_id,
+                "created_at": timestamp_iso
             })
             
             post_ref.update({count_field: firestore.Increment(1)})
             
+            # Trigger Notification (Only for Likes and Reposts)
+            if target_collection in ["likes", "reposts"] and author_id and author_id != user_id:
+                notif_type = "like" if target_collection == "likes" else "repost"
+                
+                NotificationService.create_notification(
+                    user_id=author_id,
+                    notification_data=NotificationCreate(
+                        type=notif_type,
+                        sender_id=user_id,
+                        post_id=post_id
+                    )
+                )
+
             return {"status": "added"}
 
     # @staticmethod
@@ -202,7 +244,24 @@ class PostService:
             "timestamp": timestamp
         })
         
-        post_ref.update({"commentCount": firestore.Increment(1)})
+        post_ref.update({"comments_count": firestore.Increment(1)})
+        
+        # Trigger Notification
+        post_data = post_ref.get().to_dict()
+        author_id = post_data.get("author_id")
+        
+        if author_id and author_id != user_id:
+            from app.services.notification_service import NotificationService
+            from app.schemas.user_interactions import NotificationCreate
+            print("Triggering notification...")
+            NotificationService.create_notification(
+                user_id=author_id,
+                notification_data=NotificationCreate(
+                    type="comment",
+                    sender_id=user_id,
+                    post_id=post_id
+                )
+            )
         
         return payload
 
@@ -227,7 +286,7 @@ class PostService:
         if user_comment_ref.get().exists:
             user_comment_ref.delete()
         
-        post_ref.update({"commentCount": firestore.Increment(-1)})
+        post_ref.update({"comments_count": firestore.Increment(-1)})
         return {"status": "deleted"}
 
     @staticmethod
@@ -238,32 +297,33 @@ class PostService:
     
     @staticmethod
     def get_feed_posts(user_id: str = None, limit: int = 20):
-        # 1) Lấy danh sách post user đã xem (Chỉ nếu đã login)
-        seen_posts = []
-        if user_id:
-            seen_ref = db.collection("users_seen_posts").document(user_id).get()
-            if seen_ref.exists:
-                seen_posts = seen_ref.to_dict().get("seen", [])
-
-        # 2) Query tất cả posts
-        # (Lưu ý: Cách này sẽ chậm khi dữ liệu lớn, nên tối ưu query bằng 'not-in' hoặc phân trang sau này)
-        posts = db.collection("posts").stream()
-        result = []
+        # Simply fetch all posts ordered by created_at desc
+        posts = db.collection("posts").order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit).stream()
+        
+        final_posts = []
         for p in posts:
             data = p.to_dict()
-            # Đảm bảo data trả về có đủ field, tránh lỗi key cũ
-            data.setdefault("likeCount", 0)
-            data.setdefault("commentCount", 0)
-            result.append(data)
-
-        # 3) Lọc ra bài mà user chưa xem
-        unseen = [p for p in result if p["id"] not in seen_posts]
-
-        # 4) Random shuffle
-        random.shuffle(unseen)
-
-        # 5) Giới hạn số lượng
-        final_posts = unseen[:limit]
+            # Mapping old fields to new if necessary (during migration phase or mixed data)
+            # To be safe, we try to read new fields, fallback to old or default
+            
+            p_id = data.get("post_id") or data.get("id")
+            
+            # Normalize to new schema structure
+            normalized = {
+                "post_id": p_id,
+                "content": data.get("content"),
+                "media_urls": data.get("media_urls") or data.get("link_url", []),
+                "created_at": data.get("created_at"),
+                "author_id": data.get("author_id"),
+                "level": data.get("level", 0),
+                "reply_to_id": data.get("reply_to_id"),
+                "root_id": data.get("root_id"),
+                "likes_count": data.get("likes_count") or data.get("likeCount", 0),
+                "reposts_count": data.get("reposts_count") or data.get("repostCount") or data.get("shareCount", 0),
+                "saves_count": data.get("saves_count") or data.get("saveCount", 0),
+                "comments_count": data.get("comments_count") or data.get("commentCount", 0),
+            }
+            final_posts.append(normalized)
         
         # 6) Populate author info
         for post in final_posts:
@@ -283,7 +343,8 @@ class PostService:
         # Note: This performs N*4 reads per request. Optimize by batching or denormalizing if scale increases.
         for post in final_posts:
             if user_id:
-                p_id = post["id"]
+                p_id = post["post_id"]
+                # Use standard collection names in posts for checking status logic
                 post_ref = db.collection("posts").document(p_id)
                 
                 # Check Like
@@ -292,13 +353,7 @@ class PostService:
                 else:
                      post["is_liked"] = False
                      
-                # Check Share
-                if post_ref.collection("shares").document(user_id).get().exists:
-                    post["is_shared"] = True
-                else:
-                     post["is_shared"] = False
-                     
-                # Check Repost
+                # Check Repost (checks 'reposts' sub-collection)
                 if post_ref.collection("reposts").document(user_id).get().exists:
                     post["is_reposted"] = True
                 else:
@@ -312,7 +367,6 @@ class PostService:
             else:
                 # Guest user -> all false
                 post["is_liked"] = False
-                post["is_shared"] = False
                 post["is_reposted"] = False
                 post["is_saved"] = False
 
@@ -417,12 +471,10 @@ class PostService:
                 user_interaction["is_liked"] = True
             
             # Check if current user shared
-            if db.collection("posts").document(post_id).collection("shares").document(current_user_id).get().exists:
-                user_interaction["is_shared"] = True
-            
-            # Check if current user reposted
+            # Check if current user shared/reposted (Both map to 'reposts' collection now)
             if db.collection("posts").document(post_id).collection("reposts").document(current_user_id).get().exists:
                 user_interaction["is_reposted"] = True
+                user_interaction["is_shared"] = True # Legacy support
             
             # Check if current user saved
             if db.collection("posts").document(post_id).collection("saves").document(current_user_id).get().exists:
@@ -430,16 +482,21 @@ class PostService:
         
         # 6) Build response
         response = {
-            "id": post_data.get("id"),
+            "post_id": post_data.get("post_id") or post_data.get("id"),
             "content": post_data.get("content"),
-            "link_url": post_data.get("link_url", []),
+            "media_urls": post_data.get("media_urls") or post_data.get("link_url", []),
             "created_at": post_data.get("created_at"),
+            "level": post_data.get("level", 0),
+            "reply_to_id": post_data.get("reply_to_id"),
+            "root_id": post_data.get("root_id"),
+            
             "author": author_data,
-            "likeCount": post_data.get("likeCount", 0),
-            "shareCount": post_data.get("shareCount", 0),
-            "repostCount": post_data.get("repostCount", 0),
-            "saveCount": post_data.get("saveCount", 0),
-            "commentCount": post_data.get("commentCount", 0),
+            
+            "likes_count": post_data.get("likes_count") or post_data.get("likeCount", 0),
+            "reposts_count": post_data.get("reposts_count") or post_data.get("repostCount") or post_data.get("shareCount", 0),
+            "saves_count": post_data.get("saves_count") or post_data.get("saveCount", 0),
+            "comments_count": post_data.get("comments_count") or post_data.get("commentCount", 0),
+            
             "comments": comments_data,
             "likes": likes_list,
             "reposts": reposts_list,

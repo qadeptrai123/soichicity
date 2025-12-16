@@ -16,23 +16,26 @@ export type User = {
 };
 
 export type Post = {
-    id: string;
+    post_id: string;
     content: string;
-    link_url: string[];
+    media_urls: string[];
     created_at: string;
     author_id: string;
+    level: number;
+    reply_to_id?: string;
+    root_id?: string;
+
     author?: Author;
 
     // Counts
-    likeCount: number;
-    shareCount: number;
-    repostCount: number;
-    saveCount: number;
-    commentCount: number;
+    likes_count: number;
+    reposts_count: number;
+    saves_count: number;
+    comments_count: number;
 
     // Interaction status
     is_liked: boolean;
-    is_shared: boolean;
+    is_shared: boolean; // Kept for legacy or strict check
     is_reposted: boolean;
     is_saved: boolean;
 };
@@ -75,9 +78,9 @@ export const api = {
 };
 
 export const getThreadDetail = async (threadId: string) => {
-  // Đường dẫn này tùy thuộc vào Backend của bạn
-  const response = await apiClient.get(`/posts/${threadId}`);
-  return response.data;
+    // Đường dẫn này tùy thuộc vào Backend của bạn
+    const response = await apiClient.get(`/posts/${threadId}`);
+    return response.data;
 };
 
 export const getThreadActivity = async (threadId: string) => {

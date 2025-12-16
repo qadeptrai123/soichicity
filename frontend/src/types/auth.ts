@@ -1,10 +1,21 @@
 // src/types/auth.ts
 export interface User {
-    id: string;
+    uid: string;
     email: string;
-    name: string;
+    full_name: string;
     username: string;
-    avatarUrl?: string;
+    avatar_url?: string;
+    bio?: string;
+    is_active: boolean;
+    provider: string;
+    created_at: string; // ISO string from backend
+    followers_count: number;
+    followings_count: number;
+    blocks_count: number;
+    reposts_count: number;
+    saves_count: number;
+    likes_count: number;
+    notifications_count: number;
 }
 
 export interface AuthContextType {
