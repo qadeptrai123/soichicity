@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { useAddComment } from "@/hooks/api/use-posts";
-import { usePostEditor } from "@/hooks/usePostEditor";
+import { usePostEditor } from "@/lib/usePostEditor";
 import { MediaPreview, PostEditorActions } from "./PostEditorShared";
 
 

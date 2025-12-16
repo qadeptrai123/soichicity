@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-import { usePostEditor } from "@/hooks/usePostEditor";
+import { usePostEditor } from "@/lib/usePostEditor";
 import { MediaPreview, PostEditorActions } from "./PostEditorShared";
 
 type MediaFile = { url: string; type: "image" | "video" };
