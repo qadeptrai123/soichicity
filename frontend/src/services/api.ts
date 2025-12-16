@@ -77,13 +77,13 @@ export const api = {
     },
 };
 
-export const getThreadDetail = async (threadId: string) => {
+export const getPostDetail = async (postId: string) => {
     // Đường dẫn này tùy thuộc vào Backend của bạn
-    const response = await apiClient.get(`/posts/${threadId}`);
+    const response = await apiClient.get(`/posts/${postId}`);
     return response.data;
 };
 
-export const getThreadActivity = async (threadId: string) => {
-    const response = await apiClient.get(`/posts/${threadId}/activity`);
+export const getPostActivity = async (postId: string) => {
+    const response = await apiClient.get(`/posts/${postId}/activity`);
     return response.data;
 }

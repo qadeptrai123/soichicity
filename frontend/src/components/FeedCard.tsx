@@ -469,7 +469,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
     const selection = window.getSelection();
     if (selection && selection.toString().length > 0) return;
 
-    navigate(`/thread/${post.post_id}`);
+    navigate(`/post/${post.post_id}`);
   };
 
   // --- Xử lý click vào vùng content text ---
@@ -483,7 +483,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
     const selection = window.getSelection();
     if (selection && selection.toString().length > 0) return;
 
-    navigate(`/thread/${post.post_id}`);
+    navigate(`/post/${post.post_id}`);
   };
 
   // --- Các handlers có chặn sự kiện (stopPropagation) ---

@@ -1,14 +1,14 @@
 import { useParams } from "react-router-dom";
-import { useThreadDetail } from "@/hooks/api/use-posts";
-import { ThreadMainPost } from "@/components/thread/ThreadMainPost";
+import { usePostDetail } from "@/hooks/api/use-posts";
+import { PostMainPost } from "@/components/post/PostMainPost";
 import { useState, useRef } from "react"; // Import useRef
-import { ActivityPopup } from "@/components/thread/ActivityPopup";
+import { ActivityPopup } from "@/components/post/ActivityPopup";
 import { Loader2, Image as ImageIcon, Smile, AtSign, Heart, MessageCircle, Repeat2, Send } from "lucide-react"; 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const ThreadDetail = () => {
+const PostDetail = () => {
   const { id } = useParams();
-  const { data: threadData, isLoading } = useThreadDetail(id || "");
+  const { data: postData, isLoading } = usePostDetail(id || "");
   const [showActivity, setShowActivity] = useState(false);
   
   // 1. TẠO STATE ĐỂ LƯU VỊ TRÍ ĐỨNG CỦA POPUP
@@ -41,7 +41,7 @@ const ThreadDetail = () => {
   };
 
   if (isLoading) return <div className={`flex justify-center h-screen items-center ${COLORS.bgPage} pt-16`}><Loader2 className="animate-spin text-blue-500 w-8 h-8"/></div>;
-  if (!threadData) return <div className={`text-center text-white pt-32 ${COLORS.bgPage} min-h-screen font-medium`}>Thread not found</div>;
+  if (!postData) return <div className={`text-center text-white pt-32 ${COLORS.bgPage} min-h-screen font-medium`}>Post not found</div>;
 
   return (
     <div className={`h-screen ${COLORS.bgPage} text-white flex justify-center pt-16 overflow-hidden`}>
@@ -56,7 +56,7 @@ const ThreadDetail = () => {
             <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
                 
                 {/* Bài Post */}
-                <ThreadMainPost data={threadData} onViewActivity={handleToggleActivity} />
+                <PostMainPost data={postData} onViewActivity={handleToggleActivity} />
 
                 {/* --- HEADER CHỨA NÚT VIEW ACTIVITY --- */}
                 {/* Gắn ref vào đây để đo vị trí */}
@@ -75,8 +75,8 @@ const ThreadDetail = () => {
 
                 {/* --- DANH SÁCH COMMENT --- */}
                 <div className={`${COLORS.bgCard} pt-2`}> 
-                    {threadData.replies && threadData.replies.length > 0 ? (
-                        threadData.replies.map((reply: any) => (
+                    {postData.replies && postData.replies.length > 0 ? (
+                        postData.replies.map((reply: any) => (
                             <div key={reply.id} className="flex gap-4 px-6 group">
                                 <div className="flex flex-col items-center shrink-0">
                                     <Avatar className={`w-10 h-10 border ${COLORS.border} z-10`}>
@@ -127,7 +127,7 @@ const ThreadDetail = () => {
                         <AvatarFallback>Me</AvatarFallback>
                     </Avatar>
                     <div className={`flex-1 ${COLORS.bgInput} rounded-full flex items-center px-4 py-2.5 border ${COLORS.border} focus-within:border-[#64748b] transition-all`}>
-                        <input type="text" placeholder={`Reply to ${threadData.author.name}...`} className="bg-transparent border-none outline-none text-white text-[15px] w-full placeholder:text-[#64748b] font-normal" />
+                        <input type="text" placeholder={`Reply to ${postData.author.name}...`} className="bg-transparent border-none outline-none text-white text-[15px] w-full placeholder:text-[#64748b] font-normal" />
                     </div>
                     <div className={`flex gap-3 ${COLORS.textSec} items-center`}>
                         <button className="hover:text-white transition"><ImageIcon size={22}/></button>
@@ -146,7 +146,7 @@ const ThreadDetail = () => {
               style={{ top: `${popupTop}px` }} 
            >
               <ActivityPopup
-                  data={threadData.activity}
+                  data={postData.activity}
                   onClose={() => setShowActivity(false)}
               />
            </div>
@@ -157,4 +157,4 @@ const ThreadDetail = () => {
   );
 };
 
-export default ThreadDetail;
+export default PostDetail;

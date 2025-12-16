@@ -1,9 +1,9 @@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { MoreHorizontal, Heart, MessageCircle, Repeat2, Send } from "lucide-react";
 
-interface ThreadMainPostProps { data: any; onViewActivity: () => void; }
+interface PostMainPostProps { data: any; onViewActivity: () => void; }
 
-export const ThreadMainPost = ({ data }: ThreadMainPostProps) => {
+export const PostMainPost = ({ data }: PostMainPostProps) => {
   // Hàm format thời gian giả lập (hoặc dùng thư viện date-fns nếu có)
   const timeAgo = "16h"; // Hardcode cho giống mẫu, thực tế bạn dùng formatDistanceToNow(new Date(data.createdAt))
 
