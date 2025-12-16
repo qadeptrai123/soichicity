@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
-import { CURRENT_USER, MOCK_FRIENDS, MOCK_TARGET_POST } from "@/MockData/data"; 
-import Comment from './components/comment';
+// import Comment from './components/comment';
 // import CreatePostDialog from './components/CreatePostDialog';
 
 import LoginForm from './pages/Login'
@@ -10,7 +9,7 @@ import Register from "./pages/Register"
 import ForgotPassword from "./pages/ForgotPassword"
 import Feed from "./pages/Feed"
 // 1. Import trang chi tiết (Bạn cần đảm bảo đã tạo file này ở bước trước)
-import ThreadDetail from "./pages/ThreadDetail" 
+import ThreadDetail from "./pages/ThreadDetail"
 
 import Layout from './components/layout/Layout'
 

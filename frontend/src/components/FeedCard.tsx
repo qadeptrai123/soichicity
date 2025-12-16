@@ -36,22 +36,24 @@ export interface MediaItem {
 }
 
 export interface PostData {
-  id: string;
+  post_id: string; // Updated from id
   content: string;
   created_at: string;
   author_id: string;
   media_url?: string | null;
-  media_type?: "image" | "video" | string | null;
+  media_type?: "image" | "video" | "youtube" | string | null;
   gallery?: MediaItem[];
-  actions_count?: number;
-  replies_count?: number;
-  bookmark_count?: number;
-  shares_count?: number;
+
+  // Counts
+  likes_count?: number;
+  comments_count?: number;
+  saves_count?: number; // bookmark_count -> saves_count
   reposts_count?: number;
+  shares_count?: number; // Keep for legacy if needed, or map to reposts
 
   // Interaction status from API
   is_liked?: boolean;
-  is_bookmarked?: boolean;
+  is_saved?: boolean; // is_bookmarked -> is_saved
   is_shared?: boolean;
   is_reposted?: boolean;
 }
@@ -147,8 +149,8 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
   const containerHeight = maxHeight
     ? `${maxHeight}px`
     : isMultipleItems
-    ? "280px"
-    : "400px";
+      ? "280px"
+      : "400px";
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!isMultipleItems) return;
@@ -237,17 +239,15 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
     <>
       {/* Carousel Layout */}
       <div
-        className={`rounded-xl overflow-hidden mt-2 w-full relative group ${
-          isMultipleItems ? "bg-secondary" : "bg-black border border-border"
-        }`}
+        className={`rounded-xl overflow-hidden mt-2 w-full relative group ${isMultipleItems ? "bg-secondary" : "bg-black border border-border"
+          }`}
       >
         <div
           ref={scrollContainerRef}
-          className={`flex overflow-x-auto scrollbar-hide user-select-none ${
-            isMultipleItems
+          className={`flex overflow-x-auto scrollbar-hide user-select-none ${isMultipleItems
               ? "bg-secondary gap-2 px-2 cursor-grab active:cursor-grabbing"
               : "bg-black"
-          }`}
+            }`}
           style={{
             scrollBehavior: "auto",
             WebkitOverflowScrolling: "touch",
@@ -262,9 +262,8 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
           {items.map((item, index) => (
             <div
               key={index}
-              className={`shrink-0 relative rounded overflow-hidden flex items-center justify-center ${
-                isMultipleItems ? "" : "bg-black"
-              }`}
+              className={`shrink-0 relative rounded overflow-hidden flex items-center justify-center ${isMultipleItems ? "" : "bg-black"
+                }`}
               style={{
                 width: isMultipleItems ? "auto" : "100%",
                 height: "100%",
@@ -275,22 +274,19 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
             >
               {item.type === "youtube" ? (
                 <div
-                  className={`flex items-center justify-center ${
-                    isMultipleItems
+                  className={`flex items-center justify-center ${isMultipleItems
                       ? "h-full bg-secondary"
                       : "w-full h-full bg-black"
-                  }`}
+                    }`}
                 >
                   <img
-                    src={`https://img.youtube.com/vi/${
-                      item.url.match(
-                        /(?:youtube\.com\/watch\?v=|youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]+)/
-                      )?.[1]
-                    }/mqdefault.jpg`}
+                    src={`https://img.youtube.com/vi/${item.url.match(
+                      /(?:youtube\.com\/watch\?v=|youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]+)/
+                    )?.[1]
+                      }/mqdefault.jpg`}
                     alt="YouTube thumbnail"
-                    className={`${
-                      isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
-                    } object-contain`}
+                    className={`${isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
+                      } object-contain`}
                     onLoad={(e) => handleImageLoad(e, index)}
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
@@ -300,9 +296,8 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
               ) : item.type === "video" ? (
                 <>
                   <video
-                    className={`${
-                      isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
-                    } object-contain`}
+                    className={`${isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
+                      } object-contain`}
                     src={item.url}
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
@@ -313,9 +308,8 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
                 <img
                   src={item.url}
                   alt={`Gallery item ${index + 1}`}
-                  className={`${
-                    isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
-                  } object-contain`}
+                  className={`${isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
+                    } object-contain`}
                   loading="lazy"
                   onLoad={(e) => handleImageLoad(e, index)}
                 />
@@ -344,11 +338,10 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
                   setSelectedIndex(index);
                 }
               }}
-              className={`h-1.5 rounded-full transition-all duration-200 ${
-                index === selectedIndex
+              className={`h-1.5 rounded-full transition-all duration-200 ${index === selectedIndex
                   ? "bg-foreground w-6"
                   : "bg-text-secondary hover:bg-text-muted w-1.5"
-              }`}
+                }`}
               aria-label={`Go to item ${index + 1}`}
             />
           ))}
@@ -425,17 +418,18 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
   const [isGalleryDragging, setIsGalleryDragging] = useState(false);
 
   // Optimistic UI State - khởi tạo từ props
+  // Optimistic UI State - khởi tạo từ props
   const [localCounts, setLocalCounts] = useState({
-    likes: post.actions_count || 0,
-    replies: post.replies_count || 0,
-    bookmarks: post.bookmark_count || 0,
-    shares: post.shares_count || 0,
+    likes: post.likes_count || 0,
+    replies: post.comments_count || 0,
+    bookmarks: post.saves_count || 0,
+    shares: post.reposts_count || 0, // Map shares/reposts to single state?
     reposts: post.reposts_count || 0,
   });
 
   const [actionStates, setActionStates] = useState({
     liked: post.is_liked || false,
-    bookmarked: post.is_bookmarked || false,
+    bookmarked: post.is_saved || false,
     shared: post.is_shared || false,
     reposted: post.is_reposted || false,
   });
@@ -443,26 +437,26 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
   // Sync state với props khi data từ API thay đổi (sau khi invalidateQueries)
   useEffect(() => {
     setLocalCounts({
-      likes: post.actions_count || 0,
-      replies: post.replies_count || 0,
-      bookmarks: post.bookmark_count || 0,
-      shares: post.shares_count || 0,
+      likes: post.likes_count || 0,
+      replies: post.comments_count || 0,
+      bookmarks: post.saves_count || 0,
+      shares: post.reposts_count || 0,
       reposts: post.reposts_count || 0,
     });
     setActionStates({
       liked: post.is_liked || false,
-      bookmarked: post.is_bookmarked || false,
+      bookmarked: post.is_saved || false,
       shared: post.is_shared || false,
       reposted: post.is_reposted || false,
     });
   }, [
-    post.actions_count,
-    post.replies_count,
-    post.bookmark_count,
+    post.likes_count,
+    post.comments_count,
+    post.saves_count,
     post.shares_count,
     post.reposts_count,
     post.is_liked,
-    post.is_bookmarked,
+    post.is_saved,
     post.is_shared,
     post.is_reposted,
   ]);
@@ -475,7 +469,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
     const selection = window.getSelection();
     if (selection && selection.toString().length > 0) return;
 
-    navigate(`/thread/${post.id}`);
+    navigate(`/thread/${post.post_id}`);
   };
 
   // --- Xử lý click vào vùng content text ---
@@ -489,7 +483,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
     const selection = window.getSelection();
     if (selection && selection.toString().length > 0) return;
 
-    navigate(`/thread/${post.id}`);
+    navigate(`/thread/${post.post_id}`);
   };
 
   // --- Các handlers có chặn sự kiện (stopPropagation) ---
@@ -502,9 +496,9 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
         ...prev,
         likes: prev.likes + (actionStates.liked ? -1 : 1),
       }));
-      likeMutation.mutate(post.id);
+      likeMutation.mutate(post.post_id);
     },
-    [actionStates.liked, post.id, likeMutation]
+    [actionStates.liked, post.post_id, likeMutation]
   );
 
   const handleBookmark = useCallback(
@@ -515,9 +509,9 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
         ...prev,
         bookmarks: prev.bookmarks + (actionStates.bookmarked ? -1 : 1),
       }));
-      saveMutation.mutate(post.id);
+      saveMutation.mutate(post.post_id);
     },
-    [actionStates.bookmarked, post.id, saveMutation]
+    [actionStates.bookmarked, post.post_id, saveMutation]
   );
 
   const handleShare = useCallback(
@@ -528,9 +522,9 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
         ...prev,
         shares: prev.shares + (actionStates.shared ? -1 : 1),
       }));
-      shareMutation.mutate(post.id);
+      shareMutation.mutate(post.post_id);
     },
-    [actionStates.shared, post.id, shareMutation]
+    [actionStates.shared, post.post_id, shareMutation]
   );
 
   const handleRepost = useCallback(
@@ -541,9 +535,9 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
         ...prev,
         reposts: prev.reposts + (actionStates.reposted ? -1 : 1),
       }));
-      repostMutation.mutate(post.id);
+      repostMutation.mutate(post.post_id);
     },
-    [actionStates.reposted, post.id, repostMutation]
+    [actionStates.reposted, post.post_id, repostMutation]
   );
 
   const handleReply = useCallback(
@@ -574,7 +568,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
       id: "bookmark",
       label: "Save",
       icon: <Bookmark size={16} />,
-      onClick: () => console.log("Save post", post.id),
+      onClick: () => console.log("Save post", post.post_id),
       isVisible: true,
       showSeparatorAfter: true,
     },
@@ -582,14 +576,14 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
       id: "edit",
       label: "Edit",
       icon: <Edit3 size={16} />,
-      onClick: () => console.log("Edit post", post.id),
+      onClick: () => console.log("Edit post", post.post_id),
       isVisible: post.author_id === "currentUserId",
     },
     {
       id: "block",
       label: "Block",
       icon: <Ban size={16} />,
-      onClick: () => console.log("Block post", post.id),
+      onClick: () => console.log("Block post", post.post_id),
       isVisible: post.author_id !== "currentUserId",
       showSeparatorAfter: true,
       variant: "destructive" as const,
@@ -599,7 +593,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
       label: "Copy link",
       icon: <Link2 size={16} />,
       onClick: () => {
-        const postUrl = `${window.location.origin}/post/${post.id}`;
+        const postUrl = `${window.location.origin}/post/${post.post_id}`;
         navigator.clipboard.writeText(postUrl);
         console.log("Link copied:", postUrl);
       },
@@ -867,10 +861,9 @@ const ActionButton: React.FC<ActionButtonProps> = ({
 
   const renderedIcon = React.isValidElement(icon)
     ? React.cloneElement(icon as any, {
-        className: `${
-          (icon as any).props.className || ""
+      className: `${(icon as any).props.className || ""
         } ${iconExtraClasses}`.trim(),
-      })
+    })
     : icon;
 
   return (

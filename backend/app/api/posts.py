@@ -41,9 +41,9 @@ def create_post(
             image_urls.append(url)
 
     created = PostService.create_post(
-        user_id=user["id"],
+        user_id=user["uid"], # IMPORTANT: Use 'uid' consistent with other endpoints
         content=form_data.content,
-        link_url=image_urls 
+        media_urls=image_urls 
     )
     return created
 
@@ -53,7 +53,7 @@ def get_posts(
     limit: int = 20
 ):
     # Logic lấy feed (đã lọc bài đã xem)
-    user_id = user["id"] if user else None
+    user_id = user["uid"] if user else None
     return PostService.get_feed_posts(user_id, limit)
 
 # --- CÁC API MỚI CHO SUB-COLLECTIONS (LIKE, SHARE, COMMENT) ---
@@ -66,9 +66,9 @@ def like_post(post_id: str, user = Depends(get_current_user)):
     try:
         return PostService.toggle_interaction(
             collection_name="likes", 
-            count_field="likeCount", 
+            count_field="likes_count", 
             post_id=post_id, 
-            user_id=user["id"],
+            user_id=user["uid"],
             user_avatar=avatar
         )
     except ValueError as e:
@@ -80,7 +80,7 @@ def like_post(post_id: str, user = Depends(get_current_user)):
 #         collection_name="likes", 
 #         count_field="likeCount", 
 #         post_id=post_id, 
-#         user_id=user["id"]
+#         user_id=user["uid"]
 #     )
 
 @router.post("/posts/{post_id}/share")
@@ -90,9 +90,9 @@ def share_post(post_id: str, user = Depends(get_current_user)):
     try:
         return PostService.toggle_interaction(
             collection_name="shares", 
-            count_field="shareCount", 
+            count_field="reposts_count", 
             post_id=post_id, 
-            user_id=user["id"],
+            user_id=user["uid"],
             user_avatar=avatar
         )
     except ValueError as e:
@@ -105,9 +105,9 @@ def repost_post(post_id: str, user = Depends(get_current_user)):
     try:
         return PostService.toggle_interaction(
             collection_name="reposts", 
-            count_field="repostCount", 
+            count_field="reposts_count", 
             post_id=post_id, 
-            user_id=user["id"],
+            user_id=user["uid"],
             user_avatar=avatar
         )
     except ValueError as e:
@@ -129,9 +129,9 @@ def save_post(post_id: str, user = Depends(get_current_user)):
     try:
         return PostService.toggle_interaction(
             collection_name="saves", 
-            count_field="saveCount", 
+            count_field="saves_count", 
             post_id=post_id, 
-            user_id=user["id"],
+            user_id=user["uid"],
             user_avatar=avatar
         )
     except ValueError as e:
@@ -157,7 +157,7 @@ def add_comment(
     try:
         return PostService.create_comment(
             post_id=post_id,
-            user_id=user["id"],
+            user_id=user["uid"],
             user_avatar=avatar,
             content=form_data.content
         )
@@ -170,14 +170,14 @@ def delete_comment(
     comment_id: str,
     user = Depends(get_current_user)
 ):
-    result = PostService.delete_comment(post_id, comment_id, user["id"])
+    result = PostService.delete_comment(post_id, comment_id, user["uid"])
     if "error" in result:
         raise HTTPException(status_code=403, detail=result["error"])
     return result
 
 @router.post("/posts/{post_id}/seen")
 def mark_seen(post_id: str, user = Depends(get_current_user)):
-    PostService.mark_post_as_seen(user["id"], post_id)
+    PostService.mark_post_as_seen(user["uid"], post_id)
     return {"status": "ok"}
 
 @router.get("/posts/{post_id}")
@@ -201,7 +201,7 @@ def get_post_detail(
     if page_size < 1 or page_size > 100:
         raise HTTPException(status_code=400, detail="Page size must be between 1 and 100")
     
-    current_user_id = user["id"] if user else None
+    current_user_id = user["uid"] if user else None
     
     try:
         post_detail = PostService.get_post_detail(

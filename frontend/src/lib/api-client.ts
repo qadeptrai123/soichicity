@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAuth } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -12,7 +12,21 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use(async (config) => {
     const auth = getAuth();
-    const user = auth.currentUser;
+
+    const waitForUser = () => {
+        return new Promise<User | null>((resolve) => {
+            const unsubscribe = onAuthStateChanged(auth, (user) => {
+                unsubscribe();
+                resolve(user);
+            });
+        });
+    };
+
+    let user = auth.currentUser;
+    if (!user) {
+        user = await waitForUser();
+    }
+
     if (user) {
         const token = await user.getIdToken();
         config.headers.Authorization = `Bearer ${token}`;
