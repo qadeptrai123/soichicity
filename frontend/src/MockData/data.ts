@@ -58,3 +58,11 @@ export const MOCK_TARGET_POST: TargetPost = {
   content: 'Ôi, Sợ nhóm trưởng quá. Huhu !!!"',
   date: getCurrentDate(),
 };
+
+export const MOCK_BLOCKED_USERS: User[] = [
+  { id: "blocked_1", name: "User Block", username: "blocked.user1" },
+  { id: "blocked_2", name: "Spam Account", username: "spam.account" },
+  { id: "blocked_3", name: "Annoying User", username: "annoying.user" },
+  { id: "blocked_4", name: "Toxic Person", username: "toxic.person" },
+  { id: "blocked_5", name: "Blocked", username: "blocked.five" },
+];
