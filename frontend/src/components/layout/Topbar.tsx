@@ -16,8 +16,8 @@ export default function Topbar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Kiểm tra: Nếu đường dẫn bắt đầu bằng "/thread/" thì đang ở trang chi tiết
-  const isThreadPage = location.pathname.startsWith("/thread/");
+  // Kiểm tra: Nếu đường dẫn bắt đầu bằng "/post/" thì đang ở trang chi tiết
+  const isPostPage = location.pathname.startsWith("/post/");
 
 
   const handleSelect = (option: Option) => {
@@ -59,7 +59,7 @@ export default function Topbar() {
     <div className="fixed top-0 left-0 right-0 h-16 z-28 border-b border-[#1F2937] bg-backgroundfeed flex items-center justify-center backdrop-blur-md bg-opacity-95">
 
       {/* CASE 1: NẾU LÀ TRANG THREAD -> HIỆN NÚT BACK */}
-      {isThreadPage ? (
+      {isPostPage ? (
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-gray-200 text-lg font-medium hover:opacity-80 transition px-4 py-2 rounded-full hover:bg-white/5"

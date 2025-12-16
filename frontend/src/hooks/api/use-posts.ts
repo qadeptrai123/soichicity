@@ -81,7 +81,7 @@ export const useDeleteComment = () =>
 
 // --- MOCK DATA FIX CHUẨN ---
 const MOCK_THREAD_DATA = {
-  post_id: "thread-main-1",
+  post_id: "post-main-1",
   content:
     "Cuối cùng cũng fix xong bug! Cảm giác thật yomost 🤣 Anh em nào đang code React thì giơ tay điểm danh nào!",
   created_at: new Date().toISOString(),
@@ -160,13 +160,13 @@ const MOCK_THREAD_DATA = {
   }
 };
 
-export const useThreadDetail = (threadId: string) => {
+export const usePostDetail = (postId: string) => {
   return useQuery({
-    queryKey: ["thread", threadId],
+    queryKey: ["post", postId],
     queryFn: async () => {
       await new Promise((resolve) => setTimeout(resolve, 500)); // Delay tí cho giống thật
       return MOCK_THREAD_DATA;
     },
-    enabled: !!threadId,
+    enabled: !!postId,
   });
 };
