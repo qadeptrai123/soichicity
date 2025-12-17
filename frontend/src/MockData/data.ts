@@ -60,9 +60,9 @@ export const MOCK_TARGET_POST: TargetPost = {
 };
 
 export const MOCK_BLOCKED_USERS: User[] = [
-  { id: "blocked_1", name: "User Block", username: "blocked.user1" },
-  { id: "blocked_2", name: "Spam Account", username: "spam.account" },
-  { id: "blocked_3", name: "Annoying User", username: "annoying.user" },
-  { id: "blocked_4", name: "Toxic Person", username: "toxic.person" },
-  { id: "blocked_5", name: "Blocked", username: "blocked.five" },
+  { uid: "blocked_1", full_name: "User Block", username: "blocked.user1", email: "", is_active: true, provider: "", created_at: "", followers_count: 0, followings_count: 0, blocks_count: 0, reposts_count: 0, saves_count: 0, likes_count: 0, notifications_count: 0 },
+  { uid: "blocked_2", full_name: "Spam Account", username: "spam.account", email: "", is_active: true, provider: "", created_at: "", followers_count: 0, followings_count: 0, blocks_count: 0, reposts_count: 0, saves_count: 0, likes_count: 0, notifications_count: 0 },
+  { uid: "blocked_3", full_name: "Annoying User", username: "annoying.user", email: "", is_active: true, provider: "", created_at: "", followers_count: 0, followings_count: 0, blocks_count: 0, reposts_count: 0, saves_count: 0, likes_count: 0, notifications_count: 0 },
+  { uid: "blocked_4", full_name: "Toxic Person", username: "toxic.person", email: "", is_active: true, provider: "", created_at: "", followers_count: 0, followings_count: 0, blocks_count: 0, reposts_count: 0, saves_count: 0, likes_count: 0, notifications_count: 0 },
+  { uid: "blocked_5", full_name: "Blocked", username: "blocked.five", email: "", is_active: true, provider: "", created_at: "", followers_count: 0, followings_count: 0, blocks_count: 0, reposts_count: 0, saves_count: 0, likes_count: 0, notifications_count: 0 },
 ];

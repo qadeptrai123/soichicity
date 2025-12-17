@@ -9,8 +9,8 @@ import Register from "./pages/Register"
 import ForgotPassword from "./pages/ForgotPassword"
 import Feed from "./pages/Feed"
 // 1. Import trang chi tiết (Bạn cần đảm bảo đã tạo file này ở bước trước)
-import PostDetail from "./pages/PostDetail" 
-// import Profile from "./pages/Profile"
+import PostDetail from "./pages/PostDetail"
+import Profile from "./pages/Profile"
 
 import Layout from './components/layout/Layout'
 
@@ -38,8 +38,7 @@ export default function App() {
           <Route path="favorites" element={<div className="text-white">Favorites</div>} />
           <Route path="community" element={<div className="text-white">Community</div>} />
           <Route path="create" element={<div className="text-white">Create</div>} />
-          {/* <Route path="profile" element={<Profile/>} /> */}
-          {/* <Route path="profile/:id" element={<Profile/>} />   */}
+          <Route path="profile/:username" element={<Profile />} />
         </Route>
 
       </Routes>

@@ -1,6 +1,6 @@
 # app/services/user_service.py
 from firebase_admin import auth
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserResponse
 from fastapi import HTTPException
 from google.cloud import firestore
 import uuid
@@ -25,7 +25,7 @@ def _get_docs_batch(db, collection_name: str, doc_ids: list):
     
     return {doc.id: doc for doc in docs if doc.exists}
 
-def _normalize_feed_item(item_data, author_map, current_user_id=None):
+def _normalize_feed_item(db, item_data, author_map, current_user_id=None):
     """
     Help function to normalize data for each item in the feed.
     Handles common display logic for both original Posts and Reposts.
@@ -45,7 +45,7 @@ def _normalize_feed_item(item_data, author_map, current_user_id=None):
     if author_info:
         a_data = author_info.to_dict()
         author_obj = {
-            "id": author_info.id,
+            "uid": author_info.id,
             "username": a_data.get("username", "Unknown"),
             "full_name": a_data.get("full_name", ""),
             "avatar": a_data.get("avatar_url") or a_data.get("avatar")
@@ -55,6 +55,26 @@ def _normalize_feed_item(item_data, author_map, current_user_id=None):
     # - Original Post: use created_at of the post
     # - Repost: use timestamp at the time of repost (to sort timeline correctly)
     display_timestamp = item_data["timestamp"]
+
+    # --- Flags & Context (Important for Repost UI) ---
+    is_liked = False
+    is_saved = False
+    is_reposted = False  # Track repost status separately, distinct from whether the item *is* a repost action
+
+    if current_user_id:
+        post_ref = db.collection("posts").document(post_doc.id)
+        
+        # Check Like
+        if post_ref.collection("likes").document(current_user_id).get().exists:
+            is_liked = True
+        
+        # Check Repost (whether current user reposted this post)
+        if post_ref.collection("reposts").document(current_user_id).get().exists:
+            is_reposted = True
+        
+        # Check Save
+        if post_ref.collection("saves").document(current_user_id).get().exists:
+            is_saved = True
 
     return {
         # --- Core Post Data ---
@@ -76,14 +96,11 @@ def _normalize_feed_item(item_data, author_map, current_user_id=None):
         "saves_count": p_data.get("saves_count", 0),
         "comments_count": p_data.get("comments_count", 0),
         
-        # --- Flags & Context (Important for Repost UI) ---
-        "is_repost": item_data["is_repost"],
-        "repost_timestamp": display_timestamp if item_data["is_repost"] else None,
-        "reposted_by": item_data["reposted_by"] if item_data["is_repost"] else None,
-        "repost_id": item_data.get("repost_id"),
-        # Placeholder for interaction status (handle later if realtime check needed)
-        "is_liked": False, 
-        "is_saved": False
+        # --- Flags ---
+        "is_repost": item_data["is_repost"], # Whether this specific feed item IS a repost action
+        "is_liked": is_liked, 
+        "is_saved": is_saved,
+        "is_reposted": is_reposted # Whether the current user HAS reposted this content
     }
 
 # --- Main Service Functions ---
@@ -403,7 +420,7 @@ def get_user_profile(db, username: str, current_user_id: str = None):
 
     final_posts = []
     for item in raw_feed:
-        normalized_item = _normalize_feed_item(item, authors_map, current_user_id)
+        normalized_item = _normalize_feed_item(db, item, authors_map, current_user_id)
         if normalized_item:
             final_posts.append(normalized_item)
 
@@ -417,11 +434,16 @@ def get_user_profile(db, username: str, current_user_id: str = None):
         elif db.collection('users').document(current_user_id).collection('followings').document(target_uid).get().exists:
             is_following = True
 
-    user_data["is_following"] = is_following
-    user_data["is_self"] = is_self # Check if viewing own profile
+    # Validating and formatting user data with UserResponse schema
+    # This ensures all fields (like followers, following, counts) are returned with defaults if missing
+    user_obj = UserResponse.model_validate(user_data)
+    final_user_data = user_obj.model_dump()
+    
+    final_user_data["is_following"] = is_following
+    final_user_data["is_self"] = is_self # Check if viewing own profile
 
     return {
-        "user": user_data,
+        "user": final_user_data,
         "posts": final_posts,
         "posts_count": len(final_posts)
     }
@@ -462,7 +484,7 @@ def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: 
             "reposted_by": None
         }
         # Tái sử dụng hàm _normalize_feed_item có sẵn
-        normalized = _normalize_feed_item(item_input, authors_map)
+        normalized = _normalize_feed_item(db, item_input, authors_map)
         if normalized:
             results.append(normalized)
 
@@ -529,7 +551,7 @@ def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_
             "repost_id": item["repost_doc"].id
         }
         
-        normalized = _normalize_feed_item(item_input, authors_map)
+        normalized = _normalize_feed_item(db, item_input, authors_map)
         if normalized:
             results.append(normalized)
 

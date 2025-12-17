@@ -126,9 +126,9 @@ const Feed = () => {
       is_liked: apiPost.is_liked || false,
       is_saved: apiPost.is_saved || false,
       is_shared: apiPost.is_shared || false, // Should this be removed? Backend: legacy support 
-      is_reposted: apiPost.is_reposted || false,
+      is_repost: apiPost.is_repost || false,
       author: {
-        id: apiPost.author?.id || apiPost.author_id,
+        id: apiPost.author?.uid || apiPost.author_id,
         username:
           apiPost.author?.username ||
           "user" + apiPost.author_id?.substring(0, 6),
@@ -199,7 +199,7 @@ const Feed = () => {
                     is_liked: item.is_liked,
                     is_saved: item.is_saved,
                     is_shared: item.is_shared,
-                    is_reposted: item.is_reposted,
+                    is_repost: item.is_repost,
                   }}
                   author={item.author}
                   onReply={handleReply}
