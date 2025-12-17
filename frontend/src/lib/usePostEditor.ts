@@ -12,7 +12,6 @@ type User = {
   name: string | null;
   avatarUrl?: string;
 };
-
 interface UsePostEditorProps {
   mockFriends: User[];
 }
@@ -43,6 +42,8 @@ export function usePostEditor({ mockFriends }: UsePostEditorProps) {
     }
   };
 
+
+  
   // Remove media file
   const removeMedia = (indexToRemove: number) => {
     setMediaFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
