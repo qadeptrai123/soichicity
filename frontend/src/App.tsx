@@ -9,7 +9,7 @@ import Register from "./pages/Register"
 import ForgotPassword from "./pages/ForgotPassword"
 import Feed from "./pages/Feed"
 // 1. Import trang chi tiết (Bạn cần đảm bảo đã tạo file này ở bước trước)
-import PostDetail from "./pages/PostDetail" 
+import PostDetail from "./pages/PostDetail"
 // import Profile from "./pages/Profile"
 
 import Layout from './components/layout/Layout'
