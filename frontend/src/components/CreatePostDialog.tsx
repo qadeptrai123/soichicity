@@ -17,14 +17,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import EmojiButton from "./EmojiButton";
-import type { User } from "@/types/auth";
+import type { User } from "@/types/user";
 import { usePostEditor } from "@/hooks/usePostEditor";
 import { useCreatePost } from "@/hooks/api/use-posts";
 
 interface CreatePostDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentUser: User; // Nhận dữ liệu người dùng qua props
+  currentUser: User;
   mockFriends: User[];
 }
 

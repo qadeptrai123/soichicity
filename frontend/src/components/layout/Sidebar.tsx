@@ -14,7 +14,6 @@ import CreatePostDialog from "@/components/CreatePostDialog";
 import { SearchDialog } from "@/components/SearchDialog";
 import { useState } from "react";
 import { MOCK_FRIENDS } from "@/MockData/data";
-import { useMe } from "@/hooks/api/use-users";
 
 
 
@@ -24,13 +23,13 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
   const { isAuthenticated, logout, user } = useAuth();
   const [openCreatePostDialog, setOpenCreatePostDialog] = useState(false);
   const [openSearchDialog, setOpenSearchDialog] = useState(false);
-  const { data: me } = useMe();
+
   const items = [
     { icon: Home, path: "/" },
     { icon: Search, path: "/search" },
     { icon: Heart, path: "/favorites" },
     // { icon: Users, path: "/community" },
-    { icon: Users, path: `/profile/${me?.username}` },
+    { icon: Users, path: `/profile/${user?.username}` },
     { icon: PlusSquare, path: "/create" },
   ];
 

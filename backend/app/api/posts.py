@@ -43,7 +43,9 @@ def create_post(
     created = PostService.create_post(
         user_id=user["uid"], # IMPORTANT: Use 'uid' consistent with other endpoints
         content=form_data.content,
-        media_urls=image_urls 
+        media_urls=image_urls,
+        level=form_data.level,
+        reply_to_id=form_data.reply_to_id
     )
     return created
 

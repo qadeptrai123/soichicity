@@ -16,12 +16,7 @@ export const useUser = (id: string) => {
     });
 };
 
-export const useMe = () => {
-    return useQuery({
-        queryKey: ['me'],
-        queryFn: api.users.getMe,
-    });
-};
+
 
 
 export const useProfile = (username: string) => {

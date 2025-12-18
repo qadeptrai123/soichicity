@@ -26,13 +26,12 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-async function refreshAccessToken(
+export async function refreshAccessToken(
   refreshToken: string
 ): Promise<string | null> {
   try {
     const response = await fetch(
-      `https://securetoken.googleapis.com/v1/token?key=${
-        import.meta.env.VITE_FIREBASE_API_KEY
+      `https://securetoken.googleapis.com/v1/token?key=${import.meta.env.VITE_FIREBASE_API_KEY
       }`,
       {
         method: "POST",
