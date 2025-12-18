@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [users, setUsers] = useState<SearchUser[]>([]);
+    const [suggestedUsers, setSuggestedUsers] = useState<SearchUser[]>([]);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [posts, setPosts] = useState<SearchPost[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -17,21 +18,36 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
     const trendingTags = ['React 19', 'Next.js', 'TypeScript', 'Tailwind', 'Web Development'];
 
     useEffect(() => {
+        const fetchSuggested = async () => {
+            try {
+                const results = await searchService.search('');
+                setSuggestedUsers(results.users.hits.slice(0, 4));
+            } catch (error) {
+                console.error("Failed to fetch suggested users", error);
+            }
+        }
+        if (open) {
+            fetchSuggested();
+        }
+    }, [open]);
+
+    useEffect(() => {
+        if (searchQuery.trim().length === 0) {
+            setUsers([]);
+            setPosts([]);
+            return;
+        }
+
         const delayDebounceFn = setTimeout(async () => {
-            if (searchQuery.trim().length > 0) {
-                setIsLoading(true);
-                try {
-                    const results = await searchService.search(searchQuery);
-                    setUsers(results.users.hits);
-                    setPosts(results.posts.hits);
-                } catch (error) {
-                    console.error("Search failed", error);
-                } finally {
-                    setIsLoading(false);
-                }
-            } else {
-                setUsers([]);
-                setPosts([]);
+            setIsLoading(true);
+            try {
+                const results = await searchService.search(searchQuery);
+                setUsers(results.users.hits);
+                setPosts(results.posts.hits);
+            } catch (error) {
+                console.error("Search failed", error);
+            } finally {
+                setIsLoading(false);
             }
         }, 300);
 
@@ -72,22 +88,54 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
                     <div className="flex-1 overflow-y-auto">
                         {/* Trending Section - Show only when no search query */}
                         {!searchQuery && (
-                            <div className="p-4 border-b border-border">
-                                <div className="flex items-center gap-2 mb-3 text-foreground">
-                                    <TrendingUp className="w-5 h-5" />
-                                    <h3 className="">Trending</h3>
+                            <>
+                                <div className="p-4 border-b border-border">
+                                    <div className="flex items-center gap-2 mb-3 text-foreground">
+                                        <TrendingUp className="w-5 h-5" />
+                                        <h3 className="">Trending</h3>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {trendingTags.map((tag) => (
+                                            <button
+                                                key={tag}
+                                                className="px-3 py-1.5 bg-input hover:bg-border rounded-full text-sm text-text-secondary"
+                                            >
+                                                {tag}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {trendingTags.map((tag) => (
-                                        <button
-                                            key={tag}
-                                            className="px-3 py-1.5 bg-input hover:bg-border rounded-full text-sm text-text-secondary"
-                                        >
-                                            {tag}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                                {suggestedUsers.length > 0 && (
+                                    <div className="p-4">
+                                        <div className="flex items-center gap-2 mb-3 text-foreground">
+                                            <h3 className="">People you might know</h3>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            {suggestedUsers.map((user, index) => (
+                                                <div
+                                                    key={user.objectID}
+                                                    className={`flex items-center justify-between hover:bg-input/50 p-2 cursor-pointer transition-colors ${index !== suggestedUsers.length - 1 ? 'border-b border-border' : ''
+                                                        }`}
+                                                    onClick={() => handleUserClick(user.username)}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar>
+                                                            <AvatarImage src={user.avatar_url || undefined} />
+                                                            <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <p className="text-foreground font-medium">{user.full_name || user.username}</p>
+                                                            <p className="text-text-secondary text-sm">
+                                                                {user.username}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
 
                         {/* Results */}
@@ -99,11 +147,12 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
                                 {users.length > 0 && (
                                     <div>
                                         <h3 className="text-foreground mb-4 font-semibold">People</h3>
-                                        <div className="space-y-3">
-                                            {users.map((user) => (
+                                        <div className="flex flex-col">
+                                            {users.map((user, index) => (
                                                 <div
                                                     key={user.objectID}
-                                                    className="flex items-center justify-between hover:bg-input/50 p-2 rounded-lg cursor-pointer transition-colors"
+                                                    className={`flex items-center justify-between hover:bg-input/50 p-2 cursor-pointer transition-colors ${index !== users.length - 1 ? 'border-b border-border' : ''
+                                                        }`}
                                                     onClick={() => handleUserClick(user.username)}
                                                 >
                                                     <div className="flex items-center gap-3">

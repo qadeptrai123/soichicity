@@ -6,7 +6,7 @@ router = APIRouter()
 
 @router.get("/", response_model=Dict[str, Any])
 def search(
-    q: str = Query(..., min_length=1),
+    q: str = Query(..., min_length=0),
     page: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=50)
 ):
