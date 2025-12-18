@@ -7,14 +7,22 @@ import { useAuth } from "@/contexts/AuthProvider";
 
 
 
+import { cn } from "@/lib/utils";
+
 interface LoginPromptProps {
     title?: string;
     subtitle?: React.ReactNode;
+    className?: string; // Allow custom styling
+    titleClassName?: string;
+    subtitleClassName?: string;
 }
 
 export const LoginPrompt = ({
     title = "Log in or sign up for Sợi Chỉ City",
     subtitle = <>See what people are talking <br /> about and join the conversation.</>,
+    className,
+    titleClassName,
+    subtitleClassName,
 }: LoginPromptProps) => {
     const navigate = useNavigate();
     const { login } = useAuth();
@@ -32,12 +40,15 @@ export const LoginPrompt = ({
         }
     };
     return (
-        <div className="bg-secondary backdrop-blur-xl border-2 border-border! rounded-2xl shadow-2xl shadow-black/50 p-5 w-full max-w-sm text-center sticky top-20 lg:sticky lg:top-20 mb-4 lg:mb-0">
-            <h2 className="text-base font-bold text-white mb-3">
+        <div className={cn(
+            "bg-secondary backdrop-blur-xl border-2 border-border! rounded-2xl shadow-2xl shadow-black/50 p-5 w-full max-w-sm text-center sticky top-20 lg:sticky lg:top-20 mb-4 lg:mb-0",
+            className
+        )}>
+            <h1 className={cn("text-base font-bold text-white mb-3", titleClassName)}>
                 {title}
-            </h2>
+            </h1>
 
-            <p className="text-text-muted text-base mb-8">
+            <p className={cn("text-text-muted text-base mb-8", subtitleClassName)}>
                 {subtitle}
             </p>
 

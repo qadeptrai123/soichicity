@@ -31,7 +31,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [loginPromptContent, setLoginPromptContent] = useState({
     title: "Log in or sign up for Sợi Chỉ City",
-    subtitle: <>See what people are talking <br /> about and join the conversation.</> as React.ReactNode
+    subtitle: "See what people are talking about and join the conversation."
   });
   const { data: me } = useMe();
   const items = [
@@ -58,7 +58,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
       } else {
         setLoginPromptContent({
           title: "Say more with Sợi Chỉ City",
-          subtitle: <>See what people are talking <br /> about and join the conversation.</>
+          subtitle: "See what people are talking about and join the conversation"
         });
       }
       setShowLoginPrompt(true);
@@ -179,16 +179,19 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
 
       {showLoginPrompt && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           onClick={() => setShowLoginPrompt(false)}
         >
           <div
-            className="relative w-full max-w-sm"
+            className="relative w-full max-w-lg" // Increased width wrapper
             onClick={(e) => e.stopPropagation()}
           >
             <LoginPrompt
               title={loginPromptContent.title}
               subtitle={loginPromptContent.subtitle}
+              className="max-w-lg" // Override internal max-w-sm
+              titleClassName="text-2xl"
+              subtitleClassName="text-lg"
             />
           </div>
         </div>
