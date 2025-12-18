@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Toaster } from 'sonner';
 import './App.css'
 // import Comment from './components/comment';
 // import CreatePostDialog from './components/CreatePostDialog';
@@ -17,6 +18,7 @@ import Layout from './components/layout/Layout'
 export default function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-right" richColors />
       <Routes>
 
         {/* AUTH ROUTES */}

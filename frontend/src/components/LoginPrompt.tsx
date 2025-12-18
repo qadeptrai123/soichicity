@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { authAPI } from "@/services/authAPI";
 import { useState } from "react";
@@ -15,7 +16,7 @@ export const LoginPrompt = ({ onClose }: { onClose?: () => void }) => {
             // Lưu token
             login(response.access_token);
         } catch (error) {
-            alert(error instanceof Error ? error.message : "Google login failed");
+            toast.error(error instanceof Error ? error.message : "Google login failed");
         } finally {
             setIsGoogleLoading(false);
         }
