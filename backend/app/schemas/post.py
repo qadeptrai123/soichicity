@@ -35,10 +35,14 @@ class PostCreateForm:
     def __init__(
         self,
         content: str = Form(...),
-        files: List[UploadFile] = File(default=[])
+        files: List[UploadFile] = File(default=[]),
+        level: int = Form(0),
+        reply_to_id: Optional[str] = Form(None)
     ):
         self.content = content
         self.files = files
+        self.level = level
+        self.reply_to_id = reply_to_id
 
 class CommentCreate:
     def __init__(

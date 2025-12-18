@@ -44,7 +44,7 @@ export function DropdownExtend({
     return null; // If no visible actions, render nothing
   }
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       {/* 1. Trigger (Button) */}
       <DropdownMenuTrigger asChild>
         <button
@@ -94,7 +94,7 @@ export function DropdownExtend({
 
                 // Handle "destructive" variant (Red color)
                 action.variant === "destructive" &&
-                  "text-[#FF4D4D] focus:bg-[#FF4D4D]/10 focus:text-[#FF4D4D]"
+                "text-[#FF4D4D] focus:bg-[#FF4D4D]/10 focus:text-[#FF4D4D]"
               )}
             >
               {/* Label (Left side) */}

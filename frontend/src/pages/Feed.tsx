@@ -1,8 +1,10 @@
 // Trang này sẽ là trang home luôn
 import FeedCard from "@/components/FeedCard";
 import { LoginPrompt } from "@/components/LoginPrompt";
-import type { PostData, AuthorData, MediaItem } from "@/components/FeedCard";
+import type { Post as PostData, Author as AuthorData } from "@/types/post";
+import type { MediaItem } from "@/types/common";
 import { useEffect, useState, useRef, useCallback } from "react";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthProvider";
 import ReplyCommentDialog, { type TargetPost } from "@/components/comment";
 import { usePosts } from "@/hooks/api/use-posts";
@@ -84,11 +86,14 @@ const Feed = () => {
       content: post.content,
       date: post.created_at,
       user: {
-        uid: author.id || post.author_id,
-        username: author.username || author.handle.replace("@", ""),
-        full_name: author.name,
-        avatar_url: author.avatar,
+        uid: author.uid || post.author_id,
+        username: author.username,
+        full_name: author.name || author.full_name || null,
+        avatar_url: author.avatar || author.avatar_url,
       },
+      media_url: post.media_url,
+      media_type: post.media_type,
+      gallery: post.gallery,
     });
     setIsReplyOpen(true);
   };
@@ -129,6 +134,7 @@ const Feed = () => {
       is_repost: apiPost.is_repost || false,
       author: {
         id: apiPost.author?.uid || apiPost.author_id,
+        uid: apiPost.author?.uid || apiPost.author_id,
         username:
           apiPost.author?.username ||
           "user" + apiPost.author_id?.substring(0, 6),
@@ -208,11 +214,7 @@ const Feed = () => {
 
             {/* Infinite scroll trigger */}
             <div ref={observerTarget} className="py-8 text-center">
-              {isLoading && (
-                <div className="flex justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
-                </div>
-              )}
+              {isLoading && <LoadingSpinner />}
               {!hasMore && displayedPosts.length > 0 && (
                 <p className="text-text-muted text-sm">No more posts to load</p>
               )}
