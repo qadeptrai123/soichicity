@@ -5,7 +5,17 @@ import { authAPI } from "@/services/authAPI";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
 
-export const LoginPrompt = ({ onClose }: { onClose?: () => void }) => {
+
+
+interface LoginPromptProps {
+    title?: string;
+    subtitle?: React.ReactNode;
+}
+
+export const LoginPrompt = ({
+    title = "Log in or sign up for Sợi Chỉ City",
+    subtitle = <>See what people are talking <br /> about and join the conversation.</>,
+}: LoginPromptProps) => {
     const navigate = useNavigate();
     const { login } = useAuth();
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -23,21 +33,12 @@ export const LoginPrompt = ({ onClose }: { onClose?: () => void }) => {
     };
     return (
         <div className="bg-secondary backdrop-blur-xl border-2 border-border! rounded-2xl shadow-2xl shadow-black/50 p-5 w-full max-w-sm text-center sticky top-20 lg:sticky lg:top-20 mb-4 lg:mb-0">
-            {onClose && (
-                <button
-                    onClick={onClose}
-                    className="absolute top-3 right-3 text-text-muted hover:text-foreground transition-colors"
-                    aria-label="Close login prompt"
-                >
-                    ✕
-                </button>
-            )}
             <h2 className="text-base font-bold text-white mb-3">
-                Log in or sign up for Sợi Chỉ City
+                {title}
             </h2>
 
             <p className="text-text-muted text-base mb-8">
-                See what people are talking <br /> about and join the conversation.
+                {subtitle}
             </p>
 
             {/* Google Login Button */}
