@@ -60,7 +60,7 @@
 #         else:
 #             doc_ref.set({"seen": [post_id]})
 
-from app.db.firebase import db
+from app.db.firebase import db, bucket
 from datetime import datetime
 import uuid
 import random

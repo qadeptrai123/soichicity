@@ -12,7 +12,7 @@ class UserBase(BaseModel):
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     is_active: bool = True # Not Null, default True
-    provider: str # "google"/"password"
+    provider: str = "password" # "google"/"password"
     created_at: datetime = Field(default_factory=datetime.now) # Not Null
 
     model_config = ConfigDict(from_attributes=True)

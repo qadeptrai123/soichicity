@@ -22,11 +22,11 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Lớp nền */}
-      <div 
-        className="absolute inset-0 bg-black/60" 
+      <div
+        className="absolute inset-0 bg-black/60"
         onClick={onClose}
       ></div>
-      
+
       <div className="relative z-10 w-full max-w-[400px] bg-secondary text-white border border-neutral-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200">
         {/* Header Dialog */}
         <div className="flex items-center justify-between px-6 py-4">
@@ -76,9 +76,9 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
               <ChevronRight size={20} className="text-neutral-600" />
             </div>
             <div className="h-[1px] bg-border-accent w-full my-1"></div>
-              
+
             {/* Block List */}
-            <div 
+            <div
               className="flex items-center justify-between py-2 cursor-pointer hover:opacity-70"
               onClick={() => setIsBlockListOpen(true)}
             >
@@ -91,7 +91,7 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
 
         {/* Footer Button */}
         <div className="p-6 pt-0">
-          <Button 
+          <Button
             className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-medium h-10 rounded-xl text-[15px]"
             onClick={onClose}
           >
@@ -101,10 +101,10 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
       </div>
 
       {/* Block List Dialog */}
-      <BlockList 
+      <BlockList
         isOpen={isBlockListOpen}
         onClose={() => setIsBlockListOpen(false)}
-        blockedUsers={MOCK_BLOCKED_USERS}
+        blockedUsers={MOCK_BLOCKED_USERS as unknown as User[]}
       />
     </div>
   );

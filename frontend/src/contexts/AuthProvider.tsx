@@ -10,11 +10,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     useEffect(() => {
         const token = localStorage.getItem("access_token");
+        // console.log(token)
         if (token) {
             try {
                 const decoded: any = jwtDecode(token);
                 const currentTime = Date.now() / 1000;
-
+                // console.log(decoded)
                 if (decoded.exp && decoded.exp < currentTime) {
                     console.log("Token expired");
                     logout();

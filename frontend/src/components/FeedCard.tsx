@@ -55,7 +55,7 @@ export interface PostData {
   is_liked?: boolean;
   is_saved?: boolean; // is_bookmarked -> is_saved
   is_shared?: boolean;
-  is_reposted?: boolean;
+  is_repost?: boolean;
 }
 
 export interface AuthorData {
@@ -245,8 +245,8 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
         <div
           ref={scrollContainerRef}
           className={`flex overflow-x-auto scrollbar-hide user-select-none ${isMultipleItems
-              ? "bg-secondary gap-2 px-2 cursor-grab active:cursor-grabbing"
-              : "bg-black"
+            ? "bg-secondary gap-2 px-2 cursor-grab active:cursor-grabbing"
+            : "bg-black"
             }`}
           style={{
             scrollBehavior: "auto",
@@ -275,8 +275,8 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
               {item.type === "youtube" ? (
                 <div
                   className={`flex items-center justify-center ${isMultipleItems
-                      ? "h-full bg-secondary"
-                      : "w-full h-full bg-black"
+                    ? "h-full bg-secondary"
+                    : "w-full h-full bg-black"
                     }`}
                 >
                   <img
@@ -339,8 +339,8 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
                 }
               }}
               className={`h-1.5 rounded-full transition-all duration-200 ${index === selectedIndex
-                  ? "bg-foreground w-6"
-                  : "bg-text-secondary hover:bg-text-muted w-1.5"
+                ? "bg-foreground w-6"
+                : "bg-text-secondary hover:bg-text-muted w-1.5"
                 }`}
               aria-label={`Go to item ${index + 1}`}
             />
@@ -431,7 +431,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
     liked: post.is_liked || false,
     bookmarked: post.is_saved || false,
     shared: post.is_shared || false,
-    reposted: post.is_reposted || false,
+    reposted: post.is_repost || false,
   });
 
   // Sync state với props khi data từ API thay đổi (sau khi invalidateQueries)
@@ -447,7 +447,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
       liked: post.is_liked || false,
       bookmarked: post.is_saved || false,
       shared: post.is_shared || false,
-      reposted: post.is_reposted || false,
+      reposted: post.is_repost || false,
     });
   }, [
     post.likes_count,
@@ -458,7 +458,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
     post.is_liked,
     post.is_saved,
     post.is_shared,
-    post.is_reposted,
+    post.is_repost,
   ]);
 
   // --- Xử lý click chuyển trang ---

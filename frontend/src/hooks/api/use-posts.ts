@@ -13,6 +13,7 @@ export const useCreatePost = () => {
     mutationFn: api.posts.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
   });
 };
@@ -23,6 +24,7 @@ export const useLikePost = () => {
     mutationFn: api.posts.like,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
   });
 };
@@ -33,6 +35,7 @@ export const useSharePost = () => {
     mutationFn: api.posts.share,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
   });
 };
@@ -43,6 +46,7 @@ export const useRepostPost = () => {
     mutationFn: api.posts.repost,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
   });
 };
@@ -53,6 +57,7 @@ export const useSavePost = () => {
     mutationFn: api.posts.save,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
   });
 };
@@ -64,6 +69,7 @@ export const useAddComment = () => {
       api.posts.addComment(postId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
   });
 };
