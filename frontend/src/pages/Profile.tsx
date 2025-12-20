@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import FeedCard from "@/components/FeedCard";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import CreatePostDialog from "@/components/CreatePostDialog";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 
 export default function Profile() {
@@ -80,7 +81,7 @@ export default function Profile() {
           </div>
         </div>
         <Avatar className="w-[84px] h-[84px] rounded-full border border-neutral-800 shrink-0">
-          <AvatarImage src={user.avatar_url || ""} className="object-cover" />
+          <AvatarImage src={user.avatar_url || DEFAULT_AVATAR_URL} className="object-cover" />
           <AvatarFallback className="text-3xl bg-neutral-800 text-white">
             {user.username?.[0]?.toUpperCase()}
           </AvatarFallback>
@@ -140,7 +141,7 @@ export default function Profile() {
       {isOwnProfile && (
         <div className="px-4 sm:px-0 py-6 flex gap-3 items-center border-b border-neutral-800 cursor-pointer" onClick={() => setIsCreatePostOpen(true)}>
           <Avatar className="w-9 h-9 border border-neutral-800">
-            <AvatarImage src={user.avatar_url || ""} />
+            <AvatarImage src={user.avatar_url || DEFAULT_AVATAR_URL} />
             <AvatarFallback>{user.username?.[0]}</AvatarFallback>
           </Avatar>
           <div className="flex-1 text-neutral-500 text-[15px]">What's new?</div>
@@ -155,8 +156,8 @@ export default function Profile() {
         {posts && posts.length > 0 ? (
           posts
             .filter(post => {
-              if (activeTab === "Posts") return !post.is_repost && !post.reply_to_id;
-              if (activeTab === "Reposts") return post.is_repost;
+              if (activeTab === "Posts") return !post.is_reposted && !post.reply_to_id;
+              if (activeTab === "Reposts") return post.is_reposted;
               if (activeTab === "Replies") return !!post.reply_to_id;
               if (activeTab === "Media") return post.media_urls && post.media_urls.length > 0;
               return true;
@@ -167,12 +168,14 @@ export default function Profile() {
                 post={{
                   ...post,
                   media_url: post.media_urls?.[0] || null,
-                  gallery: post.media_urls?.map(url => ({ url, type: "image" }))
+                  gallery: post.media_urls || undefined
                 }}
                 author={{
                   name: post.author?.full_name || post.author?.username || "Unknown",
                   handle: `@${post.author?.username}`,
-                  avatar: post.author?.avatar_url || "",
+                  avatar_url: post.author?.avatar_url || DEFAULT_AVATAR_URL,
+                  /** @deprecated */
+                  avatar: post.author?.avatar_url || DEFAULT_AVATAR_URL,
                   id: post.author?.uid, // Legacy
                   uid: post.author?.uid || post.author_id, // Use string ID
                   username: post.author?.username || "Unknown"
@@ -197,7 +200,7 @@ export default function Profile() {
             username: me.username || "",
             bio: me.bio || "",
             link: "",
-            avatarUrl: me.avatar_url || "", // Map to avatarUrl
+            avatarUrl: me.avatar_url || DEFAULT_AVATAR_URL, // Map to avatarUrl
             followers: [],
             following: []
           }}

@@ -7,6 +7,7 @@ export interface User {
     id?: string | number; // Legacy/Compat
     handle?: string; // Legacy/Compat
     avatar_url?: string;
+    /** @deprecated Use avatar_url instead */
     avatar?: string; // Legacy/Compat
     bio?: string;
     link?: string;

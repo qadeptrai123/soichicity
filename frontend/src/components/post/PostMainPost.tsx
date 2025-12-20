@@ -4,7 +4,9 @@ import { MoreHorizontal, Heart, MessageCircle, Repeat2, Send, Bookmark, X } from
 import { ActionButton } from "@/components/ActionButton";
 import { useLikePost, useSavePost, useRepostPost } from "@/hooks/api/use-posts";
 import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "../Gallery";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import type { Post } from "@/types/post";
+import { formatDistanceToNow } from "date-fns";
 // import type { MediaItem } from "@/types/common";
 
 
@@ -16,7 +18,7 @@ interface PostMainPostProps {
 
 export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProps) => {
   // Hàm format thời gian giả lập (hoặc dùng thư viện date-fns nếu có)
-  const timeAgo = "16h"; // Hardcode cho giống mẫu, thực tế bạn dùng formatDistanceToNow(new Date(data.createdAt))
+  const timeAgo = formatDistanceToNow(new Date(data.created_at));
 
   // Hooks
   const likeMutation = useLikePost();
@@ -38,7 +40,7 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
   const [actionStates, setActionStates] = useState({
     liked: data.is_liked || false,
     bookmarked: data.is_saved || false,
-    reposted: data.is_repost || false,
+    reposted: data.is_reposted || false,
   });
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
     setActionStates({
       liked: data.is_liked || false,
       bookmarked: data.is_saved || false,  // Note: API field is_saved or is_bookmarked? Schema says is_saved
-      reposted: data.is_repost || false    // Schema says is_reposted, usePostDetail data might differ. Let's assume passed data alignment.
+      reposted: data.is_reposted || false    // Schema says is_reposted, usePostDetail data might differ. Let's assume passed data alignment.
     });
   }, [data]);
 
@@ -140,7 +142,7 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
       <div className="flex justify-between items-start mb-4">
         <div className="flex gap-3 items-center">
           <Avatar className="w-12 h-12 border border-[#374151]">
-            <AvatarImage src={data.author?.avatar_url} />
+            <AvatarImage src={data.author?.avatar_url || DEFAULT_AVATAR_URL} />
             <AvatarFallback>{data.author?.full_name?.[0] || "?"}</AvatarFallback>
           </Avatar>
           <div>

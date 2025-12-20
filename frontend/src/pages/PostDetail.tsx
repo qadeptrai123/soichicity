@@ -9,6 +9,7 @@ import type { TargetPost } from "@/components/comment";
 import ReplyCommentDialog from "@/components/comment";
 import { useAuth } from "@/contexts/AuthProvider";
 import { ReplyItem } from "@/components/post/ReplyItem";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 const PostDetail = () => {
     const { id } = useParams();
@@ -27,7 +28,7 @@ const PostDetail = () => {
                 uid: reply.author.uid,
                 username: reply.author.username,
                 full_name: reply.author.full_name,
-                avatar_url: reply.author.avatar_url,
+                avatar_url: reply.author.avatar_url || reply.author.avatar || DEFAULT_AVATAR_URL,
             },
             content: reply.content,
             date: reply.created_at,
@@ -68,7 +69,7 @@ const PostDetail = () => {
         setShowActivity(!showActivity);
     };
 
-    if (isLoading) return <div className={`flex justify-center h-screen items-center ${COLORS.bgPage} pt-16`}><Loader2 className="animate-spin text-blue-500 w-8 h-8" /></div>;
+    if (isLoading) return <div className={`flex justify-center items-center ${COLORS.bgPage} pt-4`}><Loader2 className="animate-spin text-blue-500 w-8 h-8" /></div>;
     if (!postData) return <div className={`text-center text-white pt-1 ${COLORS.bgPage} min-h-screen font-medium`}>Post not found</div>;
 
     return (
@@ -125,7 +126,7 @@ const PostDetail = () => {
                     <div className={`p-4 px-6 ${COLORS.bgCard} border-t ${COLORS.border} shrink-0`}>
                         <div className="flex items-center gap-3">
                             <Avatar className={`w-9 h-9 border ${COLORS.border}`}>
-                                <AvatarImage src={user?.avatar_url || "https://github.com/shadcn.png"} />
+                                <AvatarImage src={user?.avatar_url || user?.avatar || DEFAULT_AVATAR_URL} />
                                 <AvatarFallback>Me</AvatarFallback>
                             </Avatar>
                             <div

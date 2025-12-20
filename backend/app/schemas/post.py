@@ -57,7 +57,7 @@ class CommentCreate:
 class CommentResponse(BaseModel):
     id: str
     user_id: str
-    user_avatar: Optional[str] = None
+    avatar_url: Optional[str] = None
     content: str
     timestamp: int # Trả về dạng số như hình
 

@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { X, Heart, Repeat2, ChevronRight } from "lucide-react"; // Import ChevronRight
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 interface ActivityPopupProps {
     data: any[];
@@ -58,7 +59,7 @@ export const ActivityPopup = ({ data, onClose }: ActivityPopupProps) => {
                             <div className="flex items-center gap-3">
                                 <div className="relative">
                                     <Avatar className={`w-10 h-10 border ${BORDER}`}>
-                                        <AvatarImage src={item.user.avatar} />
+                                        <AvatarImage src={item.user.avatar_url || item.user.avatar || DEFAULT_AVATAR_URL} />
                                         <AvatarFallback>{item.user.full_name?.[0]}</AvatarFallback>
                                     </Avatar>
                                     <div className={`absolute -bottom-1 -right-1 p-[3px] rounded-full ${BG_POPUP} ring-2 ring-[#1A1F2E] ${item.type === 'like' ? 'bg-rose-500 text-white' : 'bg-green-500 text-white'}`}>

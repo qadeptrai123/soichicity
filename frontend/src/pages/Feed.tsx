@@ -13,6 +13,7 @@ import { MOCK_FRIENDS } from "@/MockData/data";
 // --- BẮT ĐẦU: DỮ LIỆU MOCK MỚI VỚI YOUTUBE LINKS ---
 
 // --- KẾT THÚC: DỮ LIỆU MOCK MỚI VỚI YOUTUBE LINKS ---
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 const Feed = () => {
   const [isLoginPromptDismissed, setIsLoginPromptDismissed] = useState(false);
@@ -89,7 +90,7 @@ const Feed = () => {
         uid: author.uid || post.author_id,
         username: author.username,
         full_name: author.name || author.full_name || null,
-        avatar_url: author.avatar || author.avatar_url,
+        avatar_url: author.avatar_url || DEFAULT_AVATAR_URL,
       },
       media_url: post.media_url,
       media_type: post.media_type,
@@ -137,7 +138,7 @@ const Feed = () => {
       is_liked: apiPost.is_liked || false,
       is_saved: apiPost.is_saved || false,
       is_shared: apiPost.is_shared || false, // Should this be removed? Backend: legacy support 
-      is_repost: apiPost.is_repost || false,
+      is_reposted: apiPost.is_reposted || false,
       author: {
         id: apiPost.author?.uid || apiPost.author_id,
         uid: apiPost.author?.uid || apiPost.author_id,
@@ -152,10 +153,15 @@ const Feed = () => {
         handle: apiPost.author?.username
           ? `@${apiPost.author.username}`
           : "@anonymous",
-        avatar:
-          apiPost.author?.avatar ||
+        avatar_url:
           apiPost.author?.avatar_url ||
-          `https://api.dicebear.com/7.x/avataaars/svg?seed=${apiPost.author_id}`,
+          apiPost.author?.avatar ||
+          DEFAULT_AVATAR_URL,
+        /** @deprecated */
+        avatar:
+          apiPost.author?.avatar_url ||
+          apiPost.author?.avatar ||
+          DEFAULT_AVATAR_URL,
       },
     };
   };
@@ -211,7 +217,7 @@ const Feed = () => {
                     is_liked: item.is_liked,
                     is_saved: item.is_saved,
                     is_shared: item.is_shared,
-                    is_repost: item.is_repost,
+                    is_reposted: item.is_reposted,
                   }}
                   author={item.author}
                   onReply={handleReply}

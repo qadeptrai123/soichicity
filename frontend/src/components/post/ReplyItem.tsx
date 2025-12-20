@@ -4,6 +4,7 @@ import { useLikePost, useSavePost, usePostReplies } from "@/hooks/api/use-posts"
 import { Heart, MessageCircle, Send, Bookmark, X } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "../Gallery";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 // import { api } from "@/services/api";
 // import type { MediaItem } from "@/types/common";
 
@@ -114,7 +115,7 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
         >
             <div className="flex flex-col items-center shrink-0">
                 <Avatar className={`w-10 h-10 border ${COLORS.border} z-10`}>
-                    <AvatarImage src={reply.author.avatar_url} />
+                    <AvatarImage src={reply.author.avatar_url || reply.author.avatar || DEFAULT_AVATAR_URL} />
                     <AvatarFallback>{reply.author.full_name?.[0] || '?'}</AvatarFallback>
                 </Avatar>
                 <div className="w-[2px] grow bg-[#374151] rounded-full"></div>
