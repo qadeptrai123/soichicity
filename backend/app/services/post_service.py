@@ -101,13 +101,20 @@ class PostService:
             "reply_to_id": reply_to_id,
             "root_id": root_id,
             
-            # Counts
+        # Counts
             "likes_count": 0,
             "reposts_count": 0,
             "saves_count": 0,
             "comments_count": 0
         }
         db.collection("posts").document(post_id).set(payload)
+
+        # If this is a reply, increment the parent's comment count
+        if reply_to_id:
+            parent_ref = db.collection("posts").document(reply_to_id)
+            # Use Increment to be safe with concurrent updates
+            parent_ref.update({"comments_count": firestore.Increment(1)})
+
         return payload
 
     # --- NEW: Hàm xử lý chung cho Like, Share, Save (Sub-collections) ---
@@ -333,10 +340,10 @@ class PostService:
                 if user_ref.exists:
                     user_data = user_ref.to_dict()
                     post["author"] = {
-                        "id": author_id,
+                        "uid": author_id,
                         "username": user_data.get("username", ""),
                         "full_name": user_data.get("full_name"),
-                        "avatar": user_data.get("avatar_url") or user_data.get("avatar") or user_data.get("picture"),
+                        "avatar_url": user_data.get("avatar_url") or user_data.get("avatar") or user_data.get("picture"),
                     }
         
         # 7) Populate interaction status (is_liked, is_shared, is_reposted, is_saved)
@@ -387,13 +394,12 @@ class PostService:
             doc_ref.set({"seen": [post_id]})
 
     @staticmethod
-    def get_post_detail(post_id: str, current_user_id: str = None, page: int = 1, page_size: int = 10):
+    def get_post_detail(post_id: str, current_user_id: str = None):
         """
         Fetch complete post detail with:
         - Post metadata
-        - Author info (join with users collection)
-        - Paginated comments
-        - Likes & reposts lists
+        - Author info
+        - Level 1 Replies (Posts)
         - Current user's interaction status
         """
         # 1) Get post data
@@ -407,7 +413,7 @@ class PostService:
         # 2) Fetch author info
         author_doc = db.collection("users").document(author_id).get()
         author_data = {
-            "id": author_id,
+            "uid": author_id,
             "username": "Unknown",
             "avatar": None,
             "full_name": None
@@ -415,52 +421,78 @@ class PostService:
         if author_doc.exists:
             user_info = author_doc.to_dict()
             author_data = {
-                "id": author_id,
+                "uid": author_id,
                 "username": user_info.get("username", "Unknown"),
-                "avatar": user_info.get("avatar"),
+                "avatar_url": user_info.get("avatar") or user_info.get("avatar_url") or user_info.get("picture"), # Normalize avatar
                 "full_name": user_info.get("full_name")
             }
         
-        # 3) Fetch paginated comments with validation
-        comments_ref = db.collection("posts").document(post_id).collection("comments")
+        # 3) Fetch Level 1 Replies (from 'posts' collection where reply_to_id == post_id)
+        # Note: We fetch ALL level 1 replies here as per request "fetch the level 1 of the post". 
+        # Ideally this should be paginated if too large, but request asked to remove page params.
+        replies_ref = db.collection("posts").where("reply_to_id", "==", post_id).order_by("created_at", direction=firestore.Query.DESCENDING).stream()
         
-        # Validate pagination params
-        page = max(1, page)
-        page_size = min(100, max(1, page_size))  # Limit page_size to 100
+        replies_list = []
+        for rep in replies_ref:
+            r_data = rep.to_dict()
+            
+            # Resolve Reply Author
+            r_author_id = r_data.get("author_id")
+            r_author_data = {"uid": r_author_id, "name": "Unknown", "username": "unknown", "avatar": ""}
+            if r_author_id:
+                # Optimized: In real app, use DataLoader or batch get. Here we do N reads (slow but simple)
+                ua_doc = db.collection("users").document(r_author_id).get()
+                if ua_doc.exists:
+                    uad = ua_doc.to_dict()
+                    r_author_data = {
+                        "uid": r_author_id,
+                        "full_name": uad.get("full_name", "Unknown"),
+                        "username": uad.get("username", ""),
+                        "avatar_url": uad.get("avatar_url") or uad.get("avatar") or uad.get("picture", "")
+                    }
+
+            replies_list.append({
+                "post_id": r_data.get("post_id"),
+                "content": r_data.get("content"),
+                "created_at": r_data.get("created_at"),
+                "author": r_author_data,
+                "author_id": r_author_id, # Ensure author_id is present
+                "likes_count": r_data.get("likes_count", 0),
+                "comments_count": r_data.get("comments_count") or r_data.get("replies_count", 0), 
+                "media_urls": r_data.get("media_urls", []),
+                # Add usage for gallery in FE
+                "gallery": [{"url": url} for url in (r_data.get("media_urls") or [])],
+                "actions_count": r_data.get("likes_count", 0), # FE uses actions_count
+                
+                "level": r_data.get("level", 0),
+                "reply_to_id": r_data.get("reply_to_id")
+            })
         
-        # Count total comments
-        total_comments = sum(1 for _ in comments_ref.stream())
-        
-        # Calculate skip
-        skip = (page - 1) * page_size
-        
-        # Fetch comments with pagination
-        comments_query = comments_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).offset(skip).limit(page_size)
-        comments_docs = comments_query.stream()
-        comments_list = [doc.to_dict() for doc in comments_docs]
-        
-        # Calculate total pages
-        total_pages = (total_comments + page_size - 1) // page_size if total_comments > 0 else 1
-        
-        comments_data = {
-            "items": comments_list,
-            "total": total_comments,
-            "page": page,
-            "page_size": page_size,
-            "total_pages": total_pages
-        }
-        
-        # 4) Fetch likes & reposts lists (user IDs)
-        likes_docs = db.collection("posts").document(post_id).collection("likes").stream()
-        likes_list = [doc.id for doc in likes_docs]
-        
-        reposts_docs = db.collection("posts").document(post_id).collection("reposts").stream()
-        reposts_list = [doc.id for doc in reposts_docs]
+        # 4) Fetch likes & reposts lists (user IDs) - lightweight check
+        #   (Optional: Only needed if we want to show list of likers in UI, usually overkill for detail)
+        #   Let's keep it if legacy needed, or just remove if not needed. FE uses data.activity for this?
+        #   FE Mock uses 'activity': [{type, user...}].
+        #   Let's construct a simple activity list from sub-collections (limit to last 5?)
+        activity_list = []
+        # Likes
+        recent_likes = db.collection("posts").document(post_id).collection("likes").limit(3).stream()
+        for l in recent_likes:
+            uid = l.id
+            u_doc = db.collection("users").document(uid).get()
+            if u_doc.exists:
+                ud = u_doc.to_dict()
+                activity_list.append({
+                    "type": "like",
+                    "user": {
+                        "name": ud.get("full_name", "User"),
+                        "username": ud.get("username", ""),
+                        "avatar_url": ud.get("avatar_url") or ud.get("avatar") or ""
+                    }
+                })
         
         # 5) Check current user's interaction status
         user_interaction = {
             "is_liked": False,
-            "is_shared": False,
             "is_reposted": False,
             "is_saved": False
         }
@@ -471,10 +503,8 @@ class PostService:
                 user_interaction["is_liked"] = True
             
             # Check if current user shared
-            # Check if current user shared/reposted (Both map to 'reposts' collection now)
             if db.collection("posts").document(post_id).collection("reposts").document(current_user_id).get().exists:
                 user_interaction["is_reposted"] = True
-                user_interaction["is_shared"] = True # Legacy support
             
             # Check if current user saved
             if db.collection("posts").document(post_id).collection("saves").document(current_user_id).get().exists:
@@ -486,21 +516,73 @@ class PostService:
             "content": post_data.get("content"),
             "media_urls": post_data.get("media_urls") or post_data.get("link_url", []),
             "created_at": post_data.get("created_at"),
-            "level": post_data.get("level", 0),
-            "reply_to_id": post_data.get("reply_to_id"),
-            "root_id": post_data.get("root_id"),
             
             "author": author_data,
+            "author_id": author_data.get("uid", author_data.get("id")),
             
             "likes_count": post_data.get("likes_count") or post_data.get("likeCount", 0),
             "reposts_count": post_data.get("reposts_count") or post_data.get("repostCount") or post_data.get("shareCount", 0),
             "saves_count": post_data.get("saves_count") or post_data.get("saveCount", 0),
             "comments_count": post_data.get("comments_count") or post_data.get("commentCount", 0),
             
-            "comments": comments_data,
-            "likes": likes_list,
-            "reposts": reposts_list,
-            "current_user_interaction": user_interaction
+            # Flat attributes for easy FE access
+            "likes": post_data.get("likes_count") or 0,
+            
+            "replies": replies_list,
+            "activity": activity_list,
+            
+            "current_user_interaction": user_interaction,
+            
+            # Helper booleans at top level if FE expects them directly
+            "is_liked": user_interaction["is_liked"],
+            "is_saved": user_interaction["is_saved"],
+            "is_reposted": user_interaction["is_reposted"]
         }
         
         return response
+
+    @staticmethod
+    def get_replies(post_id: str):
+        """
+        Fetch all posts that reply to the target post (level 1).
+        """
+        replies_ref = db.collection("posts").where("reply_to_id", "==", post_id).order_by("created_at", direction=firestore.Query.DESCENDING).stream()
+        
+        results = []
+        for rep in replies_ref:
+            r_data = rep.to_dict()
+            
+            # Resolve Reply Author
+            r_author_id = r_data.get("author_id")
+            r_author_data = {"uid": r_author_id, "name": "Unknown", "username": "unknown", "avatar": ""}
+            if r_author_id:
+                # Optimized: In real app, use DataLoader or batch get. Here we do N reads (slow but simple)
+                ua_doc = db.collection("users").document(r_author_id).get()
+                if ua_doc.exists:
+                    uad = ua_doc.to_dict()
+                    r_author_data = {
+                        "uid": r_author_id,
+                        "full_name": uad.get("full_name", "Unknown"),
+                        "username": uad.get("username", ""),
+                        "avatar_url": uad.get("avatar_url") or uad.get("avatar") or uad.get("picture", "")
+                    }
+
+            results.append({
+                "post_id": r_data.get("post_id"),
+                "content": r_data.get("content"),
+                "created_at": r_data.get("created_at"),
+                "author": r_author_data,
+                "author_id": r_author_id, # Ensure author_id is present
+                "likes_count": r_data.get("likes_count", 0),
+                "comments_count": r_data.get("comments_count") or r_data.get("replies_count", 0), 
+                "media_urls": r_data.get("media_urls", []),
+                # Add usage for gallery in FE
+                "gallery": [{"url": url} for url in (r_data.get("media_urls") or [])],
+                "actions_count": r_data.get("likes_count", 0), # FE uses actions_count
+                
+                # Recursively we might want to know if *this* reply has replies, which is populated above in replies_count
+                "level": r_data.get("level", 0),
+                "reply_to_id": r_data.get("reply_to_id")
+            })
+        
+        return results

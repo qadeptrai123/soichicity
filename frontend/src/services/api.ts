@@ -1,9 +1,9 @@
 import { apiClient } from '@/lib/api-client';
 import type { User, Author } from '@/types/user';
-import type { Post, CreatePostData, CommentData } from '@/types/post';
+import type { Post, PostDetail, CreatePostData, CommentData } from '@/types/post';
 import type { ProfileResponse } from '@/types/response';
 
-export type { User, Author, Post, CreatePostData, CommentData, ProfileResponse };
+export type { User, Author, Post, PostDetail, CreatePostData, CommentData, ProfileResponse };
 
 export const api = {
     users: {
@@ -16,7 +16,7 @@ export const api = {
     },
     posts: {
         getAll: () => apiClient.get<Post[]>('/api/v1/posts') as unknown as Promise<Post[]>,
-        get: (post_id: string) => apiClient.get<Post>(`/api/v1/posts/${post_id}`) as unknown as Promise<Post>,
+        get: (post_id: string) => apiClient.get<PostDetail>(`/api/v1/posts/${post_id}`) as unknown as Promise<PostDetail>,
         create: (data: FormData) => apiClient.post<Post>('/api/v1/posts', data, {
             headers: { 'Content-Type': 'multipart/form-data' }
         }) as unknown as Promise<Post>,
@@ -27,7 +27,10 @@ export const api = {
         repost: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/repost`),
         save: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/save`),
 
-        // Comments
+        // Comments (Replies)
+        getReplies: (post_id: string) => apiClient.get<Post[]>(`/api/v1/posts/${post_id}/replies`) as unknown as Promise<Post[]>,
+
+        // Interactions
         addComment: (post_id: string, data: FormData) => apiClient.post(`/api/v1/posts/${post_id}/comments`, data, {
             headers: { 'Content-Type': 'multipart/form-data' }
         }),

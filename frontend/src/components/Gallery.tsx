@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { Play, X } from "lucide-react";
 
 import type { MediaItem } from "@/types/common";
@@ -39,18 +39,41 @@ const sortMediaItems = (items: MediaItem[]): MediaItem[] => {
 };
 
 interface GalleryProps {
-    items: MediaItem[];
+    items: string[];
     onDragStateChange?: (isDragging: boolean) => void;
     className?: string; // Added for custom styling
-    maxContainerHeight?: string | number; // Added for controlling height
+    size?: "small" | "medium" | "full"; // Responsive size field
 }
+
+const SIZE_MAP = {
+    small: 250,
+    medium: 500,
+    full: "100%", // Logic will handle string vs number
+};
 
 export const Gallery: React.FC<GalleryProps> = ({
     items,
     onDragStateChange,
     className,
-    maxContainerHeight
+    size = "medium",
 }) => {
+    // Determine height based on size prop
+    const maxContainerHeight = SIZE_MAP[size];
+    // Logic handled in variable definition above
+
+    // Preprocess items
+    const processedItems = useMemo(() => {
+        if (!items) return [];
+        return items.map(url => {
+            const isYoutube = isYouTubeUrl(url);
+            const isVideo = /\.(mp4|webm|ogg)$/i.test(url);
+            return {
+                url,
+                type: isYoutube ? "youtube" : isVideo ? "video" : "image"
+            } as MediaItem;
+        });
+    }, [items]);
+
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [showLightbox, setShowLightbox] = useState(false);
     const [_, setImageDimensions] = useState<{ [key: number]: number }>({});
@@ -61,13 +84,13 @@ export const Gallery: React.FC<GalleryProps> = ({
     const mouseStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
     const isDraggingRef = useRef(false);
 
-    if (!items || items.length === 0) return null;
+    if (!processedItems || processedItems.length === 0) return null;
 
-    const sortedItems = sortMediaItems(items);
+    const sortedItems = sortMediaItems(processedItems);
     const currentItem = sortedItems[selectedIndex];
     const embedUrl =
         currentItem.type === "youtube" ? getYouTubeEmbedUrl(currentItem.url) : null;
-    const isMultipleItems = items.length > 1;
+    const isMultipleItems = processedItems.length > 1;
 
     // Use prop maxContainerHeight if provided, otherwise calculate
     const calculatedHeight = maxHeight
@@ -186,7 +209,7 @@ export const Gallery: React.FC<GalleryProps> = ({
                     onScroll={handleScroll}
                     onMouseDown={handleMouseDown}
                 >
-                    {items.map((item, index) => (
+                    {sortedItems.map((item, index) => (
                         <div
                             key={index}
                             className={`shrink-0 relative rounded overflow-hidden flex items-center justify-center ${isMultipleItems ? "" : "bg-black"

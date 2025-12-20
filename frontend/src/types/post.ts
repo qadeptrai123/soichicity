@@ -13,7 +13,7 @@ export interface Post {
     media_urls?: string[];
     media_url?: string | null;
     media_type?: "image" | "video" | "youtube" | string | null;
-    gallery?: MediaItem[];
+    gallery?: string[];
 
     // Hierarchy
     level?: number;
@@ -48,3 +48,29 @@ export type CommentData = {
     content: string;
     files?: File[];
 };
+
+// --- Values related to Post Detail API ---
+
+export interface InteractionStatus {
+    is_liked: boolean;
+    is_reposted: boolean;
+    is_saved: boolean;
+}
+
+export interface ActivityUser {
+    name: string;
+    username: string;
+    avatar_url: string;
+}
+
+export interface ActivityItem {
+    type: "like" | "repost" | string;
+    user: ActivityUser;
+}
+
+export interface PostDetail extends Post {
+    likes: number; // explicit flat field from API
+    replies: Post[]; // Overwrite optional to required if guaranteed? Or keep compatible
+    activity: ActivityItem[];
+    current_user_interaction: InteractionStatus;
+}
