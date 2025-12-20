@@ -234,7 +234,9 @@ class PostService:
         payload = {
             "id": comment_id,
             "user_id": user_id,
-            "user_avatar": user_avatar,
+            "id": comment_id,
+            "user_id": user_id,
+            "avatar_url": user_avatar, # Standardized
             "content": content,
             "timestamp": timestamp
         }
@@ -305,7 +307,7 @@ class PostService:
     @staticmethod
     def get_feed_posts(user_id: str = None, limit: int = 20):
         # Simply fetch all posts ordered by created_at desc
-        posts = db.collection("posts").order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit).stream()
+        posts = db.collection("posts").where("level", "==", 0).order_by("created_at", direction=firestore.Query.DESCENDING).stream()
         
         final_posts = []
         for p in posts:
@@ -415,7 +417,7 @@ class PostService:
         author_data = {
             "uid": author_id,
             "username": "Unknown",
-            "avatar": None,
+            "avatar_url": None,
             "full_name": None
         }
         if author_doc.exists:
@@ -438,7 +440,7 @@ class PostService:
             
             # Resolve Reply Author
             r_author_id = r_data.get("author_id")
-            r_author_data = {"uid": r_author_id, "name": "Unknown", "username": "unknown", "avatar": ""}
+            r_author_data = {"uid": r_author_id, "name": "Unknown", "username": "unknown", "avatar_url": ""}
             if r_author_id:
                 # Optimized: In real app, use DataLoader or batch get. Here we do N reads (slow but simple)
                 ua_doc = db.collection("users").document(r_author_id).get()
@@ -465,8 +467,23 @@ class PostService:
                 "actions_count": r_data.get("likes_count", 0), # FE uses actions_count
                 
                 "level": r_data.get("level", 0),
-                "reply_to_id": r_data.get("reply_to_id")
+                "reply_to_id": r_data.get("reply_to_id"),
+                "is_liked": False,
+                "is_reposted": False,
+                "is_saved": False
             })
+            if current_user_id:
+            # Check if current user liked
+                if rep.reference.collection("likes").document(current_user_id).get().exists:
+                    replies_list[-1]["is_liked"] = True
+                
+                # Check if current user reposted
+                if rep.reference.collection("reposts").document(current_user_id).get().exists:
+                    replies_list[-1]["is_reposted"] = True
+                
+                # Check if current user saved
+                if rep.reference.collection("saves").document(current_user_id).get().exists:
+                    replies_list[-1]["is_saved"] = True
         
         # 4) Fetch likes & reposts lists (user IDs) - lightweight check
         #   (Optional: Only needed if we want to show list of likers in UI, usually overkill for detail)
@@ -554,7 +571,7 @@ class PostService:
             
             # Resolve Reply Author
             r_author_id = r_data.get("author_id")
-            r_author_data = {"uid": r_author_id, "name": "Unknown", "username": "unknown", "avatar": ""}
+            r_author_data = {"uid": r_author_id, "name": "Unknown", "username": "unknown", "avatar_url": ""}
             if r_author_id:
                 # Optimized: In real app, use DataLoader or batch get. Here we do N reads (slow but simple)
                 ua_doc = db.collection("users").document(r_author_id).get()

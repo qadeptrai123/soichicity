@@ -63,7 +63,7 @@ def get_posts(
 @router.post("/posts/{post_id}/like")
 def like_post(post_id: str, user = Depends(get_current_user)):
     # Lấy avatar user (đề phòng nếu token không có field avatar thì để rỗng)
-    avatar = user.get("avatar", "") or user.get("picture", "")
+    avatar = user.get("avatar_url", "") or user.get("avatar", "") or user.get("picture", "")
     
     try:
         return PostService.toggle_interaction(
@@ -87,7 +87,7 @@ def like_post(post_id: str, user = Depends(get_current_user)):
 
 @router.post("/posts/{post_id}/share")
 def share_post(post_id: str, user = Depends(get_current_user)):
-    avatar = user.get("avatar", "") or user.get("picture", "")
+    avatar = user.get("avatar_url", "") or user.get("avatar", "") or user.get("picture", "")
     
     try:
         return PostService.toggle_interaction(
@@ -102,7 +102,7 @@ def share_post(post_id: str, user = Depends(get_current_user)):
 
 @router.post("/posts/{post_id}/repost")
 def repost_post(post_id: str, user = Depends(get_current_user)):
-    avatar = user.get("avatar", "") or user.get("picture", "")
+    avatar = user.get("avatar_url", "") or user.get("avatar", "") or user.get("picture", "")
     
     try:
         return PostService.toggle_interaction(
@@ -126,7 +126,7 @@ def repost_post(post_id: str, user = Depends(get_current_user)):
 
 @router.post("/posts/{post_id}/save")
 def save_post(post_id: str, user = Depends(get_current_user)):
-    avatar = user.get("avatar", "") or user.get("picture", "")
+    avatar = user.get("avatar_url", "") or user.get("avatar", "") or user.get("picture", "")
     
     try:
         return PostService.toggle_interaction(
@@ -154,7 +154,7 @@ def add_comment(
     form_data: CommentCreate = Depends(),
     user = Depends(get_current_user)
 ):
-    avatar = user.get("avatar", "") or user.get("picture", "")
+    avatar = user.get("avatar_url", "") or user.get("avatar", "") or user.get("picture", "")
     
     try:
         return PostService.create_comment(

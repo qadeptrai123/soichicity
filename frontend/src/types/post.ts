@@ -30,7 +30,7 @@ export interface Post {
 
     // Status
     is_liked?: boolean;
-    is_repost?: boolean;
+    is_reposted?: boolean;
     is_saved?: boolean;
     is_shared?: boolean;
 }

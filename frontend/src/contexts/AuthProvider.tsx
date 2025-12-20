@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import type { User, AuthContextType } from "@/types/auth";
 import { refreshAccessToken } from "@/lib/api-client";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -40,7 +41,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                             username: decoded.username || decoded.sub,
                             email: decoded.email || "",
                             full_name: decoded.name || decoded.full_name || "",
-                            avatar_url: decoded.avatar_url || decoded.picture,
+                            avatar_url: decoded.avatar_url || decoded.picture || DEFAULT_AVATAR_URL,
                             bio: decoded.bio || "",
                             is_active: decoded.is_active ?? true,
                             provider: decoded.provider || "password",
@@ -79,7 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 username: decoded.username || decoded.sub,
                 email: decoded.email || "",
                 full_name: decoded.name || decoded.full_name || "",
-                avatar_url: decoded.avatar_url || decoded.picture,
+                avatar_url: decoded.avatar_url || decoded.picture || DEFAULT_AVATAR_URL,
                 bio: decoded.bio || "",
                 is_active: decoded.is_active ?? true,
                 provider: decoded.provider || "password",

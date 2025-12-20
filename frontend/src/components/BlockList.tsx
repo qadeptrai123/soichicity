@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { User } from "@/MockData/type";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 interface BlockListProps {
   isOpen: boolean;
@@ -22,11 +23,11 @@ export default function BlockList({ isOpen, onClose, blockedUsers }: BlockListPr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/10" 
+      <div
+        className="absolute inset-0 bg-black/10"
         onClick={onClose}
       ></div>
-      
+
       {/* Dialog */}
       <div className="relative z-10 w-full max-w-[500px] bg-secondary text-white border border-neutral-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
@@ -52,7 +53,7 @@ export default function BlockList({ isOpen, onClose, blockedUsers }: BlockListPr
             >
               <div className="flex items-center gap-3">
                 <Avatar className="w-12 h-12 border border-neutral-800">
-                  <AvatarImage src={user.avatarUrl} />
+                  <AvatarImage src={user.avatar_url || user.avatarUrl || DEFAULT_AVATAR_URL} />
                   <AvatarFallback className="text-lg bg-gradient-to-br from-blue-500 to-purple-500">
                     {(user.name || user.username)[0].toUpperCase()}
                   </AvatarFallback>

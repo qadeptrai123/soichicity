@@ -48,21 +48,21 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
             break;
         case "repost":
             if (isActive) {
-                activeButtonClasses = "text-green-600 hover:text-green-700"; // Green for repost
+                activeButtonClasses = "text-blue-500 hover:text-blue-500"; // Green for repost
                 // iconExtraClasses = "fill-current"; // Repost icon (Repeat2) might not fill nicely depending on icon
             } else {
-                activeButtonClasses = "text-[#94a3b8] hover:text-green-500";
+                activeButtonClasses = "text-[#94a3b8] hover:text-blue-600";
             }
             break;
         case "share":
-            activeButtonClasses = "text-[#94a3b8] hover:text-blue-400";
+            activeButtonClasses = "text-[#94a3b8] hover:text-blue-500";
             break;
         case "bookmark":
             if (isActive) {
-                activeButtonClasses = "text-yellow-400 hover:text-yellow-500";
+                activeButtonClasses = "text-yellow-500 hover:text-blue-500";
                 iconExtraClasses = "fill-current";
             } else {
-                activeButtonClasses = "text-[#94a3b8] hover:text-yellow-400"; // Or hover:text-foreground
+                activeButtonClasses = "text-[#94a3b8] hover:text-blue-600"; // Or hover:text-foreground
             }
             break;
         default:
@@ -90,7 +90,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
         >
             {renderedIcon}
             {count !== undefined && count !== null && (
-                <span className={`text-xs font-medium ${isActive ? "" : "group-hover/icon:text-current"}`}>
+                <span className={`text-xs font-medium text-[#94a3b8]`}>
                     {/* Count color: PostMainPost keeps it styled with the icon on hover. 
                 FeedCard used 'small-text'. 
                 We use 'font-medium' and inherit color from button.

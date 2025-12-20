@@ -60,6 +60,7 @@ const formatTime = (isoString: string): string => {
 // --- IMPORTED GALLERY COMPONENT ---
 // Gallery logic moved to ./Gallery.tsx
 import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "./Gallery";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 // --- MAIN FEED CARD COMPONENT ---
 const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, compact }) => {
@@ -69,7 +70,9 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
     username: "user",
     name: "Unknown User",
     handle: "@user",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=default",
+    avatar_url: DEFAULT_AVATAR_URL,
+    /** @deprecated */
+    avatar: DEFAULT_AVATAR_URL,
   };
 
   const displayAuthor = author || mockAuthor;
@@ -94,7 +97,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   const [actionStates, setActionStates] = useState({
     liked: post.is_liked || false,
     bookmarked: post.is_saved || false,
-    reposted: post.is_repost || false,
+    reposted: post.is_reposted || false,
   });
 
   // Sync state với props khi data từ API thay đổi (sau khi invalidateQueries)
@@ -108,7 +111,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
     setActionStates({
       liked: post.is_liked || false,
       bookmarked: post.is_saved || false,
-      reposted: post.is_repost || false
+      reposted: post.is_reposted || false
     });
   }, [
     post.likes_count,
@@ -117,7 +120,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
     post.reposts_count,
     post.is_liked,
     post.is_saved,
-    post.is_repost,
+    post.is_reposted,
   ]);
 
   // --- Xử lý click chuyển trang ---
@@ -272,7 +275,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
       >
         <Avatar className="w-10 h-10 shrink-0">
           <AvatarImage
-            src={displayAuthor?.avatar || ""}
+            src={displayAuthor?.avatar_url || displayAuthor?.avatar || DEFAULT_AVATAR_URL}
             alt={displayAuthor?.name || "User"}
           />
           <AvatarFallback>

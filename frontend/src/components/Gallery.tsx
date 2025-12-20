@@ -188,15 +188,15 @@ export const Gallery: React.FC<GalleryProps> = ({
         <div className={className} data-gallery="true">
             {/* Carousel Layout */}
             <div
-                className={`rounded-xl overflow-hidden mt-2 w-full relative group ${isMultipleItems ? "bg-secondary" : "bg-black border border-border"
+                className={`rounded-xl overflow-hidden mt-2 w-full relative group ${isMultipleItems ? "bg-transparent" : "bg-transparent border border-border"
                     }`}
             >
                 <div
                     ref={scrollContainerRef}
                     data-scroll-container="true"
                     className={`flex overflow-x-auto scrollbar-hide user-select-none ${isMultipleItems
-                        ? "bg-secondary gap-2 px-2 cursor-grab active:cursor-grabbing"
-                        : "bg-black"
+                        ? "bg-transparent gap-2 px-0 cursor-grab active:cursor-grabbing"
+                        : "bg-transparent"
                         }`}
                     style={{
                         scrollBehavior: "auto",
@@ -212,7 +212,7 @@ export const Gallery: React.FC<GalleryProps> = ({
                     {sortedItems.map((item, index) => (
                         <div
                             key={index}
-                            className={`shrink-0 relative rounded overflow-hidden flex items-center justify-center ${isMultipleItems ? "" : "bg-black"
+                            className={`shrink-0 relative rounded overflow-hidden flex items-center justify-center ${isMultipleItems ? "" : "bg-transparent"
                                 }`}
                             style={{
                                 width: isMultipleItems ? "auto" : "100%",
@@ -225,8 +225,8 @@ export const Gallery: React.FC<GalleryProps> = ({
                             {item.type === "youtube" ? (
                                 <div
                                     className={`flex items-center justify-center ${isMultipleItems
-                                        ? "h-full bg-secondary"
-                                        : "w-full h-full bg-black"
+                                        ? "h-full bg-transparent"
+                                        : "w-full h-full bg-transparent"
                                         }`}
                                 >
                                     <img
@@ -239,7 +239,7 @@ export const Gallery: React.FC<GalleryProps> = ({
                                             } object-contain`}
                                         onLoad={(e) => handleImageLoad(e, index)}
                                     />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
+                                    <div className="absolute inset-0 flex items-center justify-center bg-transparent group-hover:bg-black/50 transition">
                                         <Play size={32} className="text-white fill-white" />
                                     </div>
                                 </div>
@@ -250,7 +250,7 @@ export const Gallery: React.FC<GalleryProps> = ({
                                             } object-contain`}
                                         src={item.url}
                                     />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
+                                    <div className="absolute inset-0 flex items-center justify-center bg-transparent group-hover:bg-black/50 transition">
                                         <Play size={32} className="text-white fill-white" />
                                     </div>
                                 </>

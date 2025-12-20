@@ -141,7 +141,7 @@ def batch_get_users(user_ids: list) -> dict:
             users[user_id] = {
                 "id": user_id,
                 "username": "Unknown",
-                "avatar": None,
+                "avatar_url": None,
                 "full_name": None
             }
     
