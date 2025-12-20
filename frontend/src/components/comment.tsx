@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Image as ImageIcon, AtSign, X, Search, Send } from "lucide-react";
 
-import type { MediaItem } from "@/types/common";
+// import type { MediaItem } from "@/types/common";
 import FeedCard from "./FeedCard";
 
 import {
@@ -34,7 +34,7 @@ export type TargetPost = {
   date: string;
   media_url?: string | null;
   media_type?: string | null;
-  gallery?: MediaItem[];
+  gallery?: string[];
   level?: number;
 };
 

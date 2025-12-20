@@ -1,5 +1,6 @@
 //Kiệt
 import React, { useState, useCallback, useEffect } from "react";
+import { ActionButton } from "./ActionButton";
 import {
   Card,
   CardContent,
@@ -7,7 +8,7 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+
 import {
   MessageSquare,
   Bookmark,
@@ -340,7 +341,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
             <Gallery
               items={post.gallery!}
               onDragStateChange={setIsGalleryDragging}
-              maxContainerHeight={compact ? 200 : undefined}
+              size={"small"}
             />
           ) : (
             hasSingleMedia && (
@@ -478,69 +479,6 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
         </CardFooter>
       )}
     </Card>
-  );
-};
-
-// --- ACTION BUTTON COMPONENT ---
-interface ActionButtonProps {
-  actionId?: string;
-  icon: React.ReactNode;
-  count?: number;
-  onClick?: (e?: React.MouseEvent) => void; // Sửa type để nhận event
-  isActive?: boolean;
-}
-
-const ActionButton: React.FC<ActionButtonProps> = ({
-  actionId,
-  icon,
-  count,
-  onClick,
-  isActive,
-}) => {
-  let activeButtonClasses = "";
-  let iconExtraClasses = "";
-
-  if (isActive) {
-    switch (actionId) {
-      case "like":
-        activeButtonClasses = "text-rose-600 hover:text-rose-700";
-        iconExtraClasses = "fill-current";
-        break;
-      case "bookmark":
-        activeButtonClasses = "text-yellow-400 hover:text-yellow-500";
-        iconExtraClasses = "fill-current";
-        break;
-      case "share":
-        activeButtonClasses = "text-blue-600 hover:text-blue-700";
-        iconExtraClasses = "stroke-2 stroke-blue-600";
-        break;
-      default:
-        activeButtonClasses = "text-foreground";
-        iconExtraClasses = "fill-current";
-    }
-  } else {
-    activeButtonClasses = "text-text-secondary hover:text-foreground";
-  }
-
-  const renderedIcon = React.isValidElement(icon)
-    ? React.cloneElement(icon as any, {
-      className: `${(icon as any).props.className || ""
-        } ${iconExtraClasses}`.trim(),
-    })
-    : icon;
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={onClick}
-      className={`action-button-base w-8 h-8 flex items-center gap-1 transition-all ${activeButtonClasses}`}
-    >
-      {renderedIcon}
-      {count !== undefined && count > 0 && (
-        <span className="small-text text-xs">{count}</span>
-      )}
-    </Button>
   );
 };
 

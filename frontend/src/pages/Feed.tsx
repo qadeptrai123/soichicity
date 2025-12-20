@@ -2,7 +2,7 @@
 import FeedCard from "@/components/FeedCard";
 import { LoginPrompt } from "@/components/LoginPrompt";
 import type { Post as PostData, Author as AuthorData } from "@/types/post";
-import type { MediaItem } from "@/types/common";
+// import type { MediaItem } from "@/types/common";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -101,17 +101,23 @@ const Feed = () => {
   // Transform API data về format FeedCard
   const transformPost = (apiPost: any) => {
     // Chuyển media_urls thành gallery
-    let gallery: MediaItem[] | undefined;
+    // Logic for media
+    let gallery: string[] | undefined;
+    let singleMediaUrl: string | null = null;
+    let singleMediaType: string | null = null;
+
     if (apiPost.media_urls && apiPost.media_urls.length > 0) {
-      gallery = apiPost.media_urls.map((url: string) => {
-        // Phát hiện kiểu media
+      if (apiPost.media_urls.length > 1) {
+        gallery = apiPost.media_urls;
+      } else {
+        // Single media case
+        const url = apiPost.media_urls[0];
+        singleMediaUrl = url;
+
         const isYoutube = /(?:youtube\.com|youtu\.be)/.test(url);
         const isVideo = /\.(mp4|webm|ogg)$/i.test(url);
-        return {
-          url,
-          type: isYoutube ? "youtube" : isVideo ? "video" : "image",
-        } as MediaItem;
-      });
+        singleMediaType = isYoutube ? "youtube" : isVideo ? "video" : "image";
+      }
     }
 
     return {
@@ -119,9 +125,9 @@ const Feed = () => {
       content: apiPost.content,
       created_at: apiPost.created_at,
       author_id: apiPost.author_id,
-      media_url: gallery && gallery.length === 1 ? gallery[0].url : null,
-      media_type: gallery && gallery.length === 1 ? gallery[0].type : null,
-      gallery: gallery && gallery.length > 1 ? gallery : undefined,
+      media_url: singleMediaUrl,
+      media_type: singleMediaType,
+      gallery: gallery,
       likes_count: apiPost.likes_count || 0,
       comments_count: apiPost.comments_count || 0,
       saves_count: apiPost.saves_count || 0,
