@@ -15,7 +15,7 @@ import CreatePostDialog from "@/components/CreatePostDialog";
 import { SearchDialog } from "@/components/SearchDialog";
 import { useState } from "react";
 import { MOCK_FRIENDS } from "@/MockData/data";
-import { useMe } from "@/hooks/api/use-users";
+// import { useMe } from "@/hooks/api/use-users";
 import logo from "@/assets/logo.png";
 import { LoginPrompt } from "@/components/LoginPrompt";
 
@@ -33,7 +33,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
     title: "Log in or sign up for Sợi Chỉ City",
     subtitle: "See what people are talking about and join the conversation."
   });
-  const { data: me } = useMe();
+  // const { data: me } = useMe();
   const items = [
     { icon: Home, path: "/" },
     { icon: Search, path: "/search" },

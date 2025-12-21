@@ -16,7 +16,7 @@ import { MOCK_FRIENDS } from "@/MockData/data";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 const Feed = () => {
-  const [isLoginPromptDismissed, setIsLoginPromptDismissed] = useState(false);
+  const [isLoginPromptDismissed] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const { isAuthenticated, user: currentUser } = useAuth();
 

@@ -7,6 +7,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
+import { LoginPrompt } from "@/components/LoginPrompt";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import {
@@ -27,6 +28,7 @@ import {
   useSavePost,
   useRepostPost,
 } from "@/hooks/api/use-posts";
+import { useAuth } from "@/contexts/AuthProvider";
 
 import type { Post as PostData, Author as AuthorData } from "@/types/post";
 
@@ -37,6 +39,7 @@ interface FeedCardProps {
   className?: string;
   compact?: boolean;
 }
+
 
 // Helper Functions
 const formatTime = (isoString: string): string => {
@@ -76,8 +79,9 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   };
 
   const displayAuthor = author || mockAuthor;
-
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
@@ -153,6 +157,10 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   const handleLike = useCallback(
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
+      if (!isAuthenticated) {
+        setShowLoginPrompt(true);
+        return;
+      }
       setActionStates((prev) => ({ ...prev, liked: !prev.liked }));
       setLocalCounts((prev) => ({
         ...prev,
@@ -160,12 +168,16 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
       }));
       likeMutation.mutate(post.post_id);
     },
-    [actionStates.liked, post.post_id, likeMutation]
+    [actionStates.liked, post.post_id, likeMutation, isAuthenticated]
   );
 
   const handleBookmark = useCallback(
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
+      if (!isAuthenticated) {
+        setShowLoginPrompt(true);
+        return;
+      }
       setActionStates((prev) => ({ ...prev, bookmarked: !prev.bookmarked }));
       setLocalCounts((prev) => ({
         ...prev,
@@ -173,7 +185,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
       }));
       saveMutation.mutate(post.post_id);
     },
-    [actionStates.bookmarked, post.post_id, saveMutation]
+    [actionStates.bookmarked, post.post_id, saveMutation, isAuthenticated]
   );
 
   // const handleShare = useCallback(
@@ -192,6 +204,10 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   const handleRepost = useCallback(
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
+      if (!isAuthenticated) {
+        setShowLoginPrompt(true);
+        return;
+      }
       setActionStates((prev) => ({ ...prev, reposted: !prev.reposted }));
       setLocalCounts((prev) => ({
         ...prev,
@@ -199,17 +215,21 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
       }));
       repostMutation.mutate(post.post_id);
     },
-    [actionStates.reposted, post.post_id, repostMutation]
+    [actionStates.reposted, post.post_id, repostMutation, isAuthenticated]
   );
 
   const handleReply = useCallback(
     async (e?: React.MouseEvent) => {
       e?.stopPropagation();
+      if (!isAuthenticated) {
+        setShowLoginPrompt(true);
+        return;
+      }
       if (onReply) {
         onReply(post, author);
       }
     },
-    [post, author, onReply]
+    [post, author, onReply, isAuthenticated]
   );
 
   // Media Checks
@@ -480,6 +500,23 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
           </div>
           <div className="spacer-column"></div>
         </CardFooter>
+      )}
+      {/* Login Prompt Overlay */}
+      {showLoginPrompt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 cursor-default"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowLoginPrompt(false);
+          }}
+        >
+          <div
+            className="relative w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <LoginPrompt />
+          </div>
+        </div>
       )}
     </Card>
   );
