@@ -35,10 +35,14 @@ class PostCreateForm:
     def __init__(
         self,
         content: str = Form(...),
-        files: List[UploadFile] = File(default=[])
+        files: List[UploadFile] = File(default=[]),
+        level: int = Form(0),
+        reply_to_id: Optional[str] = Form(None)
     ):
         self.content = content
         self.files = files
+        self.level = level
+        self.reply_to_id = reply_to_id
 
 class CommentCreate:
     def __init__(
@@ -53,14 +57,14 @@ class CommentCreate:
 class CommentResponse(BaseModel):
     id: str
     user_id: str
-    user_avatar: Optional[str] = None
+    avatar_url: Optional[str] = None
     content: str
     timestamp: int # Trả về dạng số như hình
 
 class AuthorResponse(BaseModel):
-    id: str
+    uid: str
     username: str
-    avatar: Optional[str] = None
+    avatar_url: Optional[str] = None
     full_name: Optional[str] = None
 
 class PaginatedComments(BaseModel):
@@ -72,7 +76,6 @@ class PaginatedComments(BaseModel):
 
 class UserInteractionStatus(BaseModel):
     is_liked: bool = False
-    is_shared: bool = False
     is_reposted: bool = False
     is_saved: bool = False
 
@@ -91,7 +94,6 @@ class PostResponse(BaseModel):
     
     # Interaction status for current user
     is_liked: bool = False
-    is_shared: bool = False  # Note: API might still return is_shared/reposted check
     is_reposted: bool = False
     is_saved: bool = False
     
@@ -111,6 +113,15 @@ class PostResponse(BaseModel):
         if isinstance(v, str): return [v]
         return v
 
+class ActivityUser(BaseModel):
+    name: str # The service uses name or full_name? dict says "name": ud.get("full_name")
+    username: str
+    avatar_url: Optional[str] = None
+
+class ActivityItem(BaseModel):
+    type: str # "like", "repost"
+    user: ActivityUser
+
 class PostDetailResponse(BaseModel):
     # Post metadata
     post_id: str
@@ -123,23 +134,32 @@ class PostDetailResponse(BaseModel):
     
     # Author info
     author: AuthorResponse
+    author_id: str
     
-    # Engagement counts
     # Engagement counts
     likes_count: int = 0
     reposts_count: int = 0
     saves_count: int = 0
     comments_count: int = 0
     
-    # Comments with pagination
-    comments: PaginatedComments = PaginatedComments()
+    # Flattened for FE convenience
+    likes: int = 0
+
+    # Replies (Level 1)
+    replies: List[dict] = [] # Or define basic Post structure. For now dict is safe or use PostResponse? PostResponse isn't fully defined yet. 
+    # Let's use List[dict] to avoid circular reference issues if PostResponse refers to AuthorResponse etc.
+    # Actually PostDetailResponse is separate. 
     
-    # Engagement lists (optional, for UI needs)
-    likes: List[str] = []  # List of user IDs who liked
-    reposts: List[str] = []  # List of user IDs who reposted
+    # Activity
+    activity: List[ActivityItem] = []
     
     # Current user's interaction status
     current_user_interaction: UserInteractionStatus = UserInteractionStatus()
+    
+    # Top level interaction status
+    is_liked: bool = False
+    is_reposted: bool = False
+    is_saved: bool = False
     
     class Config:
         populate_by_name = True

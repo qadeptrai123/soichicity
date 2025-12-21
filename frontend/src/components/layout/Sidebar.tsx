@@ -39,7 +39,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
     { icon: Search, path: "/search" },
     { icon: Heart, path: "/favorites" },
     // { icon: Users, path: "/community" },
-    { icon: Users, path: `/profile/${me?.username}` },
+    { icon: Users, path: `/profile/${user?.username}` },
     { icon: PlusSquare, path: "/create" },
   ];
 

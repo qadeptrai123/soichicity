@@ -17,14 +17,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import EmojiButton from "./EmojiButton";
-import type { User } from "@/types/auth";
+import type { User } from "@/types/user";
 import { usePostEditor } from "@/hooks/usePostEditor";
 import { useCreatePost } from "@/hooks/api/use-posts";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 interface CreatePostDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentUser: User; // Nhận dữ liệu người dùng qua props
+  currentUser: User;
   mockFriends: User[];
 }
 
@@ -112,7 +113,7 @@ export default function CreatePostDialog({
         <div className="p-6 flex gap-4 min-h-[300px] overflow-y-auto flex-1">
           <div className="flex flex-col items-center pt-1">
             <Avatar className="w-10 h-10 border border-border">
-              <AvatarImage src={currentUser.avatar_url} alt={currentUser.username} />
+              <AvatarImage src={currentUser.avatar_url || DEFAULT_AVATAR_URL} alt={currentUser.username} />
               <AvatarFallback>{(currentUser.full_name || currentUser.username).charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="w-[2px] flex-1 bg-border my-3 rounded-full opacity-50"></div>

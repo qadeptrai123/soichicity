@@ -86,7 +86,54 @@ def login(db=Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
              raise HTTPException(status_code=400, detail="Too many failed attempts. Please try again later.")
         
         raise HTTPException(status_code=400, detail=error_msg)
+
+    # STEP 4: Embed Firestore User Data into Token (Custom Claims)
+    uid = data["localId"]
+    user_doc = user_service.get_user(db, uid)
+
+    if user_doc:
+        # Prepare claims (ensure JSON serializable)
+        claims = {
+            "username": user_doc.get("username"),
+            "full_name": user_doc.get("full_name"),
+            "avatar_url": user_doc.get("avatar_url"),
+            "is_active": user_doc.get("is_active"),
+            "provider": user_doc.get("provider"),
+            # Add counts for initial state
+            "followers_count": user_doc.get("followers_count", 0),
+            "followings_count": user_doc.get("followings_count", 0),
+        }
         
+        # Remove None values to avoid errors
+        claims = {k: v for k, v in claims.items() if v is not None}
+
+        try:
+            # 1. Set Custom Claims on Firebase User Record (Persistent)
+            auth.set_custom_user_claims(uid, claims)
+
+            # 2. Immediately reflect these claims in the returned token
+            # Create a Custom Token
+            custom_token = auth.create_custom_token(uid, claims)
+            
+            # Exchange Custom Token for a new ID Token
+            exchange_url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key={settings.FIREBASE_API_KEY}"
+            exchange_res = requests.post(exchange_url, json={
+                "token": custom_token.decode("utf-8") if isinstance(custom_token, bytes) else custom_token,
+                "returnSecureToken": True
+            })
+            exchange_data = exchange_res.json()
+
+            if "idToken" in exchange_data:
+                data["idToken"] = exchange_data["idToken"]
+                data["refreshToken"] = exchange_data["refreshToken"]
+                # expiresIn usually resets too
+                data["expiresIn"] = exchange_data["expiresIn"]
+
+        except Exception as e:
+            print(f"Error checking/setting custom claims: {e}")
+            # Non-blocking: If claims fail, return original token
+            pass
+
     return {
         "access_token": data["idToken"], 
         "token_type": "bearer",

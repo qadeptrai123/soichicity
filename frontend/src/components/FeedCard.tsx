@@ -1,5 +1,6 @@
 //Kiệt
 import React, { useState, useCallback, useEffect } from "react";
+import { ActionButton } from "./ActionButton";
 import {
   Card,
   CardContent,
@@ -7,7 +8,7 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+
 import {
   MessageSquare,
   Bookmark,
@@ -15,7 +16,6 @@ import {
   Heart,
   Send,
   X,
-  Play,
   Edit3,
   Ban,
   Link2,
@@ -25,51 +25,17 @@ import { useNavigate } from "react-router-dom";
 import {
   useLikePost,
   useSavePost,
-  useSharePost,
   useRepostPost,
 } from "@/hooks/api/use-posts";
 
-// 1. Định nghĩa các Interfaces
-export interface MediaItem {
-  url: string;
-  type: "image" | "video" | "youtube";
-}
-
-export interface PostData {
-  post_id: string; // Updated from id
-  content: string;
-  created_at: string;
-  author_id: string;
-  media_url?: string | null;
-  media_type?: "image" | "video" | "youtube" | string | null;
-  gallery?: MediaItem[];
-
-  // Counts
-  likes_count?: number;
-  comments_count?: number;
-  saves_count?: number; // bookmark_count -> saves_count
-  reposts_count?: number;
-  shares_count?: number; // Keep for legacy if needed, or map to reposts
-
-  // Interaction status from API
-  is_liked?: boolean;
-  is_saved?: boolean; // is_bookmarked -> is_saved
-  is_shared?: boolean;
-  is_repost?: boolean;
-}
-
-export interface AuthorData {
-  id?: string;
-  username?: string;
-  name: string;
-  handle: string;
-  avatar: string;
-}
+import type { Post as PostData, Author as AuthorData } from "@/types/post";
 
 interface FeedCardProps {
   post: PostData;
   author: AuthorData;
   onReply?: (post: PostData, author: AuthorData) => void;
+  className?: string;
+  compact?: boolean;
 }
 
 // Helper Functions
@@ -89,322 +55,24 @@ const formatTime = (isoString: string): string => {
   }
 };
 
-const getYouTubeEmbedUrl = (url: string): string | null => {
-  if (!url) return null;
-  try {
-    let videoId: string | null = null;
-    const watchMatch = url.match(
-      /(?:youtube\.com\/watch\?v=|youtube\.com\/.*[?&]v=)([a-zA-Z0-9_-]+)/
-    );
-    if (watchMatch) videoId = watchMatch[1];
-    const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
-    if (shortMatch) videoId = shortMatch[1];
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
-  } catch (e) {
-    console.error("YouTube URL conversion error:", e);
-    return null;
-  }
-};
-
-const sortMediaItems = (items: MediaItem[]): MediaItem[] => {
-  if (!items || items.length === 0) return items;
-
-  const videos = items.filter(
-    (item) => item.type === "video" || item.type === "youtube"
-  );
-  const images = items.filter((item) => item.type === "image");
-
-  return [...videos, ...images];
-};
-
-const isYouTubeUrl = (url: string): boolean => {
-  if (!url) return false;
-  return /(?:youtube\.com|youtu\.be)/.test(url);
-};
-
-// --- GALLERY COMPONENT ---
-interface GalleryProps {
-  items: MediaItem[];
-  onDragStateChange?: (isDragging: boolean) => void;
-}
-
-const Gallery: React.FC<GalleryProps> = ({ items, onDragStateChange }) => {
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [showLightbox, setShowLightbox] = useState(false);
-  const [_, setImageDimensions] = useState<{ [key: number]: number }>({});
-  const [maxHeight, setMaxHeight] = useState<number | null>(null);
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const scrollStartRef = React.useRef<number>(0);
-  const mouseStartRef = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const isDraggingRef = React.useRef(false);
-
-  if (!items || items.length === 0) return null;
-
-  const sortedItems = sortMediaItems(items);
-  const currentItem = sortedItems[selectedIndex];
-  const embedUrl =
-    currentItem.type === "youtube" ? getYouTubeEmbedUrl(currentItem.url) : null;
-  const isMultipleItems = items.length > 1;
-  const containerHeight = maxHeight
-    ? `${maxHeight}px`
-    : isMultipleItems
-      ? "280px"
-      : "400px";
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!isMultipleItems) return;
-
-    e.preventDefault();
-    scrollStartRef.current = scrollContainerRef.current?.scrollLeft || 0;
-    mouseStartRef.current = { x: e.clientX, y: e.clientY };
-    isDraggingRef.current = false;
-    setIsDragging(false);
-    onDragStateChange?.(false);
-
-    const handleMouseMoveGlobal = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - mouseStartRef.current.x;
-      const deltaY = Math.abs(moveEvent.clientY - mouseStartRef.current.y);
-
-      if (Math.abs(deltaX) > 5 && !isDraggingRef.current && deltaY < 50) {
-        isDraggingRef.current = true;
-        setIsDragging(true);
-        onDragStateChange?.(true);
-      }
-
-      // Scroll container khi dragging
-      if (isDraggingRef.current && scrollContainerRef.current) {
-        scrollContainerRef.current.scrollLeft = scrollStartRef.current - deltaX;
-      }
-    };
-
-    const handleMouseUpGlobal = () => {
-      document.removeEventListener("mousemove", handleMouseMoveGlobal);
-      document.removeEventListener("mouseup", handleMouseUpGlobal);
-      isDraggingRef.current = false;
-      setTimeout(() => {
-        setIsDragging(false);
-        onDragStateChange?.(false);
-      }, 0);
-    };
-
-    document.addEventListener("mousemove", handleMouseMoveGlobal);
-    document.addEventListener("mouseup", handleMouseUpGlobal);
-  };
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const container = e.currentTarget;
-    const scrollLeft = container.scrollLeft;
-    const scrollWidth = container.scrollWidth;
-    const containerWidth = container.offsetWidth;
-
-    // Tính toán index dựa trên phần trăm scroll
-    const scrollProgress = scrollLeft / (scrollWidth - containerWidth);
-    const newIndex = Math.round(scrollProgress * (sortedItems.length - 1));
-    setSelectedIndex(Math.max(0, Math.min(newIndex, sortedItems.length - 1)));
-  };
-
-  const handleImageLoad = (
-    e: React.SyntheticEvent<HTMLImageElement>,
-    index: number
-  ) => {
-    const img = e.currentTarget;
-    const actualHeight = img.naturalHeight;
-    setImageDimensions((prev) => {
-      const updated = { ...prev, [index]: actualHeight };
-      const heights = Object.values(updated);
-      if (heights.length > 0) {
-        const maxH = Math.max(...heights);
-        const limitedMaxHeight = isMultipleItems
-          ? Math.min(maxH, 300)
-          : Math.min(maxH, 500);
-        setMaxHeight(limitedMaxHeight);
-      }
-      return updated;
-    });
-  };
-
-  // Hàm mở ảnh không làm trigger click bài viết
-  const handleOpenMedia = (e: React.MouseEvent, index: number) => {
-    e.stopPropagation();
-
-    // Chỉ mở lightbox nếu không phải drag
-    if (!isDragging && !isDraggingRef.current) {
-      setSelectedIndex(index);
-      setShowLightbox(true);
-    }
-  };
-
-  return (
-    <>
-      {/* Carousel Layout */}
-      <div
-        className={`rounded-xl overflow-hidden mt-2 w-full relative group ${isMultipleItems ? "bg-secondary" : "bg-black border border-border"
-          }`}
-      >
-        <div
-          ref={scrollContainerRef}
-          className={`flex overflow-x-auto scrollbar-hide user-select-none ${isMultipleItems
-            ? "bg-secondary gap-2 px-2 cursor-grab active:cursor-grabbing"
-            : "bg-black"
-            }`}
-          style={{
-            scrollBehavior: "auto",
-            WebkitOverflowScrolling: "touch",
-            msOverflowStyle: "none",
-            scrollbarWidth: "none",
-            height: containerHeight,
-            pointerEvents: "auto",
-          }}
-          onScroll={handleScroll}
-          onMouseDown={handleMouseDown}
-        >
-          {items.map((item, index) => (
-            <div
-              key={index}
-              className={`shrink-0 relative rounded overflow-hidden flex items-center justify-center ${isMultipleItems ? "" : "bg-black"
-                }`}
-              style={{
-                width: isMultipleItems ? "auto" : "100%",
-                height: "100%",
-                minWidth: "0",
-                pointerEvents: "auto",
-              }}
-              onClick={(e) => handleOpenMedia(e, index)}
-            >
-              {item.type === "youtube" ? (
-                <div
-                  className={`flex items-center justify-center ${isMultipleItems
-                    ? "h-full bg-secondary"
-                    : "w-full h-full bg-black"
-                    }`}
-                >
-                  <img
-                    src={`https://img.youtube.com/vi/${item.url.match(
-                      /(?:youtube\.com\/watch\?v=|youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]+)/
-                    )?.[1]
-                      }/mqdefault.jpg`}
-                    alt="YouTube thumbnail"
-                    className={`${isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
-                      } object-contain`}
-                    onLoad={(e) => handleImageLoad(e, index)}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
-                    <Play size={32} className="text-white fill-white" />
-                  </div>
-                </div>
-              ) : item.type === "video" ? (
-                <>
-                  <video
-                    className={`${isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
-                      } object-contain`}
-                    src={item.url}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
-                    <Play size={32} className="text-white fill-white" />
-                  </div>
-                </>
-              ) : (
-                <img
-                  src={item.url}
-                  alt={`Gallery item ${index + 1}`}
-                  className={`${isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
-                    } object-contain`}
-                  loading="lazy"
-                  onLoad={(e) => handleImageLoad(e, index)}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Indicators Dots - Chỉ hiển thị khi có nhiều items */}
-      {isMultipleItems && (
-        <div className="flex justify-center gap-1.5 mt-2">
-          {sortedItems.map((_, index) => (
-            <button
-              key={index}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (scrollContainerRef.current) {
-                  const container = scrollContainerRef.current;
-                  const scrollWidth = container.scrollWidth;
-                  const containerWidth = container.offsetWidth;
-                  const maxScroll = scrollWidth - containerWidth;
-                  const targetScroll =
-                    (index / (sortedItems.length - 1)) * maxScroll;
-                  container.scrollLeft = targetScroll;
-                  setSelectedIndex(index);
-                }
-              }}
-              className={`h-1.5 rounded-full transition-all duration-200 ${index === selectedIndex
-                ? "bg-foreground w-6"
-                : "bg-text-secondary hover:bg-text-muted w-1.5"
-                }`}
-              aria-label={`Go to item ${index + 1}`}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Lightbox */}
-      {showLightbox && (
-        <div
-          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
-          onClick={(e) => e.stopPropagation()} // Chặn click xuyên qua lightbox
-        >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowLightbox(false);
-            }}
-            className="absolute top-4 right-4 text-white hover:bg-white/20 p-2 rounded-full transition z-50"
-          >
-            <X size={24} />
-          </button>
-
-          {currentItem.type === "youtube" ? (
-            <div
-              className="relative w-full max-w-4xl bg-black"
-              style={{ paddingBottom: "56.25%" }}
-            >
-              <iframe
-                src={embedUrl!}
-                title={`YouTube video ${selectedIndex + 1}`}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute top-0 left-0 w-full h-full"
-              />
-            </div>
-          ) : currentItem.type === "image" ? (
-            <img
-              src={currentItem.url}
-              alt={`Lightbox ${selectedIndex + 1}`}
-              className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-            />
-          ) : (
-            <video
-              controls
-              autoPlay
-              className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-              src={currentItem.url}
-            />
-          )}
-        </div>
-      )}
-    </>
-  );
-};
+// --- IMPORTED GALLERY COMPONENT ---
+// Gallery logic moved to ./Gallery.tsx
+// --- IMPORTED GALLERY COMPONENT ---
+// Gallery logic moved to ./Gallery.tsx
+import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "./Gallery";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 // --- MAIN FEED CARD COMPONENT ---
-const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
+const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, compact }) => {
   // Add mock author data fallback
   const mockAuthor: AuthorData = {
+    uid: "mock-user",
+    username: "user",
     name: "Unknown User",
     handle: "@user",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=default",
+    avatar_url: DEFAULT_AVATAR_URL,
+    /** @deprecated */
+    avatar: DEFAULT_AVATAR_URL,
   };
 
   const displayAuthor = author || mockAuthor;
@@ -413,7 +81,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
   const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
-  const shareMutation = useSharePost();
+
   const repostMutation = useRepostPost();
   const [isGalleryDragging, setIsGalleryDragging] = useState(false);
 
@@ -423,15 +91,13 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
     likes: post.likes_count || 0,
     replies: post.comments_count || 0,
     bookmarks: post.saves_count || 0,
-    shares: post.reposts_count || 0, // Map shares/reposts to single state?
     reposts: post.reposts_count || 0,
   });
 
   const [actionStates, setActionStates] = useState({
     liked: post.is_liked || false,
     bookmarked: post.is_saved || false,
-    shared: post.is_shared || false,
-    reposted: post.is_repost || false,
+    reposted: post.is_reposted || false,
   });
 
   // Sync state với props khi data từ API thay đổi (sau khi invalidateQueries)
@@ -440,25 +106,21 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
       likes: post.likes_count || 0,
       replies: post.comments_count || 0,
       bookmarks: post.saves_count || 0,
-      shares: post.reposts_count || 0,
       reposts: post.reposts_count || 0,
     });
     setActionStates({
       liked: post.is_liked || false,
       bookmarked: post.is_saved || false,
-      shared: post.is_shared || false,
-      reposted: post.is_repost || false,
+      reposted: post.is_reposted || false
     });
   }, [
     post.likes_count,
     post.comments_count,
     post.saves_count,
-    post.shares_count,
     post.reposts_count,
     post.is_liked,
     post.is_saved,
-    post.is_shared,
-    post.is_repost,
+    post.is_reposted,
   ]);
 
   // --- Xử lý click chuyển trang ---
@@ -514,18 +176,18 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
     [actionStates.bookmarked, post.post_id, saveMutation]
   );
 
-  const handleShare = useCallback(
-    (e?: React.MouseEvent) => {
-      e?.stopPropagation();
-      setActionStates((prev) => ({ ...prev, shared: !prev.shared }));
-      setLocalCounts((prev) => ({
-        ...prev,
-        shares: prev.shares + (actionStates.shared ? -1 : 1),
-      }));
-      shareMutation.mutate(post.post_id);
-    },
-    [actionStates.shared, post.post_id, shareMutation]
-  );
+  // const handleShare = useCallback(
+  //   (e?: React.MouseEvent) => {
+  //     e?.stopPropagation();
+  //     setActionStates((prev) => ({ ...prev, shared: !prev.shared }));
+  //     setLocalCounts((prev) => ({
+  //       ...prev,
+  //       shares: prev.shares + (actionStates.shared ? -1 : 1),
+  //     }));
+  //     shareMutation.mutate(post.post_id);
+  //   },
+  //   [actionStates.shared, post.post_id, shareMutation]
+  // );
 
   const handleRepost = useCallback(
     (e?: React.MouseEvent) => {
@@ -603,7 +265,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
 
   return (
     <Card
-      className="w-full max-w-2xl bg-secondary text-foreground border-border mb-4 cursor-pointer hover:bg-secondary/80 transition-colors"
+      className={`w-full max-w-2xl bg-secondary text-foreground border-border mb-4 cursor-pointer hover:bg-secondary/80 transition-colors ${className || ""}`}
       onClick={handleCardClick} // Gắn sự kiện click vào đây
     >
       {/* HEADER */}
@@ -613,7 +275,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
       >
         <Avatar className="w-10 h-10 shrink-0">
           <AvatarImage
-            src={displayAuthor?.avatar || ""}
+            src={displayAuthor?.avatar_url || displayAuthor?.avatar || DEFAULT_AVATAR_URL}
             alt={displayAuthor?.name || "User"}
           />
           <AvatarFallback>
@@ -642,13 +304,15 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
           </div>
         </div>
         {/* Bọc Dropdown để chặn click */}
-        <div onClick={(e) => e.stopPropagation()}>
-          <DropdownExtend
-            actions={postActions}
-            triggerType="icon"
-            align="center"
-          />
-        </div>
+        {!compact && (
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownExtend
+              actions={postActions}
+              triggerType="icon"
+              align="center"
+            />
+          </div>
+        )}
       </CardHeader>
 
       {/* CONTENT */}
@@ -680,6 +344,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
             <Gallery
               items={post.gallery!}
               onDragStateChange={setIsGalleryDragging}
+              size={"small"}
             />
           ) : (
             hasSingleMedia && (
@@ -774,110 +439,49 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply }) => {
       </CardContent>
 
       {/* FOOTER */}
-      <CardFooter className="flex gap-3 px-4 -pb-3 -mb-3 -pt-10 -mt-5">
-        <div className="spacer-column"></div>
-        <div className="flex-1 flex gap-4 justify-start">
-          <ActionButton
-            actionId="like"
-            icon={<Heart size={24} />}
-            count={localCounts.likes}
-            onClick={handleLike}
-            isActive={actionStates.liked}
-          />
-          <ActionButton
-            actionId="reply"
-            icon={<MessageSquare size={24} />}
-            count={localCounts.replies}
-            onClick={handleReply}
-          />
-          <ActionButton
-            actionId="bookmark"
-            icon={<Bookmark size={24} />}
-            count={localCounts.bookmarks}
-            onClick={handleBookmark}
-            isActive={actionStates.bookmarked}
-          />
-          <ActionButton
-            actionId="repost"
-            icon={<Repeat2 size={24} />}
-            count={localCounts.reposts}
-            onClick={handleRepost}
-            isActive={actionStates.reposted}
-          />
-          <ActionButton
-            actionId="share"
-            icon={<Send size={24} />}
-            count={localCounts.shares}
-            onClick={handleShare}
-            isActive={actionStates.shared}
-          />
-        </div>
-        <div className="spacer-column"></div>
-      </CardFooter>
-    </Card>
-  );
-};
-
-// --- ACTION BUTTON COMPONENT ---
-interface ActionButtonProps {
-  actionId?: string;
-  icon: React.ReactNode;
-  count?: number;
-  onClick?: (e?: React.MouseEvent) => void; // Sửa type để nhận event
-  isActive?: boolean;
-}
-
-const ActionButton: React.FC<ActionButtonProps> = ({
-  actionId,
-  icon,
-  count,
-  onClick,
-  isActive,
-}) => {
-  let activeButtonClasses = "";
-  let iconExtraClasses = "";
-
-  if (isActive) {
-    switch (actionId) {
-      case "like":
-        activeButtonClasses = "text-rose-600 hover:text-rose-700";
-        iconExtraClasses = "fill-current";
-        break;
-      case "bookmark":
-        activeButtonClasses = "text-yellow-400 hover:text-yellow-500";
-        iconExtraClasses = "fill-current";
-        break;
-      case "share":
-        activeButtonClasses = "text-blue-600 hover:text-blue-700";
-        iconExtraClasses = "stroke-2 stroke-blue-600";
-        break;
-      default:
-        activeButtonClasses = "text-foreground";
-        iconExtraClasses = "fill-current";
-    }
-  } else {
-    activeButtonClasses = "text-text-secondary hover:text-foreground";
-  }
-
-  const renderedIcon = React.isValidElement(icon)
-    ? React.cloneElement(icon as any, {
-      className: `${(icon as any).props.className || ""
-        } ${iconExtraClasses}`.trim(),
-    })
-    : icon;
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={onClick}
-      className={`action-button-base w-8 h-8 flex items-center gap-1 transition-all ${activeButtonClasses}`}
-    >
-      {renderedIcon}
-      {count !== undefined && count > 0 && (
-        <span className="small-text text-xs">{count}</span>
+      {!compact && (
+        <CardFooter className="flex gap-3 px-4 -pb-3 -mb-3 -pt-10 -mt-5">
+          <div className="spacer-column"></div>
+          <div className="flex-1 flex gap-4 justify-start">
+            <ActionButton
+              actionId="like"
+              icon={<Heart size={24} />}
+              count={localCounts.likes}
+              onClick={handleLike}
+              isActive={actionStates.liked}
+            />
+            <ActionButton
+              actionId="reply"
+              icon={<MessageSquare size={24} />}
+              count={localCounts.replies}
+              onClick={handleReply}
+            />
+            <ActionButton
+              actionId="bookmark"
+              icon={<Bookmark size={24} />}
+              count={localCounts.bookmarks}
+              onClick={handleBookmark}
+              isActive={actionStates.bookmarked}
+            />
+            <ActionButton
+              actionId="repost"
+              icon={<Repeat2 size={24} />}
+              count={localCounts.reposts}
+              onClick={handleRepost}
+              isActive={actionStates.reposted}
+            />
+            <ActionButton
+              actionId="share"
+              icon={<Send size={24} />}
+            // count={localCounts.shares}
+            // onClick={handleShare}
+            // isActive={actionStates.shared}
+            />
+          </div>
+          <div className="spacer-column"></div>
+        </CardFooter>
       )}
-    </Button>
+    </Card>
   );
 };
 

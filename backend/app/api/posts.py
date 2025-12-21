@@ -43,7 +43,9 @@ def create_post(
     created = PostService.create_post(
         user_id=user["uid"], # IMPORTANT: Use 'uid' consistent with other endpoints
         content=form_data.content,
-        media_urls=image_urls 
+        media_urls=image_urls,
+        level=form_data.level,
+        reply_to_id=form_data.reply_to_id
     )
     return created
 
@@ -61,7 +63,7 @@ def get_posts(
 @router.post("/posts/{post_id}/like")
 def like_post(post_id: str, user = Depends(get_current_user)):
     # Lấy avatar user (đề phòng nếu token không có field avatar thì để rỗng)
-    avatar = user.get("avatar", "") or user.get("picture", "")
+    avatar = user.get("avatar_url", "") or user.get("avatar", "") or user.get("picture", "")
     
     try:
         return PostService.toggle_interaction(
@@ -85,7 +87,7 @@ def like_post(post_id: str, user = Depends(get_current_user)):
 
 @router.post("/posts/{post_id}/share")
 def share_post(post_id: str, user = Depends(get_current_user)):
-    avatar = user.get("avatar", "") or user.get("picture", "")
+    avatar = user.get("avatar_url", "") or user.get("avatar", "") or user.get("picture", "")
     
     try:
         return PostService.toggle_interaction(
@@ -100,7 +102,7 @@ def share_post(post_id: str, user = Depends(get_current_user)):
 
 @router.post("/posts/{post_id}/repost")
 def repost_post(post_id: str, user = Depends(get_current_user)):
-    avatar = user.get("avatar", "") or user.get("picture", "")
+    avatar = user.get("avatar_url", "") or user.get("avatar", "") or user.get("picture", "")
     
     try:
         return PostService.toggle_interaction(
@@ -124,7 +126,7 @@ def repost_post(post_id: str, user = Depends(get_current_user)):
 
 @router.post("/posts/{post_id}/save")
 def save_post(post_id: str, user = Depends(get_current_user)):
-    avatar = user.get("avatar", "") or user.get("picture", "")
+    avatar = user.get("avatar_url", "") or user.get("avatar", "") or user.get("picture", "")
     
     try:
         return PostService.toggle_interaction(
@@ -152,7 +154,7 @@ def add_comment(
     form_data: CommentCreate = Depends(),
     user = Depends(get_current_user)
 ):
-    avatar = user.get("avatar", "") or user.get("picture", "")
+    avatar = user.get("avatar_url", "") or user.get("avatar", "") or user.get("picture", "")
     
     try:
         return PostService.create_comment(
@@ -183,32 +185,17 @@ def mark_seen(post_id: str, user = Depends(get_current_user)):
 @router.get("/posts/{post_id}")
 def get_post_detail(
     post_id: str,
-    page: int = 1,
-    page_size: int = 10,
-    user = Depends(get_current_user)
+    user = Depends(get_current_user_optional)
 ):
     """
-    Fetch detailed post with:
-    - Post metadata and content
-    - Author information
-    - Paginated comments (page_size capped at 100)
-    - Likes & shares lists
-    - Current user's interaction status (like, save, share)
+    Fetch complete post detail.
     """
-    # Validate pagination params
-    if page < 1:
-        raise HTTPException(status_code=400, detail="Page must be >= 1")
-    if page_size < 1 or page_size > 100:
-        raise HTTPException(status_code=400, detail="Page size must be between 1 and 100")
-    
     current_user_id = user["uid"] if user else None
     
     try:
         post_detail = PostService.get_post_detail(
             post_id=post_id,
-            current_user_id=current_user_id,
-            page=page,
-            page_size=page_size
+            current_user_id=current_user_id
         )
         
         if not post_detail:
@@ -218,3 +205,15 @@ def get_post_detail(
     except Exception as e:
         print(f"Error fetching post detail: {e}")
         raise HTTPException(status_code=500, detail="Error fetching post details")
+
+@router.get("/posts/{post_id}/replies")
+def get_post_replies(post_id: str):
+    """
+    Fetch all replies to a target post (Level 1).
+    """
+    try:
+        replies = PostService.get_replies(post_id)
+        return replies
+    except Exception as e:
+        print(f"Error fetching replies: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching replies")

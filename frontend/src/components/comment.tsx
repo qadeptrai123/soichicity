@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { Image as ImageIcon, AtSign, X, Search, Send } from "lucide-react";
+
+// import type { MediaItem } from "@/types/common";
+import FeedCard from "./FeedCard";
+
 import {
   Dialog,
   DialogContent,
@@ -14,8 +18,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import EmojiButton from "./EmojiButton";
-import { useAddComment } from "@/hooks/api/use-posts";
-import type { User } from "@/types/auth";
+import { useCreatePost } from "@/hooks/api/use-posts";
+import type { User } from "@/types/user";
 import { usePostEditor } from "@/hooks/usePostEditor";
 
 export type TargetPost = {
@@ -28,6 +32,10 @@ export type TargetPost = {
   };
   content: string;
   date: string;
+  media_url?: string | null;
+  media_type?: string | null;
+  gallery?: string[];
+  level?: number;
 };
 
 interface ReplyDialogProps {
@@ -46,7 +54,7 @@ export default function ReplyCommentDialog({
   mockFriends,
 }: ReplyDialogProps) {
 
-  const addComment = useAddComment();
+  const createPost = useCreatePost();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -82,8 +90,13 @@ export default function ReplyCommentDialog({
       blobs.forEach(file => formData.append("files", file));
     }
 
-    addComment.mutate(
-      { postId: String(targetPost.id), data: formData },
+    // Add hierarchy fields
+    const parentLevel = targetPost.level ?? 0;
+    formData.append("level", String(parentLevel + 1));
+    formData.append("reply_to_id", String(targetPost.id));
+
+    createPost.mutate(
+      formData,
       {
         onSuccess: () => {
           setIsSubmitting(false);
@@ -194,34 +207,36 @@ export default function ReplyCommentDialog({
 
         <div className="h-[1px] w-full bg-border opacity-50 my-0"></div>
 
-        <div className="px-6 py-6 flex-1 overflow-y-auto min-h-[150px]">
-          <div className="flex gap-4">
-            {/* Avatar Target User */}
-            <Avatar className="w-10 h-10 border border-border">
-              <AvatarImage src={targetPost.user.avatar_url} />
-              <AvatarFallback>{(targetPost.user.full_name || targetPost.user.username).charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
-
-            <div className="flex flex-col gap-1">
-              <div className="flex items-baseline gap-2">
-                <span className="font-semibold text-[15px] text-foreground">
-                  {targetPost.user.full_name || targetPost.user.username}
-                </span>
-                <span className="text-sm text-text-secondary font-normal">
-                  @{targetPost.user.username}
-                </span>
-                <span className="text-sm text-text-secondary font-normal">
-                  {targetPost.date}
-                </span>
-              </div>
-
-              {/* Content */}
-              <p className="text-[15px] text-foreground/90 leading-relaxed font-light">
-                {targetPost.content}
-              </p>
-            </div>
-          </div>
+        <div className="px-0 py-0 flex-1 overflow-y-auto min-h-[150px]">
+          <FeedCard
+            post={{
+              post_id: String(targetPost.id),
+              content: targetPost.content,
+              created_at: targetPost.date,
+              author_id: targetPost.user.uid,
+              media_url: targetPost.media_url,
+              media_type: targetPost.media_type,
+              gallery: targetPost.gallery,
+              // Mặc định các giá trị đếm = 0 vì đây là post gốc
+              likes_count: 0,
+              comments_count: 0,
+              saves_count: 0,
+              reposts_count: 0,
+              shares_count: 0,
+            }}
+            author={{
+              id: targetPost.user.uid,
+              uid: targetPost.user.uid,
+              name: targetPost.user.full_name || targetPost.user.username,
+              username: targetPost.user.username,
+              handle: `@${targetPost.user.username}`,
+              avatar: targetPost.user.avatar_url || "",
+            }}
+            className="mb-0 border-none shadow-none bg-transparent hover:bg-transparent"
+            compact={true}
+          />
         </div>
+
 
         {/* --- FOOTER ---*/}
         <div className="p-4! pt-2 pb-8 flex justify-center border-t border-border bg-secondary">

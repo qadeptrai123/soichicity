@@ -1,15 +1,44 @@
 import { useParams } from "react-router-dom";
 import { usePostDetail } from "@/hooks/api/use-posts";
 import { PostMainPost } from "@/components/post/PostMainPost";
-import { useState, useRef } from "react"; // Import useRef
+import React, { useState, useRef } from "react"; // Import useRef
 import { ActivityPopup } from "@/components/post/ActivityPopup";
-import { Loader2, Image as ImageIcon, Smile, AtSign, Heart, MessageCircle, Repeat2, Send } from "lucide-react";
+import { Loader2, Image as ImageIcon, Smile, AtSign } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import type { TargetPost } from "@/components/comment";
+import ReplyCommentDialog from "@/components/comment";
+import { useAuth } from "@/contexts/AuthProvider";
+import { ReplyItem } from "@/components/post/ReplyItem";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 const PostDetail = () => {
     const { id } = useParams();
     const { data: postData, isLoading } = usePostDetail(id || "");
     const [showActivity, setShowActivity] = useState(false);
+    const { user } = useAuth();
+    console.log(postData)
+    // Reply Dialog State
+    const [replyDialogOpen, setReplyDialogOpen] = useState(false);
+    const [selectedReply, setSelectedReply] = useState<TargetPost | null>(null);
+
+    const handleReplyClick = (reply: any) => {
+        const target: TargetPost = {
+            id: reply.post_id,
+            user: {
+                uid: reply.author.uid,
+                username: reply.author.username,
+                full_name: reply.author.full_name,
+                avatar_url: reply.author.avatar_url || reply.author.avatar || DEFAULT_AVATAR_URL,
+            },
+            content: reply.content,
+            date: reply.created_at,
+            media_url: reply.gallery?.[0] || reply.media_urls?.[0] || reply.media_url || null, // Priority: Gallery > MediaUrls > MediaUrl
+            gallery: reply.gallery || reply.media_urls || undefined,
+            level: (reply.level || 0),
+        };
+        setSelectedReply(target);
+        setReplyDialogOpen(true);
+    };
 
     // 1. TẠO STATE ĐỂ LƯU VỊ TRÍ ĐỨNG CỦA POPUP
     const [popupTop, setPopupTop] = useState(0);
@@ -40,13 +69,13 @@ const PostDetail = () => {
         setShowActivity(!showActivity);
     };
 
-    if (isLoading) return <div className={`flex justify-center h-screen items-center ${COLORS.bgPage} pt-16`}><Loader2 className="animate-spin text-blue-500 w-8 h-8" /></div>;
-    if (!postData) return <div className={`text-center text-white pt-32 ${COLORS.bgPage} min-h-screen font-medium`}>Post not found</div>;
+    if (isLoading) return <div className={`flex justify-center items-center ${COLORS.bgPage} pt-4`}><Loader2 className="animate-spin text-blue-500 w-8 h-8" /></div>;
+    if (!postData) return <div className={`text-center text-white pt-1 ${COLORS.bgPage} min-h-screen font-medium`}>Post not found</div>;
 
     return (
-        <div className={`h-screen ${COLORS.bgPage} text-white flex justify-center pt-16 overflow-hidden`}>
+        <div className={`h-[calc(100vh-64px)] ${COLORS.bgPage} text-white flex justify-center`}>
 
-            {/* Container Relative để Popup căn theo thằng này */}
+            {/* Container Relative */}
             <div className="relative w-full flex justify-center h-full py-4">
 
                 {/* === CARD BÀI VIẾT CHÍNH === */}
@@ -56,10 +85,13 @@ const PostDetail = () => {
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
 
                         {/* Bài Post */}
-                        <PostMainPost data={postData} onViewActivity={handleToggleActivity} />
+                        <PostMainPost
+                            data={postData}
+                            onViewActivity={handleToggleActivity}
+                            onReply={() => handleReplyClick(postData)}
+                        />
 
                         {/* --- HEADER CHỨA NÚT VIEW ACTIVITY --- */}
-                        {/* Gắn ref vào đây để đo vị trí */}
                         <div
                             ref={buttonRef}
                             className={`flex justify-between items-center px-6 py-3 border-t ${COLORS.border} bg-[#1A1F2E]/95 backdrop-blur-sm sticky top-0 z-20`}
@@ -75,43 +107,14 @@ const PostDetail = () => {
 
                         {/* --- DANH SÁCH COMMENT --- */}
                         <div className={`${COLORS.bgCard} pt-2`}>
-                            {(postData as any).replies && (postData as any).replies.length > 0 ? (
-                                (postData as any).replies.map((reply: any) => (
-                                    <div key={reply.id} className="flex gap-4 px-6 group">
-                                        <div className="flex flex-col items-center shrink-0">
-                                            <Avatar className={`w-10 h-10 border ${COLORS.border} z-10`}>
-                                                <AvatarImage src={reply.author.avatar} />
-                                                <AvatarFallback>{reply.author.name[0]}</AvatarFallback>
-                                            </Avatar>
-                                            <div className="w-[2px] grow bg-[#374151] mt-2 mb-2 rounded-full opacity-50 group-last:hidden"></div>
-                                        </div>
-
-                                        <div className="flex-1 pb-8">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-bold text-[15px] text-white">{reply.author.name}</span>
-                                                <span className="text-[#64748b] text-sm">@{reply.author.username}</span>
-                                                <span className="text-[#64748b] text-xs">• 2h</span>
-                                            </div>
-                                            <div className="text-[#e2e8f0] text-[15px] leading-relaxed mb-3 font-normal whitespace-pre-wrap">
-                                                {reply.content}
-                                            </div>
-                                            {reply.gallery && reply.gallery.length > 0 && (
-                                                <div className="mb-3 rounded-xl overflow-hidden border border-[#374151]">
-                                                    <img src={reply.gallery[0].url} alt="" className="w-full h-auto object-cover max-h-[300px]" />
-                                                </div>
-                                            )}
-                                            <div className="flex items-center gap-6 text-[#64748b]">
-                                                <button className="flex items-center gap-1.5 hover:text-rose-500 transition-colors group/icon">
-                                                    <Heart size={18} /> <span className="text-xs font-medium group-hover/icon:text-rose-500">{reply.actions_count || 0}</span>
-                                                </button>
-                                                <button className="flex items-center gap-1.5 hover:text-blue-500 transition-colors group/icon">
-                                                    <MessageCircle size={18} /> <span className="text-xs font-medium group-hover/icon:text-blue-500">{reply.replies_count || 0}</span>
-                                                </button>
-                                                <button className="hover:text-green-500 transition-colors"><Repeat2 size={18} /></button>
-                                                <button className="hover:text-blue-400 transition-colors"><Send size={18} /></button>
-                                            </div>
-                                        </div>
-                                    </div>
+                            {postData.replies && postData.replies.length > 0 ? (
+                                postData.replies.map((reply: any) => (
+                                    <React.Fragment key={reply.post_id}>
+                                        <ReplyItem
+                                            reply={reply}
+                                            onReplyClick={handleReplyClick}
+                                        />
+                                    </React.Fragment>
                                 ))
                             ) : (
                                 <div className={`p-10 text-center ${COLORS.textSec} text-sm`}>No replies yet.</div>
@@ -123,11 +126,14 @@ const PostDetail = () => {
                     <div className={`p-4 px-6 ${COLORS.bgCard} border-t ${COLORS.border} shrink-0`}>
                         <div className="flex items-center gap-3">
                             <Avatar className={`w-9 h-9 border ${COLORS.border}`}>
-                                <AvatarImage src="https://github.com/shadcn.png" />
+                                <AvatarImage src={user?.avatar_url || user?.avatar || DEFAULT_AVATAR_URL} />
                                 <AvatarFallback>Me</AvatarFallback>
                             </Avatar>
-                            <div className={`flex-1 ${COLORS.bgInput} rounded-full flex items-center px-4 py-2.5 border ${COLORS.border} focus-within:border-[#64748b] transition-all`}>
-                                <input type="text" placeholder={`Reply to ${postData.author.name}...`} className="bg-transparent border-none outline-none text-white text-[15px] w-full placeholder:text-[#64748b] font-normal" />
+                            <div
+                                className={`flex-1 ${COLORS.bgInput} rounded-full flex items-center px-4 py-2.5 border ${COLORS.border} focus-within:border-[#64748b] transition-all cursor-pointer`}
+                                onClick={() => handleReplyClick(postData)}
+                            >
+                                <input type="text" placeholder={`Reply to ${postData.author?.full_name || postData.author?.username || 'User'}...`} className="bg-transparent border-none outline-none text-white text-[15px] w-full placeholder:text-[#64748b] font-normal pointer-events-none" readOnly />
                             </div>
                             <div className={`flex gap-3 ${COLORS.textSec} items-center`}>
                                 <button className="hover:text-white transition"><ImageIcon size={22} /></button>
@@ -137,22 +143,36 @@ const PostDetail = () => {
                         </div>
                     </div>
                 </div>
-
-                {/* === ACTIVITY POPUP === */}
-                {showActivity && (
-                    // Dùng style={{ top: popupTop }} để gán vị trí động
-                    <div
-                        className="absolute left-[calc(50%+360px)] w-[320px] animate-in fade-in zoom-in-95 duration-200 origin-top-left z-20"
-                        style={{ top: `${popupTop}px` }}
-                    >
-                        <ActivityPopup
-                            data={postData.activity}
-                            onClose={() => setShowActivity(false)}
-                        />
-                    </div>
-                )}
-
             </div>
+
+            {/* === ACTIVITY POPUP === */}
+            {showActivity && (
+                // Dùng style={{ top: popupTop }} để gán vị trí động
+                <div
+                    className="absolute left-[calc(50%+360px)] w-[320px] animate-in fade-in zoom-in-95 duration-200 origin-top-left z-20"
+                    style={{ top: `${popupTop}px` }}
+                >
+                    <ActivityPopup
+                        data={postData.activity}
+                        onClose={() => setShowActivity(false)}
+                    />
+                </div>
+            )}
+
+            {/* === ACTIVITY POPUP === */}
+
+            {/* REPLY DIALOG */}
+            {
+                selectedReply && user && (
+                    <ReplyCommentDialog
+                        open={replyDialogOpen}
+                        onOpenChange={setReplyDialogOpen}
+                        currentUser={user}
+                        targetPost={selectedReply}
+                        mockFriends={[]} // Pass empty or fetch friends if needed
+                    />
+                )
+            }
         </div>
     );
 };

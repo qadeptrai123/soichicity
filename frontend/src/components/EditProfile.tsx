@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react";
 import type { User } from "@/MockData/type";
 import BlockList from "@/components/BlockList";
 import { MOCK_BLOCKED_USERS } from "@/MockData/data";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 interface EditProfileProps {
   isOpen: boolean;
@@ -35,7 +36,7 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
             <span className="text-sm text-neutral-500">@{currentUser.username}</span>
           </div>
           <Avatar className="w-10 h-10 border border-neutral-800">
-            <AvatarImage src={currentUser.avatarUrl} className="object-cover" />
+            <AvatarImage src={currentUser.avatar_url || currentUser.avatarUrl || DEFAULT_AVATAR_URL} className="object-cover" />
             <AvatarFallback>{currentUser.username[0]}</AvatarFallback>
           </Avatar>
         </div>

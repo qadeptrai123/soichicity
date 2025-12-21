@@ -48,7 +48,7 @@ def _normalize_feed_item(db, item_data, author_map, current_user_id=None):
             "uid": author_info.id,
             "username": a_data.get("username", "Unknown"),
             "full_name": a_data.get("full_name", ""),
-            "avatar": a_data.get("avatar_url") or a_data.get("avatar")
+            "avatar_url": a_data.get("avatar_url") or a_data.get("avatar")
         }
 
     # Display timestamp: 
@@ -97,7 +97,7 @@ def _normalize_feed_item(db, item_data, author_map, current_user_id=None):
         "comments_count": p_data.get("comments_count", 0),
         
         # --- Flags ---
-        "is_repost": item_data["is_repost"], # Whether this specific feed item IS a repost action
+        "is_reposted": item_data["is_reposted"], # Whether this specific feed item IS a repost action
         "is_liked": is_liked, 
         "is_saved": is_saved,
         "is_reposted": is_reposted # Whether the current user HAS reposted this content
@@ -161,7 +161,7 @@ def create_user(db, user: UserCreate):
         "email": user.email,
         "full_name": user.full_name or user.username, # Fallback
         "bio": None,
-        "avatar_url": None,
+        "avatar_url": user.avatar_url,
         "is_active": True,
         "provider": "password",
         "created_at": datetime.now(),
@@ -368,7 +368,7 @@ def get_user_profile(db, username: str, current_user_id: str = None):
     
     for doc in posts_ref.stream():
         raw_feed.append({
-            "is_repost": False,
+            "is_reposted": False,
             "timestamp": doc.get("created_at"),
             "post_doc": doc,                    
             "post_id": doc.id,
@@ -386,7 +386,7 @@ def get_user_profile(db, username: str, current_user_id: str = None):
         original_post_id = data.get('post_id') 
         
         repost_items.append({
-            "is_repost": True,
+            "is_reposted": True,
             "timestamp": data.get("created_at"), 
             "post_id": original_post_id,
             "repost_id": doc.id,
@@ -480,7 +480,7 @@ def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: 
         item_input = {
             "post_doc": doc,
             "timestamp": doc.get("created_at"),
-            "is_repost": False,
+            "is_reposted": False,
             "reposted_by": None
         }
         # Tái sử dụng hàm _normalize_feed_item có sẵn
@@ -546,7 +546,7 @@ def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_
         item_input = {
             "post_doc": item["post_doc"],
             "timestamp": repost_timestamp, 
-            "is_repost": True,
+            "is_reposted": True,
             "reposted_by": author_id,
             "repost_id": item["repost_doc"].id
         }

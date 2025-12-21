@@ -1,69 +1,9 @@
 import { apiClient } from '@/lib/api-client';
+import type { User, Author } from '@/types/user';
+import type { Post, PostDetail, CreatePostData, CommentData } from '@/types/post';
+import type { ProfileResponse } from '@/types/response';
 
-export type Author = {
-    uid: string;
-    username: string;
-    name?: string;
-    full_name?: string;
-    avatar_url?: string;
-    avatar?: string;
-};
-
-export type User = {
-    uid: string;
-    email: string;
-    full_name?: string;
-    username?: string;
-    // Add other fields as needed
-    followers_count?: number;
-    followings_count?: number;
-    is_following?: boolean;
-    is_self?: boolean;
-    bio?: string;
-    avatar_url?: string;
-};
-
-export type ProfileResponse = {
-    user: User;
-    posts: Post[];
-    posts_count: number;
-};
-
-export type Post = {
-    post_id: string;
-    content: string;
-    media_urls: string[];
-    created_at: string;
-    author_id: string;
-    level: number;
-    reply_to_id?: string;
-    root_id?: string;
-
-    author?: Author;
-
-    // Counts
-    likes_count: number;
-    reposts_count: number;
-    saves_count: number;
-    comments_count: number;
-
-    // Interaction status
-    is_liked: boolean;
-    is_shared: boolean; // Kept for legacy or strict check
-    is_repost: boolean; // Backend returns is_repost
-    is_saved: boolean;
-    replies?: any[]; // For PostDetail
-};
-
-export type CreatePostData = {
-    content: string;
-    files?: File[];
-};
-
-export type CommentData = {
-    content: string;
-    files?: File[];
-};
+export type { User, Author, Post, PostDetail, CreatePostData, CommentData, ProfileResponse };
 
 export const api = {
     users: {
@@ -76,7 +16,7 @@ export const api = {
     },
     posts: {
         getAll: () => apiClient.get<Post[]>('/api/v1/posts') as unknown as Promise<Post[]>,
-        get: (post_id: string) => apiClient.get<Post>(`/api/v1/posts/${post_id}`) as unknown as Promise<Post>,
+        get: (post_id: string) => apiClient.get<PostDetail>(`/api/v1/posts/${post_id}`) as unknown as Promise<PostDetail>,
         create: (data: FormData) => apiClient.post<Post>('/api/v1/posts', data, {
             headers: { 'Content-Type': 'multipart/form-data' }
         }) as unknown as Promise<Post>,
@@ -87,7 +27,10 @@ export const api = {
         repost: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/repost`),
         save: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/save`),
 
-        // Comments
+        // Comments (Replies)
+        getReplies: (post_id: string) => apiClient.get<Post[]>(`/api/v1/posts/${post_id}/replies`) as unknown as Promise<Post[]>,
+
+        // Interactions
         addComment: (post_id: string, data: FormData) => apiClient.post(`/api/v1/posts/${post_id}/comments`, data, {
             headers: { 'Content-Type': 'multipart/form-data' }
         }),

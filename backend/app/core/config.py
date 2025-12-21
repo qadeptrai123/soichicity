@@ -7,7 +7,7 @@ SECRET_DIR = BASE_DIR / "app/secrets"
 # print(BASE_DIR)
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "Threads-like API"
+    PROJECT_NAME: str = "SoiChiCity API"
     API_V1_STR: str = "/api/v1"
     
     FIREBASE_SERVICE_ACCOUNT_KEY_PATH: str = str(SECRET_DIR / "soichicity-firebase-adminsdk-fbsvc-2f60fa38c3.json")
