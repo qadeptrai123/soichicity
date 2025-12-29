@@ -49,6 +49,13 @@ class UserCreate(UserBase):
         except EmailNotValidError as e:
             raise ValueError(f"Email is not valid: {str(e)}")
 
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
 # Information stored in DB (with hashed password)
 class UserInDB(UserBase):
     hashed_password: str

@@ -1,9 +1,10 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import LoginImage from "../assets/logo.png";
+import logo from "@/assets/logo.svg";
 
 // Shadcn Components
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ export default function ForgotPassword() {
         // Simulate API call
         await new Promise((resolve) => setTimeout(resolve, 2000));
         console.log("Recovery Email:", data);
-        alert(`Password reset request sent to: ${data.email}`);
+        alert(`Password reset request sent to: ${data.email} `);
         setIsLoading(false);
     };
 
@@ -60,7 +61,7 @@ export default function ForgotPassword() {
                 <Card className="w-full max-w-md bg-secondary backdrop-blur-xl border-border-secondary shadow-2xl shadow-black/50 mx-auto my-auto">
                     <CardHeader className="flex flex-col items-center mb-2">
                         <div className="w-15 h-15 bg-linear-to-tr bg-blue-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30">
-                            <img src={LoginImage} alt="App Logo" />
+                            <img src={logo} alt="App Logo" />
                         </div>
                         <CardTitle className="text-xl text-white text-hd tracking-tight">
                             Forgot Password

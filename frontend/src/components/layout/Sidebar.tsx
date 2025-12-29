@@ -14,6 +14,7 @@ import CreatePostDialog from "@/components/CreatePostDialog";
 import { SearchDialog } from "@/components/SearchDialog";
 import { useState } from "react";
 import { MOCK_FRIENDS } from "@/MockData/data";
+import logo from "@/assets/logo.svg";
 
 
 
@@ -27,7 +28,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
   const items = [
     { icon: Home, path: "/" },
     { icon: Search, path: "/search" },
-    { icon: Heart, path: "/favorites" },
+    { icon: Heart, path: "/activities" },
     // { icon: Users, path: "/community" },
     { icon: Users, path: `/profile/${user?.username}` },
     { icon: PlusSquare, path: "/create" },
@@ -92,7 +93,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
 
           {/* Logo */}
           <div className="flex justify-center">
-            <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center"></div>
+            <img src={logo} alt="Sợi Chỉ City" className="w-10 h-10 rounded-full" />
           </div>
 
           {/* Menu */}

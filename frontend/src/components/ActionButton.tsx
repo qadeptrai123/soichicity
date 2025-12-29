@@ -35,8 +35,8 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
     switch (actionId) {
         case "like":
             if (isActive) {
-                activeButtonClasses = "text-rose-600 hover:text-rose-700";
-                iconExtraClasses = "fill-current";
+                activeButtonClasses = "text-rose-600 hover:text-rose-700 data-[active=true]:animate-in data-[active=true]:zoom-in-50 duration-300";
+                iconExtraClasses = "fill-current scale-110";
             } else {
                 activeButtonClasses = "text-[#94a3b8] hover:text-rose-500";
             }
@@ -86,6 +86,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
             variant="ghost"
             size="icon"
             onClick={onClick}
+            data-active={isActive}
             className={`action-button-base w-8 h-8 flex items-center gap-1 transition-colors group/icon hover:bg-transparent ${activeButtonClasses}`}
         >
             {renderedIcon}

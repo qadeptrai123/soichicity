@@ -265,7 +265,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
 
   return (
     <Card
-      className={`w-full max-w-2xl bg-secondary text-foreground border-border mb-4 cursor-pointer hover:bg-secondary/80 transition-colors ${className || ""}`}
+      className={`w-full max-w-2xl bg-secondary text-foreground border-border mb-4 cursor-pointer transition-all duration-200 hover:bg-secondary/80 hover:shadow-lg ${className || ""}`}
       onClick={handleCardClick} // Gắn sự kiện click vào đây
     >
       {/* HEADER */}

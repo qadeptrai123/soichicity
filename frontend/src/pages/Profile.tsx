@@ -195,14 +195,15 @@ export default function Profile() {
           isOpen={isEditProfileOpen}
           onClose={() => setIsEditProfileOpen(false)}
           currentUser={{
+            uid: me.uid,
             id: me.uid, // Pass string ID directly
             name: me.full_name || me.username || "",
             username: me.username || "",
             bio: me.bio || "",
             link: "",
-            avatarUrl: me.avatar_url || DEFAULT_AVATAR_URL, // Map to avatarUrl
-            followers: [],
-            following: []
+            avatar_url: me.avatar_url || DEFAULT_AVATAR_URL, // Map to avatar_url
+            // followers/following not needed for EditProfile
+
           }}
         />
       )}

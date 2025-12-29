@@ -305,15 +305,73 @@ class PostService:
         return result
     
     @staticmethod
-    def get_feed_posts(user_id: str = None, limit: int = 20):
-        # Simply fetch all posts ordered by created_at desc
-        posts = db.collection("posts").where("level", "==", 0).order_by("created_at", direction=firestore.Query.DESCENDING).stream()
+    def get_feed_posts(user_id: str = None, limit: int = 20, filter_type: str = "all"):
+        
+        posts_ref = db.collection("posts")
+        docs_stream = []
+
+        if filter_type == "saved" and user_id:
+            # 1. Get Saved Posts (from users/{user_id}/activity_saves)
+            activity_ref = db.collection("users").document(user_id).collection("activity_saves").order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
+            activity_docs = list(activity_ref.stream())
+            
+            # Fetch original posts in batch
+            post_ids = [d.get("post_id") for d in activity_docs]
+            if post_ids:
+                # Remove duplicates
+                post_ids = list(set(post_ids))
+                # Batch fetch (helper needed or manual)
+                # Since we don't have _get_docs_batch imported, let's do simple fetch or use where 'in' if supported (limit 10)
+                # Firestore 'in' query supports max 10. Better to just fetch individually or use custom batch logic.
+                # For simplicity in this codebase context without import:
+                for pid in post_ids:
+                    p_doc = posts_ref.document(pid).get()
+                    if p_doc.exists:
+                        # Mimic stream item
+                        docs_stream.append(p_doc)
+        
+        elif filter_type == "liked" and user_id:
+             # 2. Get Liked Posts
+            activity_ref = db.collection("users").document(user_id).collection("activity_likes").order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
+            activity_docs = list(activity_ref.stream())
+            post_ids = [d.get("post_id") for d in activity_docs]
+            
+            if post_ids:
+                post_ids = list(set(post_ids))
+                for pid in post_ids:
+                    p_doc = posts_ref.document(pid).get()
+                    if p_doc.exists:
+                        docs_stream.append(p_doc)
+
+        elif filter_type == "following" and user_id:
+            # 3. Get Following Posts
+            # Fetch user following list
+            user_ref = db.collection("users").document(user_id)
+            # Check sub-collection 'followings' or array 'following'
+            # Based on user_service, we maintain both but 'following' array is easiest for 'in' query
+            u_doc = user_ref.get()
+            if u_doc.exists:
+                following_list = u_doc.to_dict().get("following", [])
+                if following_list:
+                    # Firestore 'in' limit is 10. If > 10, we usually need multiple queries or client-side filter.
+                    # For MVP, let's slice top 10 or fetch all and filter in memory (expensive but simple).
+                    # Strategy: Query generic feed and filter in python
+                     all_posts = posts_ref.where("level", "==", 0).order_by("created_at", direction=firestore.Query.DESCENDING).limit(100).stream()
+                     for p in all_posts:
+                         if p.to_dict().get("author_id") in following_list:
+                             docs_stream.append(p)
+                             if len(docs_stream) >= limit:
+                                 break
+                else:
+                    docs_stream = [] # Following no one
+        
+        else:
+             # Default: All Posts
+             docs_stream = list(posts_ref.where("level", "==", 0).order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit).stream())
         
         final_posts = []
-        for p in posts:
+        for p in docs_stream:
             data = p.to_dict()
-            # Mapping old fields to new if necessary (during migration phase or mixed data)
-            # To be safe, we try to read new fields, fallback to old or default
             
             p_id = data.get("post_id") or data.get("id")
             

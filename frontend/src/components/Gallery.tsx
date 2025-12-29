@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import { Play, X } from "lucide-react";
 
 import type { MediaItem } from "@/types/common";
@@ -76,6 +76,7 @@ export const Gallery: React.FC<GalleryProps> = ({
 
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [showLightbox, setShowLightbox] = useState(false);
+    const [hasOverflow, setHasOverflow] = useState(false);
     const [_, setImageDimensions] = useState<{ [key: number]: number }>({});
     const [maxHeight, setMaxHeight] = useState<number | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -83,6 +84,8 @@ export const Gallery: React.FC<GalleryProps> = ({
     const scrollStartRef = useRef<number>(0);
     const mouseStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
     const isDraggingRef = useRef(false);
+
+
 
     if (!processedItems || processedItems.length === 0) return null;
 
@@ -100,6 +103,27 @@ export const Gallery: React.FC<GalleryProps> = ({
             : "400px";
 
     const containerHeight = maxContainerHeight || calculatedHeight;
+
+
+
+    // Check overflow functionality
+    const checkOverflow = () => {
+        if (scrollContainerRef.current) {
+            const { scrollWidth, clientWidth } = scrollContainerRef.current;
+            setHasOverflow(scrollWidth > clientWidth + 2);
+        }
+    };
+
+    useEffect(() => {
+        checkOverflow();
+        window.addEventListener("resize", checkOverflow);
+        return () => window.removeEventListener("resize", checkOverflow);
+    }, [sortedItems, containerHeight]);
+
+    useEffect(() => {
+        const timer = setTimeout(checkOverflow, 100);
+        return () => clearTimeout(timer);
+    }, [containerHeight]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (!isMultipleItems) return;
@@ -269,8 +293,8 @@ export const Gallery: React.FC<GalleryProps> = ({
                 </div>
             </div>
 
-            {/* Indicators Dots - Chỉ hiển thị khi có nhiều items */}
-            {isMultipleItems && (
+            {/* Indicators Dots - Chỉ hiển thị khi có nhiều items VÀ có overflow */}
+            {isMultipleItems && hasOverflow && (
                 <div className="flex justify-center gap-1.5 mt-2">
                     {sortedItems.map((_, index) => (
                         <button

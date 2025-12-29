@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from app.schemas.user import UserResponse, UserUpdate
 from typing import Optional
 from app.db.firebase import get_db
 from app.services import user_service
@@ -35,6 +36,18 @@ def read_users_me(current_user = Depends(get_current_user)):
     before returning this result.
     """
     return current_user
+
+@router.put("/users/me", tags=["users"], response_model=UserResponse)
+def update_user_me(
+    user_update: UserUpdate,
+    db=Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """
+    Update current user profile.
+    Only updates fields that are provided (partial update).
+    """
+    return user_service.update_user(db, current_user['uid'], user_update)
 
 @router.post("/users/{target_user_id}/follow", tags=["users"])
 def follow_user(target_user_id: str, db=Depends(get_db), current_user = Depends(get_current_user)):

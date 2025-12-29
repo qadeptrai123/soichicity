@@ -52,11 +52,12 @@ def create_post(
 @router.get("/posts", response_model=List[PostResponse])
 def get_posts(
     user = Depends(get_current_user_optional),
-    limit: int = 20
+    limit: int = 20,
+    filter: str = "all" # New optional parameter
 ):
     # Logic lấy feed (đã lọc bài đã xem)
     user_id = user["uid"] if user else None
-    return PostService.get_feed_posts(user_id, limit)
+    return PostService.get_feed_posts(user_id, limit, filter)
 
 # --- CÁC API MỚI CHO SUB-COLLECTIONS (LIKE, SHARE, COMMENT) ---
 

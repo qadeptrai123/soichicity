@@ -4,6 +4,7 @@ import { jwtDecode } from "jwt-decode";
 import type { User, AuthContextType } from "@/types/auth";
 import { refreshAccessToken } from "@/lib/api-client";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -27,6 +28,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                                 const newToken = await refreshAccessToken(refreshToken);
                                 if (newToken) {
                                     await login(newToken);
+                                    setIsLoading(false);
                                     return;
                                 }
                             } catch (refreshErr) {
@@ -113,7 +115,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     if (isLoading) {
-        return <div className="flex h-screen w-full items-center justify-center">Loading...</div>; // Or <LoadingSpinner />
+        return (
+            <div className="flex h-screen w-full items-start justify-center pt-28">
+                <LoadingSpinner />
+            </div>
+        );
     }
 
     return (

@@ -14,6 +14,7 @@ import { MOCK_FRIENDS } from "@/MockData/data";
 
 // --- KẾT THÚC: DỮ LIỆU MOCK MỚI VỚI YOUTUBE LINKS ---
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
+import { useSearchParams } from "react-router-dom";
 
 const Feed = () => {
   const [isLoginPromptDismissed, setIsLoginPromptDismissed] = useState(false);
@@ -27,8 +28,12 @@ const Feed = () => {
   const [hasMore, setHasMore] = useState(true);
   const observerTarget = useRef<HTMLDivElement>(null);
 
+  // ... (in component)
+  const [searchParams] = useSearchParams();
+  const filter = searchParams.get("filter") || "all";
+
   // Lấy data từ API
-  const { data: postsData, isLoading, error: postsError } = usePosts();
+  const { data: postsData, isLoading, error: postsError } = usePosts(filter);
   // Load more posts function
   const loadMorePosts = useCallback(() => {
     if (isLoading || !hasMore) return;
