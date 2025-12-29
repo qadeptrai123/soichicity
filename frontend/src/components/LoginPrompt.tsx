@@ -1,10 +1,29 @@
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { authAPI } from "@/services/authAPI";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
 
-export const LoginPrompt = ({ onClose }: { onClose?: () => void }) => {
+
+
+import { cn } from "@/lib/utils";
+
+interface LoginPromptProps {
+    title?: string;
+    subtitle?: React.ReactNode;
+    className?: string; // Allow custom styling
+    titleClassName?: string;
+    subtitleClassName?: string;
+}
+
+export const LoginPrompt = ({
+    title = "Log in or sign up for Sợi Chỉ City",
+    subtitle = <>See what people are talking <br /> about and join the conversation.</>,
+    className,
+    titleClassName,
+    subtitleClassName,
+}: LoginPromptProps) => {
     const navigate = useNavigate();
     const { login } = useAuth();
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -15,28 +34,22 @@ export const LoginPrompt = ({ onClose }: { onClose?: () => void }) => {
             // Lưu token
             login(response.access_token);
         } catch (error) {
-            alert(error instanceof Error ? error.message : "Google login failed");
+            toast.error(error instanceof Error ? error.message : "Google login failed");
         } finally {
             setIsGoogleLoading(false);
         }
     };
     return (
-        <div className="bg-secondary backdrop-blur-xl border-2 border-border! rounded-2xl shadow-2xl shadow-black/50 p-5 w-full max-w-sm text-center sticky top-20 lg:sticky lg:top-20 mb-4 lg:mb-0">
-            {onClose && (
-                <button
-                    onClick={onClose}
-                    className="absolute top-3 right-3 text-text-muted hover:text-foreground transition-colors"
-                    aria-label="Close login prompt"
-                >
-                    ✕
-                </button>
-            )}
-            <h2 className="text-base font-bold text-white mb-3">
-                Log in or sign up for Sợi Chỉ City
-            </h2>
+        <div className={cn(
+            "bg-secondary backdrop-blur-xl border-2 border-border! rounded-2xl shadow-2xl shadow-black/50 p-5 w-full max-w-sm text-center sticky top-20 lg:sticky lg:top-20 mb-4 lg:mb-0",
+            className
+        )}>
+            <h1 className={cn("text-base font-bold text-white mb-3", titleClassName)}>
+                {title}
+            </h1>
 
-            <p className="text-text-muted text-base mb-8">
-                See what people are talking <br /> about and join the conversation.
+            <p className={cn("text-text-muted text-base mb-8", subtitleClassName)}>
+                {subtitle}
             </p>
 
             {/* Google Login Button */}

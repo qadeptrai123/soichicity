@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import users, threads, auth
+from app.api import users, threads, auth, search
 from app.core.config import settings
 from app.api import posts
 
@@ -21,6 +21,7 @@ app.add_middleware(
 # Include routers
 app.include_router(users.router, prefix=settings.API_V1_STR, tags=["users"])
 app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["auth"])
+app.include_router(search.router, prefix=settings.API_V1_STR + "/search", tags=["search"])
 
 # Posts router
 app.include_router(posts.router, prefix=settings.API_V1_STR, tags=["posts"])

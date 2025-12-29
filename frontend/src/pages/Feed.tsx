@@ -16,7 +16,8 @@ import { MOCK_FRIENDS } from "@/MockData/data";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 const Feed = () => {
-  const [isLoginPromptDismissed, setIsLoginPromptDismissed] = useState(false);
+  const [isLoginPromptDismissed] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const { isAuthenticated, user: currentUser } = useAuth();
 
   const [isReplyOpen, setIsReplyOpen] = useState(false);
@@ -75,7 +76,7 @@ const Feed = () => {
 
   const handleReply = (post: PostData, author: AuthorData) => {
     if (!isAuthenticated) {
-      // TODO: Show login prompt
+      setShowLoginPrompt(true);
       return;
     }
 
@@ -184,7 +185,10 @@ const Feed = () => {
           {!isAuthenticated && !isLoginPromptDismissed && (
             <div className="lg:hidden fixed top-0 left-0 right-0 z-50 p-4 flex justify-center">
               <div className="w-full max-w-sm">
-                <LoginPrompt onClose={() => setIsLoginPromptDismissed(true)} />
+                <LoginPrompt
+                  title="Log in or sign up for Sợi Chỉ City"
+                  subtitle={<>See what people are talking <br /> about and join the conversation.</>}
+                />
               </div>
             </div>
           )}
@@ -241,19 +245,38 @@ const Feed = () => {
               <LoginPrompt />
             </div>
           </div>
+
         )}
       </div>
 
-      {replyTarget && currentUser && (
-        <ReplyCommentDialog
-          open={isReplyOpen}
-          onOpenChange={setIsReplyOpen}
-          currentUser={currentUser}
-          targetPost={replyTarget}
-          mockFriends={MOCK_FRIENDS}
-        />
-      )}
-    </div>
+      {
+        showLoginPrompt && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+            onClick={() => setShowLoginPrompt(false)}
+          >
+            <div
+              className="relative w-full max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <LoginPrompt />
+            </div>
+          </div>
+        )
+      }
+
+      {
+        replyTarget && currentUser && (
+          <ReplyCommentDialog
+            open={isReplyOpen}
+            onOpenChange={setIsReplyOpen}
+            currentUser={currentUser}
+            targetPost={replyTarget}
+            mockFriends={MOCK_FRIENDS}
+          />
+        )
+      }
+    </div >
   );
 };
 

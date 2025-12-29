@@ -1,4 +1,5 @@
 import { authAPI } from "../services/authAPI";
+import { toast } from "sonner";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -50,7 +51,7 @@ export default function LoginForm() {
         localStorage.setItem("refresh_token", response.refresh_token);
       }
 
-      alert("Login successful!");
+      toast.success("Login successful!");
       navigate("/");
     } catch (error) {
       loginForm.setError("password", {
@@ -69,10 +70,10 @@ export default function LoginForm() {
 
       // Lưu token
       login(response.access_token);
-      alert("Login successful!");
+      toast.success("Login successful!");
       navigate("/");
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Google login failed");
+      toast.error(error instanceof Error ? error.message : "Google login failed");
     } finally {
       setIsGoogleLoading(false);
     }

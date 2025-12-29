@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -41,7 +42,7 @@ export default function ForgotPassword() {
         // Simulate API call
         await new Promise((resolve) => setTimeout(resolve, 2000));
         console.log("Recovery Email:", data);
-        alert(`Password reset request sent to: ${data.email}`);
+        toast.success(`Password reset request sent to: ${data.email}`);
         setIsLoading(false);
     };
 
