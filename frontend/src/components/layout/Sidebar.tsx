@@ -16,7 +16,7 @@ import { SearchDialog } from "@/components/SearchDialog";
 import { useState } from "react";
 import { MOCK_FRIENDS } from "@/MockData/data";
 // import { useMe } from "@/hooks/api/use-users";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo.svg";
 import { LoginPrompt } from "@/components/LoginPrompt";
 
 
