@@ -1,4 +1,5 @@
 import { authAPI } from "../services/authAPI";
+import { toast } from "sonner";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -42,7 +43,7 @@ export default function Register() {
         setIsLoading(true);
         try {
             await authAPI.register(data.full_name, data.username, data.email, data.password);
-            alert("Registration successful! Please log in.");
+            toast.success("Registration successful! Please log in.");
             navigate("/login");
         } catch (error) {
             const errorMsg = error instanceof Error ? error.message : "Registration failed";
@@ -77,9 +78,9 @@ export default function Register() {
             localStorage.setItem("access_token", response.access_token);
             localStorage.setItem("user_email", response.user.email || "");
 
-            alert("Registration successful!");
+            toast.success("Registration successful!");
         } catch (error) {
-            alert(error instanceof Error ? error.message : "Google registration failed");
+            toast.error(error instanceof Error ? error.message : "Google registration failed");
         } finally {
             setIsGoogleLoading(false);
         }

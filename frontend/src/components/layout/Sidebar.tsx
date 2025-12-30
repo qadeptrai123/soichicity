@@ -7,6 +7,7 @@ import {
   LogOut,
   X,
   LogIn,
+  icons,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -14,7 +15,10 @@ import CreatePostDialog from "@/components/CreatePostDialog";
 import { SearchDialog } from "@/components/SearchDialog";
 import { useState } from "react";
 import { MOCK_FRIENDS } from "@/MockData/data";
-import logo from "@/assets/logo.svg";
+// import { useMe } from "@/hooks/api/use-users";
+import logo from "@/assets/logo.png";
+import { LoginPrompt } from "@/components/LoginPrompt";
+
 
 
 
@@ -24,7 +28,12 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
   const { isAuthenticated, logout, user } = useAuth();
   const [openCreatePostDialog, setOpenCreatePostDialog] = useState(false);
   const [openSearchDialog, setOpenSearchDialog] = useState(false);
-
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [loginPromptContent, setLoginPromptContent] = useState({
+    title: "Log in or sign up for Sợi Chỉ City",
+    subtitle: "See what people are talking about and join the conversation."
+  });
+  // const { data: me } = useMe();
   const items = [
     { icon: Home, path: "/" },
     { icon: Search, path: "/search" },
@@ -35,6 +44,27 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
   ];
 
   const handleItemClick = (path: string, icon: any) => {
+    // List of protected paths/icons that require authentication
+    const restrictedIcons = [Heart, Users, PlusSquare];
+    const isRestricted = restrictedIcons.includes(icon) ||
+      (icon === Users && path.includes("/profile"));
+
+    if (!isAuthenticated && isRestricted) {
+      if (icon === PlusSquare) {
+        setLoginPromptContent({
+          title: "Log in to post",
+          subtitle: "Join Sợi Chỉ City to share ideas, ask questions, post random thoughts and more."
+        });
+      } else {
+        setLoginPromptContent({
+          title: "Say more with Sợi Chỉ City",
+          subtitle: "See what people are talking about and join the conversation"
+        });
+      }
+      setShowLoginPrompt(true);
+      return;
+    }
+
     if (icon === PlusSquare) {
       setOpenCreatePostDialog(true);
     } else if (icon === Search) {
@@ -144,7 +174,29 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
           onOpenChange={setOpenSearchDialog}
         />
 
+
       </div>
+
+      {showLoginPrompt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setShowLoginPrompt(false)}
+        >
+          <div
+            className="relative w-full max-w-lg" // Increased width wrapper
+            onClick={(e) => e.stopPropagation()}
+          >
+            <LoginPrompt
+              title={loginPromptContent.title}
+              subtitle={loginPromptContent.subtitle}
+              className="max-w-lg" // Override internal max-w-sm
+              titleClassName="text-2xl"
+              subtitleClassName="text-lg"
+            />
+          </div>
+        </div>
+      )}
+
     </>
   );
 }

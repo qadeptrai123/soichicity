@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,7 +36,7 @@ export default function ResetPassword() {
 
     const onSubmit = (data: ResetPasswordValues) => {
         console.log("New Password Data:", data);
-        alert("Password has been successfully reset!");
+        toast.success("Password has been successfully reset!");
         setIsResetComplete(true);
     };
 

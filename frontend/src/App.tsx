@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Toaster } from 'sonner';
 import './App.css'
 // import Comment from './components/comment';
 // import CreatePostDialog from './components/CreatePostDialog';
@@ -18,6 +19,17 @@ import Layout from './components/layout/Layout'
 export default function App() {
   return (
     <BrowserRouter>
+      <Toaster
+        position="top-right"
+        richColors
+        toastOptions={{
+          style: {
+            background: "#0A0E1A",
+            color: "#ffffff",
+            border: "1px solid #2A2F3E"
+          }
+        }}
+      />
       <Routes>
 
         {/* AUTH ROUTES */}
