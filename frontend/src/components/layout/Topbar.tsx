@@ -23,6 +23,10 @@ export default function Topbar() {
   const handleSelect = (option: Option) => {
     setSelected(option);
     setOpen(false);
+
+    // Navigate to URL with filter param
+    if (option.id === "for_you") navigate("/");
+    else navigate(`/?filter=${option.id}`);
   };
 
   const postFilter = [
@@ -67,6 +71,10 @@ export default function Topbar() {
           <ArrowLeft size={20} />
           <span>Back</span>
         </button>
+      ) : location.pathname === "/activities" ? (
+        <div className="text-gray-200 text-lg font-medium">
+          Activity
+        </div>
       ) : (
         /* CASE 2: CÁC TRANG KHÁC -> HIỆN DROPDOWN CŨ CỦA BẠN */
         <div className="relative">

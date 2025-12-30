@@ -15,7 +15,7 @@ export const api = {
         unfollow: (userId: string) => apiClient.post(`/api/v1/users/${userId}/unfollow`),
     },
     posts: {
-        getAll: () => apiClient.get<Post[]>('/api/v1/posts') as unknown as Promise<Post[]>,
+        getAll: (filter?: string) => apiClient.get<Post[]>('/api/v1/posts', { params: { filter } }) as unknown as Promise<Post[]>,
         get: (post_id: string) => apiClient.get<PostDetail>(`/api/v1/posts/${post_id}`) as unknown as Promise<PostDetail>,
         create: (data: FormData) => apiClient.post<Post>('/api/v1/posts', data, {
             headers: { 'Content-Type': 'multipart/form-data' }

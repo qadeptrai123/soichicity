@@ -3,13 +3,15 @@ import { usePostDetail } from "@/hooks/api/use-posts";
 import { PostMainPost } from "@/components/post/PostMainPost";
 import React, { useState, useRef } from "react"; // Import useRef
 import { ActivityPopup } from "@/components/post/ActivityPopup";
-import { Loader2, Image as ImageIcon, Smile, AtSign } from "lucide-react";
+import { Image as ImageIcon, Smile, AtSign } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { TargetPost } from "@/components/comment";
 import ReplyCommentDialog from "@/components/comment";
 import { useAuth } from "@/contexts/AuthProvider";
 import { ReplyItem } from "@/components/post/ReplyItem";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import AnimateEntrance from "@/components/ui/AnimateEntrance";
 
 const PostDetail = () => {
     const { id } = useParams();
@@ -69,14 +71,18 @@ const PostDetail = () => {
         setShowActivity(!showActivity);
     };
 
-    if (isLoading) return <div className={`flex justify-center items-center ${COLORS.bgPage} pt-4`}><Loader2 className="animate-spin text-blue-500 w-8 h-8" /></div>;
+    if (isLoading) return (
+        <div className={`flex justify-center items-start pt-12 ${COLORS.bgPage} h-[calc(100vh-64px)]`}>
+            <LoadingSpinner />
+        </div>
+    );
     if (!postData) return <div className={`text-center text-white pt-1 ${COLORS.bgPage} min-h-screen font-medium`}>Post not found</div>;
 
     return (
         <div className={`h-[calc(100vh-64px)] ${COLORS.bgPage} text-white flex justify-center`}>
 
             {/* Container Relative */}
-            <div className="relative w-full flex justify-center h-full py-4">
+            <AnimateEntrance type="zoom" className="relative w-full flex justify-center h-full py-4">
 
                 {/* === CARD BÀI VIẾT CHÍNH === */}
                 <div className={`w-[700px] h-full ${COLORS.bgCard} rounded-[32px] border ${COLORS.border} shadow-2xl flex flex-col z-10 relative overflow-hidden`}>
@@ -143,21 +149,24 @@ const PostDetail = () => {
                         </div>
                     </div>
                 </div>
-            </div>
+
+            </AnimateEntrance >
 
             {/* === ACTIVITY POPUP === */}
-            {showActivity && (
-                // Dùng style={{ top: popupTop }} để gán vị trí động
-                <div
-                    className="absolute left-[calc(50%+360px)] w-[320px] animate-in fade-in zoom-in-95 duration-200 origin-top-left z-20"
-                    style={{ top: `${popupTop}px` }}
-                >
-                    <ActivityPopup
-                        data={postData.activity}
-                        onClose={() => setShowActivity(false)}
-                    />
-                </div>
-            )}
+            {
+                showActivity && (
+                    // Dùng style={{ top: popupTop }} để gán vị trí động
+                    <div
+                        className="absolute left-[calc(50%+360px)] w-[320px] animate-in fade-in zoom-in-95 duration-200 origin-top-left z-20"
+                        style={{ top: `${popupTop}px` }}
+                    >
+                        <ActivityPopup
+                            data={postData.activity}
+                            onClose={() => setShowActivity(false)}
+                        />
+                    </div>
+                )
+            }
 
             {/* === ACTIVITY POPUP === */}
 
@@ -173,7 +182,7 @@ const PostDetail = () => {
                     />
                 )
             }
-        </div>
+        </div >
     );
 };
 

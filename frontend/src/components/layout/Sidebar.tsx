@@ -16,7 +16,7 @@ import { SearchDialog } from "@/components/SearchDialog";
 import { useState } from "react";
 import { MOCK_FRIENDS } from "@/MockData/data";
 // import { useMe } from "@/hooks/api/use-users";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo.svg";
 import { LoginPrompt } from "@/components/LoginPrompt";
 
 
@@ -37,7 +37,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
   const items = [
     { icon: Home, path: "/" },
     { icon: Search, path: "/search" },
-    { icon: Heart, path: "/favorites" },
+    { icon: Heart, path: "/activities" },
     // { icon: Users, path: "/community" },
     { icon: Users, path: `/profile/${user?.username}` },
     { icon: PlusSquare, path: "/create" },
@@ -123,7 +123,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
 
           {/* Logo */}
           <div className="flex justify-center">
-            <img src={logo} alt="Logo" className="w-10 h-10 rounded-full" />
+            <img src={logo} alt="Sợi Chỉ City" className="w-10 h-10 rounded-full" />
           </div>
 
           {/* Menu */}

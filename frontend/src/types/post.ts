@@ -1,6 +1,6 @@
 import type { Author } from './user';
 export type { Author };
-import type { MediaItem } from './common';
+
 
 export interface Post {
     post_id: string;

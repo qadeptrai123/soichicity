@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Lock } from "lucide-react";
-import LogoImage from "../assets/logo.png";
+import logo from "@/assets/logo.svg";
 import {
     Form,
     FormControl,
@@ -62,7 +62,7 @@ export default function ResetPassword() {
                     <CardHeader className="flex flex-col items-center mb-2">
                         <div className="w-15 h-15 bg-linear-to-tr bg-blue-500 rounded-full flex items-center justify-center">
                             <img
-                                src={LogoImage}
+                                src={logo}
                                 alt="App Logo"
                             />
                         </div>

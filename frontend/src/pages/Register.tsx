@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import LoginImage from "../assets/logo.png";
+import logo from "@/assets/logo.svg";
 
 // Shadcn Components
 import { Button } from "@/components/ui/button";
@@ -103,7 +103,7 @@ export default function Register() {
                 <Card className="w-full max-w-md bg-secondary backdrop-blur-xl border-border-secondary shadow-2xl shadow-black/50 mx-auto my-auto">
                     <CardHeader className="flex flex-col items-center mb-1">
                         <div className="w-12 h-12 bg-linear-to-tr bg-blue-500 rounded-full flex items-center justify-center mb-2 shadow-lg shadow-blue-500/30">
-                            <img src={LoginImage} alt="App Logo" />
+                            <img src={logo} alt="App Logo" />
                         </div>
                         <CardTitle className="text-lg text-white text-hd tracking-tight">
                             Create Account

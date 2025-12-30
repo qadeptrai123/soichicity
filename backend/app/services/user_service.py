@@ -1,6 +1,6 @@
 # app/services/user_service.py
 from firebase_admin import auth
-from app.schemas.user import UserCreate, UserResponse
+from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from fastapi import HTTPException
 from google.cloud import firestore
 import uuid
@@ -222,7 +222,29 @@ def sync_google_user(db, decoded_token):
     # Save to Firestore here
     db.collection('users').document(uid).set(user_data)
     
-    return {"uid": uid, **user_data}
+
+
+def update_user(db, user_id: str, user_update: UserUpdate):
+    """
+    Update user profile information
+    """
+    user_ref = db.collection('users').document(user_id)
+    user_doc = user_ref.get()
+    
+    if not user_doc.exists:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    update_data = user_update.model_dump(exclude_unset=True)
+    
+    if not update_data:
+        # Nothing to update, return current state
+        return {"uid": user_id, **user_doc.to_dict()}
+        
+    user_ref.update(update_data)
+    
+    # Return updated user
+    updated_doc = user_ref.get()
+    return {"uid": user_id, **updated_doc.to_dict()}
 
 def follow_user(db, current_user_id:str, target_user_id:str):
     """
