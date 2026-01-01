@@ -7,6 +7,8 @@ import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "../Gallery";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import type { Post } from "@/types/post";
 import { formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/contexts/AuthProvider";
+import { LoginPrompt } from "@/components/LoginPrompt";
 // import type { MediaItem } from "@/types/common";
 
 
@@ -21,11 +23,13 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
   const timeAgo = formatDistanceToNow(new Date(data.created_at));
 
   // Hooks
+  const { isAuthenticated } = useAuth();
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
   const repostMutation = useRepostPost();
 
   // State
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
   const [, setIsGalleryDragging] = useState(false);
 
@@ -59,33 +63,54 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
 
   const handleLike = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
     setActionStates((prev) => ({ ...prev, liked: !prev.liked }));
     setLocalCounts((prev) => ({
       ...prev,
       likes: prev.likes + (actionStates.liked ? -1 : 1),
     }));
     likeMutation.mutate(data.post_id);
-  }, [actionStates.liked, data.post_id, likeMutation]);
+  }, [actionStates.liked, data.post_id, likeMutation, isAuthenticated]);
 
   const handleBookmark = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
     setActionStates((prev) => ({ ...prev, bookmarked: !prev.bookmarked }));
     setLocalCounts((prev) => ({
       ...prev,
       bookmarks: prev.bookmarks + (actionStates.bookmarked ? -1 : 1),
     }));
     saveMutation.mutate(data.post_id);
-  }, [actionStates.bookmarked, data.post_id, saveMutation]);
+  }, [actionStates.bookmarked, data.post_id, saveMutation, isAuthenticated]);
 
   const handleRepost = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
     setActionStates((prev) => ({ ...prev, reposted: !prev.reposted }));
     setLocalCounts((prev) => ({
       ...prev,
       reposts: prev.reposts + (actionStates.reposted ? -1 : 1),
     }));
     repostMutation.mutate(data.post_id);
-  }, [actionStates.reposted, data.post_id, repostMutation]);
+  }, [actionStates.reposted, data.post_id, repostMutation, isAuthenticated]);
+
+  const handleReply = useCallback((e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    onReply?.();
+  }, [onReply, isAuthenticated]);
 
   // --- Preprocess Gallery Data (similar to Feed.tsx) ---
   const processedData = useMemo(() => {
@@ -280,7 +305,7 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
           actionId="reply"
           icon={<MessageCircle size={20} />}
           count={localCounts.replies}
-          onClick={onReply}
+          onClick={handleReply}
         />
         <ActionButton
           actionId="bookmark"
@@ -303,6 +328,24 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
         {/* Add Bookmark for Main Post too if desired, usually it is there */}
 
       </div>
+
+      {/* Login Prompt Overlay */}
+      {showLoginPrompt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 cursor-default"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowLoginPrompt(false);
+          }}
+        >
+          <div
+            className="relative w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <LoginPrompt />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
