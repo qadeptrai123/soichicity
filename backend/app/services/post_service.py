@@ -305,14 +305,20 @@ class PostService:
         return result
     
     @staticmethod
-    def get_feed_posts(user_id: str = None, limit: int = 20, filter_type: str = "all"):
+    def get_feed_posts(user_id: str = None, limit: int = 20, filter_type: str = "all", cursor: str = None):
         
         posts_ref = db.collection("posts")
         docs_stream = []
 
         if filter_type == "saved" and user_id:
             # 1. Get Saved Posts (from users/{user_id}/activity_saves)
-            activity_ref = db.collection("users").document(user_id).collection("activity_saves").order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
+            activity_ref = db.collection("users").document(user_id).collection("activity_saves").order_by("created_at", direction=firestore.Query.DESCENDING)
+            
+            if cursor:
+                 # Assume cursor is timestamp
+                 activity_ref = activity_ref.start_after({"created_at": cursor})
+            
+            activity_ref = activity_ref.limit(limit)
             activity_docs = list(activity_ref.stream())
             
             # Fetch original posts in batch
@@ -320,10 +326,6 @@ class PostService:
             if post_ids:
                 # Remove duplicates
                 post_ids = list(set(post_ids))
-                # Batch fetch (helper needed or manual)
-                # Since we don't have _get_docs_batch imported, let's do simple fetch or use where 'in' if supported (limit 10)
-                # Firestore 'in' query supports max 10. Better to just fetch individually or use custom batch logic.
-                # For simplicity in this codebase context without import:
                 for pid in post_ids:
                     p_doc = posts_ref.document(pid).get()
                     if p_doc.exists:
@@ -332,7 +334,12 @@ class PostService:
         
         elif filter_type == "liked" and user_id:
              # 2. Get Liked Posts
-            activity_ref = db.collection("users").document(user_id).collection("activity_likes").order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
+            activity_ref = db.collection("users").document(user_id).collection("activity_likes").order_by("created_at", direction=firestore.Query.DESCENDING)
+            
+            if cursor:
+                activity_ref = activity_ref.start_after({"created_at": cursor})
+                
+            activity_ref = activity_ref.limit(limit)
             activity_docs = list(activity_ref.stream())
             post_ids = [d.get("post_id") for d in activity_docs]
             
@@ -345,29 +352,41 @@ class PostService:
 
         elif filter_type == "following" and user_id:
             # 3. Get Following Posts
-            # Fetch user following list
             user_ref = db.collection("users").document(user_id)
-            # Check sub-collection 'followings' or array 'following'
-            # Based on user_service, we maintain both but 'following' array is easiest for 'in' query
             u_doc = user_ref.get()
             if u_doc.exists:
                 following_list = u_doc.to_dict().get("following", [])
                 if following_list:
-                    # Firestore 'in' limit is 10. If > 10, we usually need multiple queries or client-side filter.
-                    # For MVP, let's slice top 10 or fetch all and filter in memory (expensive but simple).
-                    # Strategy: Query generic feed and filter in python
-                     all_posts = posts_ref.where("level", "==", 0).order_by("created_at", direction=firestore.Query.DESCENDING).limit(100).stream()
+                     # Query based on posts
+                     query = posts_ref.where("level", "==", 0).order_by("created_at", direction=firestore.Query.DESCENDING)
+                     
+                     if cursor:
+                         query = query.start_after({"created_at": cursor})
+                         
+                     # Manual filter for following (not efficient for large scale but works for now)
+                     # We might need to fetch MORE than limit to fill the limit after filtering
+                     # Simplification: Fetch 2*limit, filter, return what we have (user might need to scroll more often)
+                     # Better: standard feed usually doesn't strictly follow 'following' only unless using flat-feed service.
+                     # Let's simple apply limit to query and filter code side.
+                     # NOTE: 'start_after' works on the ORDER BY field.
+                     
+                     all_posts = query.limit(100).stream() # Fetch wider range
                      for p in all_posts:
                          if p.to_dict().get("author_id") in following_list:
                              docs_stream.append(p)
                              if len(docs_stream) >= limit:
                                  break
                 else:
-                    docs_stream = [] # Following no one
+                    docs_stream = [] 
         
         else:
              # Default: All Posts
-             docs_stream = list(posts_ref.where("level", "==", 0).order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit).stream())
+             query = posts_ref.where("level", "==", 0).order_by("created_at", direction=firestore.Query.DESCENDING)
+             
+             if cursor:
+                 query = query.start_after({"created_at": cursor})
+                 
+             docs_stream = list(query.limit(limit).stream())
         
         final_posts = []
         for p in docs_stream:
@@ -392,47 +411,72 @@ class PostService:
             }
             final_posts.append(normalized)
         
-        # 6) Populate author info
+        # 6) Populate author info (Optimized with Batch Fetch)
+        author_ids = list(set([p.get("author_id") for p in final_posts if p.get("author_id")]))
+        authors_map = {}
+        if author_ids:
+            # Create references
+            user_refs = [db.collection("users").document(uid) for uid in author_ids]
+            # Batch get
+            users_docs = db.get_all(user_refs)
+            
+            for doc in users_docs:
+                if doc.exists:
+                    d = doc.to_dict()
+                    authors_map[doc.id] = {
+                        "uid": doc.id,
+                        "username": d.get("username", ""),
+                        "full_name": d.get("full_name"),
+                        "avatar_url": d.get("avatar_url") or d.get("avatar") or d.get("picture"),
+                    }
+
         for post in final_posts:
             author_id = post.get("author_id")
-            if author_id:
-                user_ref = db.collection("users").document(author_id).get()
-                if user_ref.exists:
-                    user_data = user_ref.to_dict()
-                    post["author"] = {
-                        "uid": author_id,
-                        "username": user_data.get("username", ""),
-                        "full_name": user_data.get("full_name"),
-                        "avatar_url": user_data.get("avatar_url") or user_data.get("avatar") or user_data.get("picture"),
-                    }
-        
-        # 7) Populate interaction status (is_liked, is_shared, is_reposted, is_saved)
-        # Note: This performs N*4 reads per request. Optimize by batching or denormalizing if scale increases.
-        for post in final_posts:
-            if user_id:
-                p_id = post["post_id"]
-                # Use standard collection names in posts for checking status logic
-                post_ref = db.collection("posts").document(p_id)
-                
-                # Check Like
-                if post_ref.collection("likes").document(user_id).get().exists:
-                    post["is_liked"] = True
-                else:
-                     post["is_liked"] = False
-                     
-                # Check Repost (checks 'reposts' sub-collection)
-                if post_ref.collection("reposts").document(user_id).get().exists:
-                    post["is_reposted"] = True
-                else:
-                     post["is_reposted"] = False
-                     
-                # Check Save
-                if post_ref.collection("saves").document(user_id).get().exists:
-                    post["is_saved"] = True
-                else:
-                     post["is_saved"] = False
+            if author_id and author_id in authors_map:
+                post["author"] = authors_map[author_id]
             else:
-                # Guest user -> all false
+                 post["author"] = {
+                    "uid": "unknown",
+                    "username": "Unknown",
+                    "full_name": "Unknown User",
+                    "avatar_url": ""
+                }
+        
+        # 7) Populate interaction status (Optimized with Batch Fetch)
+        if user_id and final_posts:
+            # Collect references for all checks
+            like_refs = []
+            repost_refs = []
+            save_refs = []
+            
+            # Map request index to post index to reconstruct
+            # Actually easier: create a map of post_id -> status
+            
+            for post in final_posts:
+                pid = post["post_id"]
+                post_ref = db.collection("posts").document(pid)
+                like_refs.append(post_ref.collection("likes").document(user_id))
+                repost_refs.append(post_ref.collection("reposts").document(user_id))
+                save_refs.append(post_ref.collection("saves").document(user_id))
+            
+            # Batch fetch all together (or 3 batches)
+            # db.get_all accepts mixed references? Yes.
+            # But let's do 3 batches for clarity and likely similar performance
+            
+            likes_snapshots = list(db.get_all(like_refs))
+            reposts_snapshots = list(db.get_all(repost_refs))
+            saves_snapshots = list(db.get_all(save_refs))
+            
+            # Process results
+            # The order of snapshots matches the order of refs
+            for i, post in enumerate(final_posts):
+                post["is_liked"] = likes_snapshots[i].exists
+                post["is_reposted"] = reposts_snapshots[i].exists
+                post["is_saved"] = saves_snapshots[i].exists
+                
+        else:
+             # Guest user or no posts
+            for post in final_posts:
                 post["is_liked"] = False
                 post["is_reposted"] = False
                 post["is_saved"] = False
