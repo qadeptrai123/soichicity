@@ -1,6 +1,7 @@
 import axios from "axios";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import { jwtDecode } from "jwt-decode";
+import { showError } from "./toast";
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -202,7 +203,14 @@ apiClient.interceptors.response.use(
       window.dispatchEvent(new Event("auth:logout"));
     }
 
-    const message = error.response?.data?.detail || error.message;
+    // const message = error.response?.data?.detail || error.message;
+    const message =
+      error.response?.data?.message ||
+      error.response?.data?.detail ||
+      error.message ||
+      "Có lỗi xảy ra";
+
+    showError(message); // 🔔 TOAST TOÀN HỆ THỐNG
     console.error("API Error:", message);
     return Promise.reject(error);
   }

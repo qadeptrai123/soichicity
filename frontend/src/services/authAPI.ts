@@ -1,69 +1,55 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { apiClient } from "@/lib/api-client";
 
 const firebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
-const API_BASE_URL = "http://localhost:8000";
-
 export const authAPI = {
-    register: async (full_name: string, username: string, email: string, password: string) => {
-        const response = await fetch(`${API_BASE_URL}/api/v1/register`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ full_name, username, email, password }),
-        });
+  /** REGISTER */
+  register: (payload: {
+    full_name: string;
+    username: string;
+    email: string;
+    password: string;
+  }) => {
+    return apiClient.post("/api/v1/register", payload);
+  },
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || "Registration failed");
-        }
-        return response.json();
-    },
+  /** LOGIN */
+  login: (identifier: string, password: string) => {
+    const formData = new URLSearchParams();
+    formData.append("username", identifier);
+    formData.append("password", password);
 
-    login: async (identifier: string, password: string) => {
-        const formData = new URLSearchParams();
-        formData.append("username", identifier);
-        formData.append("password", password);
+    return apiClient.post("/api/v1/login", formData, {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+  },
 
-        const response = await fetch(`${API_BASE_URL}/api/v1/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: formData,
-        });
+  /** LOGIN WITH GOOGLE (GIỮ NGUYÊN) */
+  loginWithGoogle: async () => {
+    const result = await signInWithPopup(auth, googleProvider);
+    const idToken = await result.user.getIdToken();
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || "Login failed");
-        }
-        return response.json();
-    },
-
-    loginWithGoogle: async () => {
-        try {
-            const result = await signInWithPopup(auth, googleProvider);
-            const idToken = await result.user.getIdToken();
-            return {
-                access_token: idToken,
-                token_type: "bearer",
-                user: {
-                    email: result.user.email,
-                    displayName: result.user.displayName,
-                    uid: result.user.uid,
-                },
-            };
-        } catch (error) {
-            throw new Error(error instanceof Error ? error.message : "Google login failed");
-        }
-    },
+    return {
+      access_token: idToken,
+      token_type: "bearer",
+      user: {
+        email: result.user.email,
+        displayName: result.user.displayName,
+        uid: result.user.uid,
+      },
+    };
+  },
 };

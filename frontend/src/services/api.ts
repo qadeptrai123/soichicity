@@ -48,3 +48,7 @@ export const getPostActivity = async (postId: string) => {
     const response = await apiClient.get(`/posts/${postId}/activity`);
     return response.data;
 }
+
+export const createPost = async (payload: FormData) => {
+    return apiClient.post("/api/v1/posts", payload);
+  };
