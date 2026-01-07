@@ -171,6 +171,22 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
     [actionStates.liked, post.post_id, likeMutation, isAuthenticated]
   );
 
+  // const handleBookmark = useCallback(
+  //   (e?: React.MouseEvent) => {
+  //     e?.stopPropagation();
+  //     if (!isAuthenticated) {
+  //       setShowLoginPrompt(true);
+  //       return;
+  //     }
+  //     setActionStates((prev) => ({ ...prev, bookmarked: !prev.bookmarked }));
+  //     setLocalCounts((prev) => ({
+  //       ...prev,
+  //       bookmarks: prev.bookmarks + (actionStates.bookmarked ? -1 : 1),
+  //     }));
+  //     saveMutation.mutate(post.post_id);
+  //   },
+  //   [actionStates.bookmarked, post.post_id, saveMutation, isAuthenticated]
+  // );
   const handleBookmark = useCallback(
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
@@ -178,12 +194,20 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
         setShowLoginPrompt(true);
         return;
       }
+  
+      const wasSaved = actionStates.bookmarked; // 👈 TRẠNG THÁI TRƯỚC CLICK
+  
+      // Optimistic UI
       setActionStates((prev) => ({ ...prev, bookmarked: !prev.bookmarked }));
       setLocalCounts((prev) => ({
         ...prev,
-        bookmarks: prev.bookmarks + (actionStates.bookmarked ? -1 : 1),
+        bookmarks: prev.bookmarks + (wasSaved ? -1 : 1),
       }));
-      saveMutation.mutate(post.post_id);
+  
+      saveMutation.mutate({
+        postId: post.post_id,
+        wasSaved,
+      });
     },
     [actionStates.bookmarked, post.post_id, saveMutation, isAuthenticated]
   );
@@ -208,15 +232,24 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
         setShowLoginPrompt(true);
         return;
       }
+  
+      const wasReposted = actionStates.reposted; // 👈 TRẠNG THÁI TRƯỚC CLICK
+  
+      // Optimistic UI
       setActionStates((prev) => ({ ...prev, reposted: !prev.reposted }));
       setLocalCounts((prev) => ({
         ...prev,
-        reposts: prev.reposts + (actionStates.reposted ? -1 : 1),
+        reposts: prev.reposts + (wasReposted ? -1 : 1),
       }));
-      repostMutation.mutate(post.post_id);
+  
+      repostMutation.mutate({
+        postId: post.post_id,
+        wasReposted,
+      });
     },
     [actionStates.reposted, post.post_id, repostMutation, isAuthenticated]
   );
+  
 
   const handleReply = useCallback(
     async (e?: React.MouseEvent) => {
