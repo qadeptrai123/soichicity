@@ -35,8 +35,6 @@ import type { Post as PostData, Author as AuthorData } from "@/types/post";
 import { downloadMedia } from "@/services/api";
 import { toast } from "sonner";
 
-const [activeMediaUrl, setActiveMediaUrl] = useState<string | null>(null);
-
 interface FeedCardProps {
   post: PostData;
   author: AuthorData;
@@ -73,6 +71,7 @@ import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 // --- MAIN FEED CARD COMPONENT ---
 const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, compact }) => {
   // Add mock author data fallback
+  // const [activeMediaUrl, setActiveMediaUrl] = useState<string | null>(null);
   const mockAuthor: AuthorData = {
     uid: "mock-user",
     username: "user",
