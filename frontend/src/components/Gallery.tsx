@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo, useEffect } from "react";
 import { Play, X } from "lucide-react";
 
 import type { MediaItem } from "@/types/common";
+import { toast } from "sonner";
 
 // Helper Functions
 export const getYouTubeEmbedUrl = (url: string): string | null => {
@@ -38,12 +39,19 @@ const sortMediaItems = (items: MediaItem[]): MediaItem[] => {
     return [...videos, ...images];
 };
 
+// interface GalleryProps {
+//     items: string[];
+//     onDragStateChange?: (isDragging: boolean) => void;
+//     className?: string; // Added for custom styling
+//     size?: "small" | "medium" | "full"; // Responsive size field
+// }
 interface GalleryProps {
     items: string[];
-    onDragStateChange?: (isDragging: boolean) => void;
-    className?: string; // Added for custom styling
-    size?: "small" | "medium" | "full"; // Responsive size field
-}
+    size?: "small" | "large";
+    onDragStateChange?: (dragging: boolean) => void;
+    onOpen?: (url: string) => void; // 👈 THÊM
+  }
+  
 
 const SIZE_MAP = {
     small: 250,
@@ -166,16 +174,19 @@ export const Gallery: React.FC<GalleryProps> = ({
     };
 
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        if (showLightbox) return; // ⛔ chặn khi đang xem lightbox
+      
         const container = e.currentTarget;
         const scrollLeft = container.scrollLeft;
         const scrollWidth = container.scrollWidth;
         const containerWidth = container.offsetWidth;
-
-        // Tính toán index dựa trên phần trăm scroll
+      
         const scrollProgress = scrollLeft / (scrollWidth - containerWidth);
         const newIndex = Math.round(scrollProgress * (sortedItems.length - 1));
+      
         setSelectedIndex(Math.max(0, Math.min(newIndex, sortedItems.length - 1)));
-    };
+      };
+      
 
     const handleImageLoad = (
         e: React.SyntheticEvent<HTMLImageElement>,
@@ -206,7 +217,73 @@ export const Gallery: React.FC<GalleryProps> = ({
             setSelectedIndex(index);
             setShowLightbox(true);
         }
+    }; 
+
+    const handleDownloadCurrentMedia = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+      
+        if (!currentItem?.url) {
+          toast.error("No media to download");
+          return;
+        }
+      
+        const downloadUrl =
+          "http://localhost:8000/api/media/download?url=" +
+          encodeURIComponent(currentItem.url);
+      
+        window.location.href = downloadUrl;
     };
+    
+    // const handlePrev = (e: React.MouseEvent) => {
+    // e.stopPropagation();
+    // setSelectedIndex((prev) =>
+    //     prev === 0 ? sortedItems.length - 1 : prev - 1
+    // );
+    // };
+    
+    // const handleNext = (e: React.MouseEvent) => {
+    // e.stopPropagation();
+    // setSelectedIndex((prev) =>
+    //     prev === sortedItems.length - 1 ? 0 : prev + 1
+    // );
+    // };
+    
+    const goPrev = () => {
+        setSelectedIndex((prev) =>
+          prev === 0 ? sortedItems.length - 1 : prev - 1
+        );
+      };
+      
+    const goNext = () => {
+        setSelectedIndex((prev) =>
+          prev === sortedItems.length - 1 ? 0 : prev + 1
+        );
+      };
+
+    const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    goPrev();
+    };
+    
+    const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    goNext();
+    };
+      
+      
+    useEffect(() => {
+        if (!showLightbox) return;
+      
+        const handleKeyDown = (e: KeyboardEvent) => {
+          if (e.key === "ArrowLeft") goPrev();
+          if (e.key === "ArrowRight") goNext();
+          if (e.key === "Escape") setShowLightbox(false);
+        };
+      
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+      }, [showLightbox, sortedItems.length]);
+      
 
     return (
         <div className={className} data-gallery="true">
@@ -236,8 +313,17 @@ export const Gallery: React.FC<GalleryProps> = ({
                     {sortedItems.map((item, index) => (
                         <div
                             key={index}
-                            className={`shrink-0 relative rounded overflow-hidden flex items-center justify-center ${isMultipleItems ? "" : "bg-transparent"
-                                }`}
+                            className={`
+                                shrink-0 relative rounded overflow-hidden flex items-center justify-center
+                                transition-all duration-300 ease-out
+                                ${
+                                    showLightbox
+                                    ? index === selectedIndex
+                                        ? "opacity-100 blur-0 scale-100 z-10"
+                                        : "opacity-15 blur-sm scale-95"
+                                    : "opacity-100 blur-0"
+                                }
+                                `}
                             style={{
                                 width: isMultipleItems ? "auto" : "100%",
                                 height: "100%",
@@ -337,6 +423,43 @@ export const Gallery: React.FC<GalleryProps> = ({
                     >
                         <X size={24} />
                     </button>
+                     {/* Download */}
+                    {currentItem.type !== "youtube" && (
+                    <button
+                        onClick={handleDownloadCurrentMedia}
+                        className="absolute top-4 right-16 bg-black/70 text-white px-3 py-2 rounded-lg hover:bg-black transition z-50"
+                    >
+                        ⬇ Download
+                    </button>
+                    )}
+
+                    {/* Prev */}
+                    {sortedItems.length > 1 && (
+                    <button
+                        onClick={handlePrev}
+                        className="absolute left-6 top-1/2 -translate-y-1/2
+                                bg-black/60 text-white
+                                w-14 h-14 text-4xl
+                                flex items-center justify-center
+                                rounded-full hover:bg-black transition z-50"
+                    >
+                        ‹
+                    </button>
+                    )}
+
+                    {/* Next */}
+                    {sortedItems.length > 1 && (
+                    <button
+                        onClick={handleNext}
+                        className="absolute right-6 top-1/2 -translate-y-1/2
+                                bg-black/60 text-white
+                                w-14 h-14 text-4xl
+                                flex items-center justify-center
+                                rounded-full hover:bg-black transition z-50"                  
+                    >
+                        ›
+                    </button>
+                    )}
 
                     {currentItem.type === "youtube" ? (
                         <div

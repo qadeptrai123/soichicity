@@ -32,6 +32,11 @@ import { useAuth } from "@/contexts/AuthProvider";
 
 import type { Post as PostData, Author as AuthorData } from "@/types/post";
 
+import { downloadMedia } from "@/services/api";
+import { toast } from "sonner";
+
+const [activeMediaUrl, setActiveMediaUrl] = useState<string | null>(null);
+
 interface FeedCardProps {
   post: PostData;
   author: AuthorData;
@@ -171,6 +176,24 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
     [actionStates.liked, post.post_id, likeMutation, isAuthenticated]
   );
 
+  const handleDownloadMedia = (
+    e?: React.MouseEvent
+  ) => {
+    e?.stopPropagation();
+  
+    if (!post.media_url) {
+      toast.error("No media to download");
+      return;
+    }
+  
+    const downloadUrl =
+      "http://localhost:8000/api/media/download?url=" +
+      encodeURIComponent(post.media_url);
+  
+    window.location.href = downloadUrl;
+  };
+  
+  
   // const handleBookmark = useCallback(
   //   (e?: React.MouseEvent) => {
   //     e?.stopPropagation();
@@ -453,7 +476,12 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
                     >
                       <X size={24} />
                     </button>
-
+                    <button
+                      onClick={handleDownloadMedia}
+                      className="absolute top-4 right-15 bg-black/70 text-white px-4 py-2 rounded-lg hover:bg-black transition z-50"
+                    >
+                      ⬇ Download
+                    </button>
                     {isYoutube ? (
                       <div
                         className="relative w-full max-w-4xl bg-black"
