@@ -32,7 +32,8 @@ export const LoginPrompt = ({
         try {
             const response = await authAPI.loginWithGoogle();
             // Lưu token
-            login(response.access_token);
+            await login(response.access_token);
+            window.location.reload();
         } catch (error) {
             toast.error(error instanceof Error ? error.message : "Google login failed");
         } finally {
