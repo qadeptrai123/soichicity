@@ -13,6 +13,7 @@ import Feed from "./pages/Feed"
 import PostDetail from "./pages/PostDetail"
 import Profile from "./pages/Profile"
 import Activity from "./pages/Activity"
+import Search from "./pages/Search"
 
 import Layout from './components/layout/Layout'
 
@@ -44,7 +45,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route index element={<Feed />} />
           <Route path="post/:id" element={<PostDetail />} />
-          <Route path="search" element={<div className="text-white">Search</div>} />
+          <Route path="search" element={<Search />} />
           <Route path="activities" element={<Activity />} />
           <Route path="community" element={<div className="text-white">Community</div>} />
           <Route path="create" element={<div className="text-white">Create</div>} />
