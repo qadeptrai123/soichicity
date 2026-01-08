@@ -16,6 +16,7 @@ import Activity from "./pages/Activity"
 
 import Layout from './components/layout/Layout'
 
+
 export default function App() {
   return (
     <BrowserRouter>
