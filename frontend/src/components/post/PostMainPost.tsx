@@ -86,7 +86,11 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
       ...prev,
       bookmarks: prev.bookmarks + (actionStates.bookmarked ? -1 : 1),
     }));
-    saveMutation.mutate(data.post_id);
+    saveMutation.mutate({
+      postId: data.post_id,
+      wasSaved: actionStates.bookmarked,
+    });
+    
   }, [actionStates.bookmarked, data.post_id, saveMutation, isAuthenticated]);
 
   const handleRepost = useCallback((e?: React.MouseEvent) => {
@@ -100,7 +104,11 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
       ...prev,
       reposts: prev.reposts + (actionStates.reposted ? -1 : 1),
     }));
-    repostMutation.mutate(data.post_id);
+    repostMutation.mutate({
+      postId: data.post_id,
+      wasReposted: actionStates.reposted,
+    });
+    
   }, [actionStates.reposted, data.post_id, repostMutation, isAuthenticated]);
 
   const handleReply = useCallback((e?: React.MouseEvent) => {
