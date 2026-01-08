@@ -10,6 +10,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthProvider";
 import { LoginPrompt } from "@/components/LoginPrompt";
 // import type { MediaItem } from "@/types/common";
+import { toast } from "sonner";
 
 
 interface PostMainPostProps {
@@ -74,6 +75,34 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
     }));
     likeMutation.mutate(data.post_id);
   }, [actionStates.liked, data.post_id, likeMutation, isAuthenticated]);
+
+  const handleShare = useCallback((e?: React.MouseEvent) => {
+    e?.stopPropagation();
+  
+    const postUrl = `${window.location.origin}/post/${data.post_id}`;
+    const shareData = {
+      title: "Check out this post",
+      text: data.content?.slice(0, 100) || "Interesting post",
+      url: postUrl,
+    };
+  
+    // ✅ Ưu tiên Web Share API (mobile, Chrome, Safari)
+    if (navigator.share) {
+      navigator.share(shareData).catch(() => {
+        // user cancel → không cần báo lỗi
+      });
+    } else {
+      // 💻 Fallback: copy link
+      navigator.clipboard.writeText(postUrl)
+        .then(() => {
+          toast.success("Post link copied");
+        })
+        .catch(() => {
+          toast.error("Failed to copy link");
+        });
+    }
+  }, [data.post_id, data.content]);
+  
 
   const handleBookmark = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -332,6 +361,7 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
         <ActionButton
           actionId="share"
           icon={<Send size={20} />}
+          onClick={handleShare}
         />
         {/* Add Bookmark for Main Post too if desired, usually it is there */}
 
