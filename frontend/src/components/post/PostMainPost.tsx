@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { MoreHorizontal, Heart, MessageCircle, Repeat2, Send, Bookmark, X } from "lucide-react";
+import { MoreHorizontal, Heart, MessageSquare, Repeat2, Send, Bookmark, X } from "lucide-react";
 import { ActionButton } from "@/components/ActionButton";
 import { useLikePost, useSavePost, useRepostPost } from "@/hooks/api/use-posts";
 import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "../Gallery";
@@ -310,7 +310,7 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
         />
         <ActionButton
           actionId="reply"
-          icon={<MessageCircle size={20} />}
+          icon={<MessageSquare size={20} />}
           count={localCounts.replies}
           onClick={handleReply}
         />
