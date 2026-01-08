@@ -204,6 +204,31 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
     window.location.href = downloadUrl;
   };
   
+  // const handleExternalShare = () => {
+  //   const postUrl = `${window.location.origin}/post/${post.post_id}`;
+  
+  //   navigator.clipboard.writeText(postUrl)
+  //     .then(() => {
+  //       toast.success("Post link copied to clipboard");
+  //     })
+  //     .catch(() => {
+  //       toast.error("Failed to copy link");
+  //     });
+  // };
+  const handleExternalShare = async () => {
+    const postUrl = `${window.location.origin}/post/${post.post_id}`;
+  
+    if (navigator.share) {
+      await navigator.share({
+        title: post.content?.slice(0, 50),
+        url: postUrl,
+      });
+    } else {
+      await navigator.clipboard.writeText(postUrl);
+      toast.success("Post link copied");
+    }
+  };
+  
   
   // const handleBookmark = useCallback(
   //   (e?: React.MouseEvent) => {
@@ -565,6 +590,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
             <ActionButton
               actionId="share"
               icon={<Send size={24} />}
+              onClick={handleExternalShare}
             // count={localCounts.shares}
             // onClick={handleShare}
             // isActive={actionStates.shared}
