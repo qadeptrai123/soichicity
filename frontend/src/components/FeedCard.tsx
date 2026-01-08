@@ -94,42 +94,54 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   const [isGalleryDragging, setIsGalleryDragging] = useState(false);
 
   // Optimistic UI State - khởi tạo từ props
-  // Optimistic UI State - khởi tạo từ props
-  const [localCounts, setLocalCounts] = useState({
+  // const [localCounts, setLocalCounts] = useState({
+  //   likes: post.likes_count || 0,
+  //   replies: post.comments_count || 0,
+  //   bookmarks: post.saves_count || 0,
+  //   reposts: post.reposts_count || 0,
+  // });
+
+  // const [actionStates, setActionStates] = useState({
+  //   liked: post.is_liked || false,
+  //   bookmarked: post.is_saved || false,
+  //   reposted: post.is_reposted || false,
+  // });
+  const [localCounts, setLocalCounts] = useState(() => ({
     likes: post.likes_count || 0,
     replies: post.comments_count || 0,
     bookmarks: post.saves_count || 0,
     reposts: post.reposts_count || 0,
-  });
-
-  const [actionStates, setActionStates] = useState({
+  }));
+  
+  const [actionStates, setActionStates] = useState(() => ({
     liked: post.is_liked || false,
     bookmarked: post.is_saved || false,
     reposted: post.is_reposted || false,
-  });
+  }));
+  
 
   // Sync state với props khi data từ API thay đổi (sau khi invalidateQueries)
-  useEffect(() => {
-    setLocalCounts({
-      likes: post.likes_count || 0,
-      replies: post.comments_count || 0,
-      bookmarks: post.saves_count || 0,
-      reposts: post.reposts_count || 0,
-    });
-    setActionStates({
-      liked: post.is_liked || false,
-      bookmarked: post.is_saved || false,
-      reposted: post.is_reposted || false
-    });
-  }, [
-    post.likes_count,
-    post.comments_count,
-    post.saves_count,
-    post.reposts_count,
-    post.is_liked,
-    post.is_saved,
-    post.is_reposted,
-  ]);
+  // useEffect(() => {
+  //   setLocalCounts({
+  //     likes: post.likes_count || 0,
+  //     replies: post.comments_count || 0,
+  //     bookmarks: post.saves_count || 0,
+  //     reposts: post.reposts_count || 0,
+  //   });
+  //   setActionStates({
+  //     liked: post.is_liked || false,
+  //     bookmarked: post.is_saved || false,
+  //     reposted: post.is_reposted || false
+  //   });
+  // }, [
+  //   post.likes_count,
+  //   post.comments_count,
+  //   post.saves_count,
+  //   post.reposts_count,
+  //   post.is_liked,
+  //   post.is_saved,
+  //   post.is_reposted,
+  // ]);
 
   // --- Xử lý click chuyển trang ---
   const handleCardClick = () => {

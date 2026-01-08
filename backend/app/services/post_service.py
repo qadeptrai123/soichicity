@@ -110,10 +110,31 @@ class PostService:
         db.collection("posts").document(post_id).set(payload)
 
         # If this is a reply, increment the parent's comment count
+        # if reply_to_id:
+        #     parent_ref = db.collection("posts").document(reply_to_id)
+        #     # Use Increment to be safe with concurrent updates
+        #     parent_ref.update({"comments_count": firestore.Increment(1)})
         if reply_to_id:
-            parent_ref = db.collection("posts").document(reply_to_id)
-            # Use Increment to be safe with concurrent updates
-            parent_ref.update({"comments_count": firestore.Increment(1)})
+            batch = db.batch()
+
+            current_parent_id = reply_to_id
+
+            while current_parent_id:
+                parent_ref = db.collection("posts").document(current_parent_id)
+                parent_doc = parent_ref.get()
+
+                if not parent_doc.exists:
+                    break
+
+                batch.update(parent_ref, {
+                    "comments_count": firestore.Increment(1)
+                })
+
+                parent_data = parent_doc.to_dict()
+                current_parent_id = parent_data.get("reply_to_id")
+
+            batch.commit()
+
 
         return payload
 
@@ -217,86 +238,128 @@ class PostService:
 
     # --- NEW: Hàm xử lý Comment ---
     @staticmethod
-    def create_comment(post_id: str, user_id: str, user_avatar: str, content: str):
-        # Check if post exists
-        post_ref = db.collection("posts").document(post_id)
-        if not post_ref.get().exists:
-            raise ValueError(f"Post {post_id} not found")
+    # def create_comment(post_id: str, user_id: str, user_avatar: str, content: str):
+    #     # Check if post exists
+    #     post_ref = db.collection("posts").document(post_id)
+    #     if not post_ref.get().exists:
+    #         raise ValueError(f"Post {post_id} not found")
         
-        # Validate comment content
-        if not content or len(content.strip()) == 0:
-            raise ValueError("Comment content cannot be empty")
+    #     # Validate comment content
+    #     if not content or len(content.strip()) == 0:
+    #         raise ValueError("Comment content cannot be empty")
         
-        # Comment dùng UUID vì 1 user có thể comment nhiều lần
-        comment_id = str(uuid.uuid4())
-        timestamp = int(time.time() * 1000)
+    #     # Comment dùng UUID vì 1 user có thể comment nhiều lần
+    #     comment_id = str(uuid.uuid4())
+    #     timestamp = int(time.time() * 1000)
         
-        payload = {
-            "id": comment_id,
-            "user_id": user_id,
-            "id": comment_id,
-            "user_id": user_id,
-            "avatar_url": user_avatar, # Standardized
-            "content": content,
-            "timestamp": timestamp
-        }
+    #     payload = {
+    #         "id": comment_id,
+    #         "user_id": user_id,
+    #         "id": comment_id,
+    #         "user_id": user_id,
+    #         "avatar_url": user_avatar, # Standardized
+    #         "content": content,
+    #         "timestamp": timestamp
+    #     }
         
-        # Lưu vào posts/{post_id}/comments/{comment_id}
-        post_ref.collection("comments").document(comment_id).set(payload)
+    #     # Lưu vào posts/{post_id}/comments/{comment_id}
+    #     post_ref.collection("comments").document(comment_id).set(payload)
         
-        # Lưu vào users/{user_id}/comments/{comment_id} (để track comments của user)
-        # Không cần lưu comment_id vì đã có trong document ID
-        user_comment_ref = db.collection("users").document(user_id).collection("comments").document(comment_id)
-        user_comment_ref.set({
-            "post_id": post_id,
-            "content": content,
-            "timestamp": timestamp
-        })
+    #     # Lưu vào users/{user_id}/comments/{comment_id} (để track comments của user)
+    #     # Không cần lưu comment_id vì đã có trong document ID
+    #     user_comment_ref = db.collection("users").document(user_id).collection("comments").document(comment_id)
+    #     user_comment_ref.set({
+    #         "post_id": post_id,
+    #         "content": content,
+    #         "timestamp": timestamp
+    #     })
         
-        post_ref.update({"comments_count": firestore.Increment(1)})
+    #     post_ref.update({"comments_count": firestore.Increment(1)})
         
-        # Trigger Notification
-        post_data = post_ref.get().to_dict()
-        author_id = post_data.get("author_id")
+    #     # Trigger Notification
+    #     post_data = post_ref.get().to_dict()
+    #     author_id = post_data.get("author_id")
         
-        if author_id and author_id != user_id:
-            from app.services.notification_service import NotificationService
-            from app.schemas.user_interactions import NotificationCreate
-            print("Triggering notification...")
-            NotificationService.create_notification(
-                user_id=author_id,
-                notification_data=NotificationCreate(
-                    type="comment",
-                    sender_id=user_id,
-                    post_id=post_id
-                )
-            )
+    #     if author_id and author_id != user_id:
+    #         from app.services.notification_service import NotificationService
+    #         from app.schemas.user_interactions import NotificationCreate
+    #         print("Triggering notification...")
+    #         NotificationService.create_notification(
+    #             user_id=author_id,
+    #             notification_data=NotificationCreate(
+    #                 type="comment",
+    #                 sender_id=user_id,
+    #                 post_id=post_id
+    #             )
+    #         )
         
-        return payload
+    #     return payload
 
     @staticmethod
     def delete_comment(post_id: str, comment_id: str, user_id: str):
         post_ref = db.collection("posts").document(post_id)
         comment_ref = post_ref.collection("comments").document(comment_id)
-        
+
         doc = comment_ref.get()
         if not doc.exists:
             return {"error": "Comment not found"}
-            
+
         data = doc.to_dict()
         if data["user_id"] != user_id:
             return {"error": "Permission denied"}
-            
-        # Xóa ở posts/{post_id}/comments/{comment_id}
+
+        # XÓA COMMENT
         comment_ref.delete()
-        
-        # Xóa ở users/{user_id}/comments/{comment_id}
+
+        # XÓA user comment
         user_comment_ref = db.collection("users").document(user_id).collection("comments").document(comment_id)
         if user_comment_ref.get().exists:
             user_comment_ref.delete()
-        
-        post_ref.update({"comments_count": firestore.Increment(-1)})
+
+        # 🔥 GIẢM comments_count CHO TOÀN BỘ ANCESTOR
+        current_parent_id = post_id
+        batch = db.batch()
+
+        while current_parent_id:
+            parent_ref = db.collection("posts").document(current_parent_id)
+            parent_doc = parent_ref.get()
+
+            if not parent_doc.exists:
+                break
+
+            batch.update(parent_ref, {
+                "comments_count": firestore.Increment(-1)
+            })
+
+            parent_data = parent_doc.to_dict()
+            current_parent_id = parent_data.get("reply_to_id")
+
+        batch.commit()
+
         return {"status": "deleted"}
+
+    # def delete_comment(post_id: str, comment_id: str, user_id: str):
+    #     post_ref = db.collection("posts").document(post_id)
+    #     comment_ref = post_ref.collection("comments").document(comment_id)
+        
+    #     doc = comment_ref.get()
+    #     if not doc.exists:
+    #         return {"error": "Comment not found"}
+            
+    #     data = doc.to_dict()
+    #     if data["user_id"] != user_id:
+    #         return {"error": "Permission denied"}
+            
+    #     # Xóa ở posts/{post_id}/comments/{comment_id}
+    #     comment_ref.delete()
+        
+    #     # Xóa ở users/{user_id}/comments/{comment_id}
+    #     user_comment_ref = db.collection("users").document(user_id).collection("comments").document(comment_id)
+    #     if user_comment_ref.get().exists:
+    #         user_comment_ref.delete()
+        
+    #     post_ref.update({"comments_count": firestore.Increment(-1)})
+    #     return {"status": "deleted"}
 
     @staticmethod
     def list_posts():

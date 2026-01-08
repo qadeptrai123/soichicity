@@ -147,11 +147,11 @@ const PostDetail = () => {
                             >
                                 <input type="text" placeholder={`Reply to ${postData.author?.full_name || postData.author?.username || 'User'}...`} className="bg-transparent border-none outline-none text-white text-[15px] w-full placeholder:text-[#64748b] font-normal pointer-events-none" readOnly />
                             </div>
-                            <div className={`flex gap-3 ${COLORS.textSec} items-center`}>
+                            {/* <div className={`flex gap-3 ${COLORS.textSec} items-center`}>
                                 <button className="hover:text-white transition"><ImageIcon size={22} /></button>
                                 <button className="hover:text-white transition"><AtSign size={22} /></button>
                                 <button className="hover:text-white transition"><Smile size={22} /></button>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
                 </div>
