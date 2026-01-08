@@ -12,18 +12,24 @@ import { ReplyItem } from "@/components/post/ReplyItem";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import AnimateEntrance from "@/components/ui/AnimateEntrance";
+import { LoginPrompt } from "@/components/LoginPrompt";
 
 const PostDetail = () => {
     const { id } = useParams();
     const { data: postData, isLoading } = usePostDetail(id || "");
     const [showActivity, setShowActivity] = useState(false);
-    const { user } = useAuth();
+    const { user, isAuthenticated } = useAuth();
     console.log(postData)
     // Reply Dialog State
     const [replyDialogOpen, setReplyDialogOpen] = useState(false);
     const [selectedReply, setSelectedReply] = useState<TargetPost | null>(null);
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
     const handleReplyClick = (reply: any) => {
+        if (!isAuthenticated) {
+            setShowLoginPrompt(true);
+            return;
+        }
         const target: TargetPost = {
             id: reply.post_id,
             user: {
@@ -181,7 +187,25 @@ const PostDetail = () => {
                         mockFriends={[]} // Pass empty or fetch friends if needed
                     />
                 )
+
             }
+            {/* Login Prompt Overlay */}
+            {showLoginPrompt && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 cursor-default"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setShowLoginPrompt(false);
+                    }}
+                >
+                    <div
+                        className="relative w-full max-w-sm"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <LoginPrompt />
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

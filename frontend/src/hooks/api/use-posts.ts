@@ -2,6 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { toast } from "sonner";
 
+// --- Queries ---
+import { useInfiniteQuery } from "@tanstack/react-query";
+
+
 type ToggleSavePayload = {
   postId: string;
   wasSaved: boolean;
@@ -12,13 +16,16 @@ type ToggleRepostPayload = {
   wasReposted: boolean;
 };
 
-// ====================
-// QUERIES
-// ====================
 export const usePosts = (filter: string = "all") => {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["posts", filter],
-    queryFn: () => api.posts.getAll(filter),
+    queryFn: ({ pageParam = undefined }) => api.posts.getAll(filter, pageParam as string | undefined),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage: any) => {
+      if (!lastPage || lastPage.length === 0) return undefined;
+      const lastPost = lastPage[lastPage.length - 1];
+      return lastPost.created_at; // Use created_at as cursor
+    }
   });
 };
 

@@ -25,9 +25,6 @@ const Feed = () => {
   const [isReplyOpen, setIsReplyOpen] = useState(false);
   const [replyTarget, setReplyTarget] = useState<TargetPost | null>(null);
 
-  // Infinite scroll states
-  const [displayedCount, setDisplayedCount] = useState(10);
-  const [hasMore, setHasMore] = useState(true);
   const observerTarget = useRef<HTMLDivElement>(null);
 
   // ... (in component)
@@ -35,26 +32,30 @@ const Feed = () => {
   const filter = searchParams.get("filter") || "all";
 
   // Lấy data từ API
-  const { data: postsData, isLoading, error: postsError } = usePosts(filter);
+  const {
+    data: postsData,
+    isLoading,
+    error: postsError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = usePosts(filter);
+
+  // Flatten logic
+  const allPosts = postsData?.pages.flat() || [];
+
   // Load more posts function
   const loadMorePosts = useCallback(() => {
-    if (isLoading || !hasMore) return;
-
-    setTimeout(() => {
-      setDisplayedCount((prev) => {
-        const newCount = prev + 10;
-        const allPosts = Array.isArray(postsData) ? postsData : [];
-        if (newCount >= allPosts.length) setHasMore(false);
-        return newCount;
-      });
-    }, 300);
-  }, [postsData, isLoading, hasMore]);
+    if (!isLoading && !isFetchingNextPage && hasNextPage) {
+      fetchNextPage();
+    }
+  }, [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]);
 
   // Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoading) {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
           loadMorePosts();
         }
       },
@@ -70,15 +71,11 @@ const Feed = () => {
         observer.unobserve(observerTarget.current);
       }
     };
-  }, [loadMorePosts, hasMore, isLoading]);
+  }, [loadMorePosts, hasNextPage, isFetchingNextPage]);
 
   // Reset displayedCount when postsData changes
-  useEffect(() => {
-    if (postsData && Array.isArray(postsData)) {
-      setDisplayedCount(10);
-      setHasMore(postsData.length > 10);
-    }
-  }, [postsData]);
+  // Removed local displayedCount effect
+
 
   const handleReply = (post: PostData, author: AuthorData) => {
     if (!isAuthenticated) {
@@ -173,11 +170,9 @@ const Feed = () => {
     };
   };
   // Transform và slice posts theo displayedCount
-  const allTransformedPosts = Array.isArray(postsData)
-    ? postsData.map(transformPost)
-    : [];
-  console.log(allTransformedPosts)
-  const displayedPosts = allTransformedPosts.slice(0, displayedCount);
+  // Transform tất cả posts
+  const displayedPosts = allPosts.map(transformPost);
+
 
   return (
     <div className="bg-backgroundfeed min-h-screen p-4">
@@ -236,8 +231,8 @@ const Feed = () => {
 
             {/* Infinite scroll trigger */}
             <div ref={observerTarget} className="py-8 text-center">
-              {isLoading && <LoadingSpinner />}
-              {!hasMore && displayedPosts.length > 0 && (
+              {(isLoading || isFetchingNextPage) && <LoadingSpinner />}
+              {!hasNextPage && displayedPosts.length > 0 && (
                 <p className="text-text-muted text-sm">No more posts to load</p>
               )}
             </div>

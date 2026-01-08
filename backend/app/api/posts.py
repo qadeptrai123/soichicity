@@ -53,11 +53,12 @@ def create_post(
 def get_posts(
     user = Depends(get_current_user_optional),
     limit: int = 20,
-    filter: str = "all" # New optional parameter
+    filter: str = "all", # New optional parameter
+    cursor: str = None # New cursor parameter
 ):
     # Logic lấy feed (đã lọc bài đã xem)
     user_id = user["uid"] if user else None
-    return PostService.get_feed_posts(user_id, limit, filter)
+    return PostService.get_feed_posts(user_id, limit, filter, cursor)
 
 # --- CÁC API MỚI CHO SUB-COLLECTIONS (LIKE, SHARE, COMMENT) ---
 
