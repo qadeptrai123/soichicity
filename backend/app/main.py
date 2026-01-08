@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import users, threads, auth, search
+from app.api import users, threads, auth, search, media
 from app.core.config import settings
 from app.api import posts
 
@@ -30,3 +30,6 @@ app.include_router(posts.router, prefix=settings.API_V1_STR, tags=["posts"])
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Threads-like API"}
+
+app.include_router(media.router, prefix="/api")
+

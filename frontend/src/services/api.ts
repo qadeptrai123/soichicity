@@ -48,3 +48,42 @@ export const getPostActivity = async (postId: string) => {
     const response = await apiClient.get(`/posts/${postId}/activity`);
     return response.data;
 }
+
+export async function downloadMedia(mediaUrl: string) {
+    const apiBase = import.meta.env.VITE_API_URL;
+  
+    const res = await fetch(
+      `${apiBase}/media/download?url=${encodeURIComponent(mediaUrl)}`,
+      {
+        method: "GET",
+        credentials: "include", // nếu sau này cần auth cookie
+      }
+    );
+  
+    if (!res.ok) {
+      throw new Error("Download failed");
+    }
+  
+    const blob = await res.blob();
+  
+    // lấy filename từ header backend
+    const disposition = res.headers.get("content-disposition");
+    let filename = "media";
+  
+    if (disposition) {
+      const match = disposition.match(/filename="(.+)"/);
+      if (match?.[1]) filename = match[1];
+    }
+  
+    const blobUrl = window.URL.createObjectURL(blob);
+  
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+  
+    a.remove();
+    window.URL.revokeObjectURL(blobUrl);
+  }
+  
