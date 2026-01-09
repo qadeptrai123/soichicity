@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search as SearchIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import FeedCard from "@/components/FeedCard";
 import { UserListItem } from "@/components/UserListItem";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
@@ -14,14 +14,20 @@ interface SearchResponse {
     users?: {
         hits: any[];
         total: number;
+        page: number;
+        pages: number;
     };
     posts?: {
         hits: any[];
         total: number;
+        page: number;
+        pages: number;
     };
     // When type specific
     hits?: any[];
     total?: number;
+    page?: number;
+    pages?: number;
     type?: string;
 }
 
@@ -56,10 +62,17 @@ export default function Search() {
         }
     }, [initialQuery]);
 
-    // Fetch Search Results
-    const { data, isLoading, isError } = useQuery({
+    // Fetch Search Results with Infinite Scroll
+    const {
+        data,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading,
+        isError
+    } = useInfiniteQuery({
         queryKey: ["search", query, activeTab],
-        queryFn: async () => {
+        queryFn: async ({ pageParam = 0 }) => {
             if (!query.trim()) return null;
 
             let type = "all";
@@ -67,37 +80,97 @@ export default function Search() {
             if (activeTab === "posts") type = "post";
 
             try {
-                const res: any = await api.search({ q: query, type });
-                // apiClient interceptor returns data directly
+                // Determine limit based on tab? User asked for 5.
+                const limit = 5;
+                const res: any = await api.search({ q: query, type, page: pageParam, limit });
                 return res;
             } catch (error) {
                 console.error("Search API Error:", error);
                 throw error;
             }
         },
+        initialPageParam: 0,
+        getNextPageParam: (lastPage: any) => {
+            if (!lastPage) return undefined;
+
+            // Allow pagination if we have hits and current page < total pages
+            // Need to handle different response structures for 'all' vs 'type'
+
+            let currentPage = 0;
+            let totalPages = 0;
+
+            if (activeTab === "top") {
+                // For "top" (all), we usually mainly paginated posts or users?
+                // The backend 'search_all' returns { users: {...}, posts: {...} }
+                // Pagination for mixed results is tricky. 
+                // User said "random 5 items... scroll load more".
+                // Usually applies to the specific lists.
+                // For "Top", let's depend on Posts pagination provided it's the main content.
+                currentPage = lastPage.posts?.page || 0;
+                totalPages = lastPage.posts?.pages || 0;
+            } else if (activeTab === "people") {
+                currentPage = lastPage.page || 0;
+                totalPages = lastPage.pages || 0;
+            } else if (activeTab === "posts") {
+                currentPage = lastPage.page || 0;
+                totalPages = lastPage.pages || 0;
+            }
+
+            if (currentPage < totalPages - 1) {
+                return currentPage + 1;
+            }
+            return undefined;
+        },
         enabled: !!query.trim(),
         staleTime: 1000 * 60, // 1 minute
     });
 
-    // Helpers to extract data
+    // Intersection Observer for Infinite Scroll
+    const observer = useRef<IntersectionObserver | null>(null);
+    const lastElementRef = useCallback((node: HTMLDivElement) => {
+        if (isLoading || isFetchingNextPage) return;
+        if (observer.current) observer.current.disconnect();
+
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasNextPage) {
+                fetchNextPage();
+            }
+        });
+
+        if (node) observer.current.observe(node);
+    }, [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]);
+
+
+    // Helpers to extract flattened data
     const getUsers = () => {
         if (!data) return [];
-        if (activeTab === "top" && data.users) return data.users.hits;
-        if (activeTab === "people" && data.hits) return data.hits;
-        return [];
+        return data.pages.flatMap((page: any) => {
+            if (!page) return [];
+            if (activeTab === "top" && page.users) return page.users.hits;
+            if (activeTab === "people" && page.hits) return page.hits;
+            return [];
+        });
     };
 
     const getPosts = () => {
         if (!data) return [];
-        if (activeTab === "top" && data.posts) return data.posts.hits;
-        if (activeTab === "posts" && data.hits) return data.hits;
-        return [];
+        return data.pages.flatMap((page: any) => {
+            if (!page) return [];
+            if (activeTab === "top" && page.posts) return page.posts.hits;
+            if (activeTab === "posts" && page.hits) return page.hits;
+            return [];
+        });
     };
+
+    // Safety check for empty results across all pages
+    const hasUsers = getUsers().length > 0;
+    const hasPosts = getPosts().length > 0;
+    const isEmpty = !isLoading && !hasUsers && !hasPosts && query.trim().length > 0;
 
     return (
         <div className="w-full max-w-[600px] mx-auto min-h-screen text-white pb-20">
             {/* Sticky Search Header */}
-            <div className="sticky top-0 z-20 bg-backgroundfeed/95 backdrop-blur-md pt-4 pb-2 px-4 border-b border-[#1F2937]">
+            <div className="sticky top-16 z-20 bg-backgroundfeed/95 backdrop-blur-md pt-4 pb-2 px-4 border-b border-[#1F2937]">
                 <div className="relative mb-4">
                     <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-500">
                         <SearchIcon size={20} />
@@ -138,7 +211,7 @@ export default function Search() {
                     <div className="text-center py-20 text-gray-500">
                         <p className="text-lg">Try searching for people, posts, or keywords</p>
                     </div>
-                ) : isLoading ? (
+                ) : isLoading && !isFetchingNextPage ? ( // Only show full spinner on initial load
                     <div className="py-20 flex justify-center">
                         <LoadingSpinner />
                     </div>
@@ -148,30 +221,34 @@ export default function Search() {
                     </div>
                 ) : (
                     <div>
-                        {/* USERS SECTION (Only for Top or People tabs) */}
-                        {(activeTab === "top" || activeTab === "people") && getUsers().length > 0 && (
+                        {/* USERS SECTION */}
+                        {(activeTab === "top" || activeTab === "people") && hasUsers && (
                             <div className="mb-2">
                                 {activeTab === "top" && (
                                     <h3 className="px-4 py-3 font-bold text-xl border-b border-[#1F2937]">People</h3>
                                 )}
                                 <div className="flex flex-col">
-                                    {getUsers().slice(0, activeTab === "top" ? 3 : undefined).map((hit: any) => (
-                                        <UserListItem
-                                            key={hit.objectID}
-                                            user={{
-                                                uid: hit.objectID,
-                                                username: hit.username,
-                                                full_name: hit.full_name,
-                                                avatar_url: hit.avatar_url,
-                                                bio: hit.bio,
-                                                // Note: is_following might not come from Algolia initially unless indexed. 
-                                                // If critical, we need to fetch status or assume false/fetch on component mount.
-                                                // For now assuming the data structure matches enough or has defaults.
-                                            }}
-                                        />
-                                    ))}
+                                    {getUsers().map((hit: any, index) => {
+                                        // Use ref on the last element of the list if this is the active tab for scrolling
+                                        const isLast = index === getUsers().length - 1;
+                                        const ref = (activeTab === "people" && isLast) ? lastElementRef : null;
+
+                                        return (
+                                            <div key={`${hit.objectID}-${index}`} ref={ref}>
+                                                <UserListItem
+                                                    user={{
+                                                        uid: hit.objectID,
+                                                        username: hit.username,
+                                                        full_name: hit.full_name,
+                                                        avatar_url: hit.avatar_url,
+                                                        bio: hit.bio,
+                                                    }}
+                                                />
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                                {activeTab === "top" && getUsers().length > 3 && (
+                                {activeTab === "top" && getUsers().length > 0 && (
                                     <div
                                         onClick={() => setActiveTab("people")}
                                         className="p-4 text-blue-400 hover:bg-white/5 cursor-pointer text-sm"
@@ -183,53 +260,68 @@ export default function Search() {
                         )}
 
                         {/* POSTS SECTION */}
-                        {(activeTab === "top" || activeTab === "posts") && getPosts().length > 0 && (
+                        {(activeTab === "top" || activeTab === "posts") && hasPosts && (
                             <div>
                                 {activeTab === "top" && (
                                     <h3 className="px-4 py-3 font-bold text-xl border-t border-b border-[#1F2937] mt-2 bg-backgroundfeed/50">Posts</h3>
                                 )}
-                                {getPosts().map((hit: any) => (
-                                    <FeedCard
-                                        key={hit.objectID}
-                                        post={{
-                                            post_id: hit.objectID,
-                                            content: hit.content,
-                                            created_at: new Date(hit.created_at || (hit.created_at_i * 1000)).toISOString(), // Adjust based on timestamp format
-                                            author_id: hit.author_id,
-                                            author: {
-                                                uid: hit.author?.uid || hit.author_id || hit.objectID,
-                                                username: hit.author?.username || hit.username || "user",
-                                                full_name: hit.author?.full_name || hit.full_name || "Unknown User",
-                                                avatar_url: hit.author?.avatar_url || hit.avatar_url || DEFAULT_AVATAR_URL,
-                                                // Fallback
-                                                name: hit.author?.full_name || hit.full_name || "Unknown User",
-                                                handle: hit.author?.username || hit.username ? `@${hit.author?.username || hit.username}` : "@user",
-                                                avatar: hit.author?.avatar_url || hit.avatar_url || DEFAULT_AVATAR_URL
-                                            },
-                                            media_urls: hit.media_urls || [hit.media_url].filter(Boolean) || [],
-                                            media_url: hit.media_url || hit.media_urls?.[0] || null,
-                                            likes_count: hit.likes_count || hit.likes || 0,
-                                            comments_count: hit.comments_count || hit.replies_count || 0,
-                                            reposts_count: hit.reposts_count || 0,
-                                            saves_count: hit.saves_count || 0,
-                                        }}
-                                        author={{
-                                            uid: hit.author?.uid || hit.author_id || hit.objectID,
-                                            username: hit.author?.username || hit.username || "user",
-                                            full_name: hit.author?.full_name || hit.full_name || "Unknown User",
-                                            avatar_url: hit.author?.avatar_url || hit.avatar_url || DEFAULT_AVATAR_URL,
-                                            name: hit.author?.full_name || hit.full_name || "Unknown User",
-                                            handle: hit.author?.username || hit.username ? `@${hit.author?.username || hit.username}` : "@user",
-                                            avatar: hit.author?.avatar_url || hit.avatar_url || DEFAULT_AVATAR_URL,
-                                            id: hit.author?.uid || hit.author_id || hit.objectID
-                                        }}
-                                    />
-                                ))}
+                                {getPosts().map((hit: any, index) => {
+                                    // Use ref on the last element of the list if this is the active tab for scrolling
+                                    // For "Top" tab, we might want to trigger load more based on posts too if it's mixed?
+                                    // Or if "Top" just shows a subset. Let's assume Top tab also scrolls posts.
+                                    const isLast = index === getPosts().length - 1;
+                                    const ref = ((activeTab === "posts" || activeTab === "top") && isLast) ? lastElementRef : null;
+
+                                    return (
+                                        <div key={`${hit.objectID}-${index}`} ref={ref}>
+                                            <FeedCard
+                                                post={{
+                                                    post_id: hit.objectID,
+                                                    content: hit.content,
+                                                    created_at: new Date(hit.created_at || (hit.created_at_i * 1000)).toISOString(),
+                                                    author_id: hit.author_id,
+                                                    author: {
+                                                        uid: hit.author?.uid || hit.author_id || hit.objectID,
+                                                        username: hit.author?.username || hit.username || "user",
+                                                        full_name: hit.author?.full_name || hit.full_name || "Unknown User",
+                                                        avatar_url: hit.author?.avatar_url || hit.avatar_url || DEFAULT_AVATAR_URL,
+                                                        name: hit.author?.full_name || hit.full_name || "Unknown User",
+                                                        handle: hit.author?.username || hit.username ? `@${hit.author?.username || hit.username}` : "@user",
+                                                        avatar: hit.author?.avatar_url || hit.avatar_url || DEFAULT_AVATAR_URL
+                                                    },
+                                                    media_urls: hit.media_urls || [hit.media_url].filter(Boolean) || [],
+                                                    media_url: hit.media_url || hit.media_urls?.[0] || null,
+                                                    likes_count: hit.likes_count || hit.likes || 0,
+                                                    comments_count: hit.comments_count || hit.replies_count || 0,
+                                                    reposts_count: hit.reposts_count || 0,
+                                                    saves_count: hit.saves_count || 0,
+                                                }}
+                                                author={{
+                                                    uid: hit.author?.uid || hit.author_id || hit.objectID,
+                                                    username: hit.author?.username || hit.username || "user",
+                                                    full_name: hit.author?.full_name || hit.full_name || "Unknown User",
+                                                    avatar_url: hit.author?.avatar_url || hit.avatar_url || DEFAULT_AVATAR_URL,
+                                                    name: hit.author?.full_name || hit.full_name || "Unknown User",
+                                                    handle: hit.author?.username || hit.username ? `@${hit.author?.username || hit.username}` : "@user",
+                                                    avatar: hit.author?.avatar_url || hit.avatar_url || DEFAULT_AVATAR_URL,
+                                                    id: hit.author?.uid || hit.author_id || hit.objectID
+                                                }}
+                                            />
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+
+                        {/* Loading More Spinner */}
+                        {isFetchingNextPage && (
+                            <div className="py-4 flex justify-center">
+                                <LoadingSpinner />
                             </div>
                         )}
 
                         {/* Empty States */}
-                        {getUsers().length === 0 && getPosts().length === 0 && (
+                        {isEmpty && (
                             <div className="text-center py-20 text-gray-500">
                                 No results found for "{query}"
                             </div>

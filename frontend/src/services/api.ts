@@ -36,7 +36,7 @@ export const api = {
     }),
     deleteComment: (post_id: string, comment_id: string) => apiClient.delete(`/api/v1/posts/${post_id}/comments/${comment_id}`),
   },
-  search: (params: { q: string, type: string }) => apiClient.get('/api/v1/search', { params }),
+  search: (params: { q: string, type: string, page?: number, limit?: number }) => apiClient.get('/api/v1/search', { params }),
 };
 
 export const getPostDetail = async (postId: string) => {
