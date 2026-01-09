@@ -5,6 +5,7 @@ import type { User, AuthContextType } from "@/types/auth";
 import { refreshAccessToken } from "@/lib/api-client";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { getAuth, signOut } from "firebase/auth";
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -107,7 +108,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const logout = () => {
+
+
+    const logout = async () => {
+        const auth = getAuth();
+        try {
+            await signOut(auth);
+        } catch (error) {
+            console.error("Firebase sign out error:", error);
+        }
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         setUser(null);

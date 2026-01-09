@@ -526,16 +526,21 @@ class PostService:
             # db.get_all accepts mixed references? Yes.
             # But let's do 3 batches for clarity and likely similar performance
             
+            
             likes_snapshots = list(db.get_all(like_refs))
             reposts_snapshots = list(db.get_all(repost_refs))
             saves_snapshots = list(db.get_all(save_refs))
             
-            # Process results
-            # The order of snapshots matches the order of refs
-            for i, post in enumerate(final_posts):
-                post["is_liked"] = likes_snapshots[i].exists
-                post["is_reposted"] = reposts_snapshots[i].exists
-                post["is_saved"] = saves_snapshots[i].exists
+            # Map results by post_id to avoid order mismatch
+            likes_map = {snap.reference.parent.parent.id: snap.exists for snap in likes_snapshots}
+            reposts_map = {snap.reference.parent.parent.id: snap.exists for snap in reposts_snapshots}
+            saves_map = {snap.reference.parent.parent.id: snap.exists for snap in saves_snapshots}
+
+            for post in final_posts:
+                pid = post["post_id"]
+                post["is_liked"] = likes_map.get(pid, False)
+                post["is_reposted"] = reposts_map.get(pid, False)
+                post["is_saved"] = saves_map.get(pid, False)
                 
         else:
              # Guest user or no posts

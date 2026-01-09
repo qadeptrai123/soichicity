@@ -232,7 +232,7 @@ export default function ReplyCommentDialog({
               handle: `@${targetPost.user.username}`,
               avatar: targetPost.user.avatar_url || "",
             }}
-            className="mb-0 border-none shadow-none bg-transparent hover:bg-transparent"
+            className="mb-0 border-none shadow-none bg-transparent hover:bg-transparent hover:shadow-none cursor-default"
             compact={true}
           />
         </div>
