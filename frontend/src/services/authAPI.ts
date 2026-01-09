@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, confirmPasswordReset } from "firebase/auth";
 
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -53,17 +53,49 @@ export const authAPI = {
         try {
             const result = await signInWithPopup(auth, googleProvider);
             const idToken = await result.user.getIdToken();
-            return {
-                access_token: idToken,
-                token_type: "bearer",
-                user: {
-                    email: result.user.email,
-                    displayName: result.user.displayName,
-                    uid: result.user.uid,
+
+            // Call Backend to sync user and get token with claims (username)
+            const response = await fetch(`${API_BASE_URL}/api/v1/google`, {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${idToken}`
                 },
-            };
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || "Google login failed on backend");
+            }
+
+            return response.json();
         } catch (error) {
             throw new Error(error instanceof Error ? error.message : "Google login failed");
         }
     },
+
+    requestPasswordReset: async (email: string) => {
+        try {
+            // Configure redirection URL to our React app
+            const redirectUrl = window.location.origin + '/reset-password';
+            console.log("Sending password reset email with redirect URL:", redirectUrl);
+            
+            const actionCodeSettings = {
+                url: redirectUrl, 
+                handleCodeInApp: true,
+            };
+            await sendPasswordResetEmail(auth, email, actionCodeSettings);
+        } catch (error: any) {
+            console.error("Error sending reset email:", error);
+            throw new Error(error.message || "Failed to send password reset email.");
+        }
+    },
+
+    completePasswordReset: async (oobCode: string, newPassword: string) => {
+        try {
+            await confirmPasswordReset(auth, oobCode, newPassword);
+        } catch (error: any) {
+             throw new Error(error.message || "Failed to reset password.");
+        }
+    }
 };

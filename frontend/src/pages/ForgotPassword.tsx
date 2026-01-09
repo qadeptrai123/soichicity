@@ -27,6 +27,7 @@ import {
 
 // Schemas
 import { forgotPasswordSchema, type ForgotPasswordValues } from "@/schemas/authSchema";
+import { authAPI } from "@/services/authAPI";
 
 export default function ForgotPassword() {
     const [isLoading, setIsLoading] = useState(false);
@@ -39,11 +40,15 @@ export default function ForgotPassword() {
 
     const onSubmit = async (data: ForgotPasswordValues) => {
         setIsLoading(true);
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        console.log("Recovery Email:", data);
-        toast.success(`Password reset request sent to: ${data.email}`);
-        setIsLoading(false);
+        try {
+            await authAPI.requestPasswordReset(data.email);
+            toast.success(`Password reset email sent to: ${data.email}`);
+            // Optional: navigate back or show a success message UI state
+        } catch (error: any) {
+             toast.error(error.message || "Failed to send reset email.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
