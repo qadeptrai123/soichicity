@@ -54,16 +54,19 @@ export const useCreatePost = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: api.posts.create,
-
-    onSuccess: () => {
-      toast.success("Post created successfully");
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    mutationFn: (data: any) => {
+      const promise = api.posts.create(data);
+      toast.promise(promise, {
+        loading: 'Uploading post...',
+        success: 'Post created successfully',
+        error: 'Failed to create post',
+      });
+      return promise;
     },
 
-    onError: () => {
-      toast.error("Failed to create post");
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
   });
 };

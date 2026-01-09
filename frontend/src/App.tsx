@@ -1,15 +1,13 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import './App.css'
-// import Comment from './components/comment';
-// import CreatePostDialog from './components/CreatePostDialog';
 
 import LoginForm from './pages/Login'
 import ResetPassword from "./pages/ResetPassword"
 import Register from "./pages/Register"
 import ForgotPassword from "./pages/ForgotPassword"
 import Feed from "./pages/Feed"
-// 1. Import trang chi tiết (Bạn cần đảm bảo đã tạo file này ở bước trước)
 import PostDetail from "./pages/PostDetail"
 import Profile from "./pages/Profile"
 import Activity from "./pages/Activity"
@@ -17,13 +15,15 @@ import Search from "./pages/Search"
 
 import Layout from './components/layout/Layout'
 
-
 export default function App() {
   return (
     <BrowserRouter>
       <Toaster
         position="top-right"
         richColors
+        icons={{
+          loading: <Loader2 className="h-5 w-5 animate-spin text-blue-500" />,
+        }}
         toastOptions={{
           style: {
             background: "#0A0E1A",
