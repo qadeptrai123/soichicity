@@ -1,4 +1,5 @@
 import { ActionButton } from "@/components/ActionButton";
+import { formatRelativeTime } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLikePost, useSavePost, usePostReplies } from "@/hooks/api/use-posts";
 import { Heart, MessageSquare, Send, Bookmark, X, Repeat2 } from "lucide-react";
@@ -43,9 +44,10 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
 
     // Nested Replies State
     const [showReplies, setShowReplies] = useState(false);
+    const [visibleRepliesCount, setVisibleRepliesCount] = useState(3);
 
     // Fetch replies using hook, enabled only when showReplies is true
-    const { data: repliesData, isLoading: isLoadingReplies } = usePostReplies(reply.post_id || reply.post_id, showReplies);
+    const { data: repliesData, isLoading: isLoadingReplies } = usePostReplies(reply.post_id, showReplies);
     const replies = repliesData || [];
 
     const handleLoadReplies = () => {
@@ -125,7 +127,7 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
                 <div className="flex items-center gap-2 mb-1">
                     <span className="font-bold text-[15px] text-white">{reply.author.full_name}</span>
                     <span className="text-[#64748b] text-sm">@{reply.author.username}</span>
-                    <span className="text-[#64748b] text-xs">• {new Date(reply.created_at).toLocaleDateString()}</span>
+                    <span className="text-[#64748b] text-xs">• {formatRelativeTime(reply.created_at)}</span>
                 </div>
                 <div className="text-[#e2e8f0] text-[15px] leading-relaxed mb-3 font-normal whitespace-pre-wrap">
                     {reply.content}
@@ -276,14 +278,47 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
                                 {isLoadingReplies ? (
                                     <div className="text-sm text-gray-500 animate-pulse">Loading replies...</div>
                                 ) : (
-                                    replies.map((subReply: any) => (
-                                        <ReplyItem
-                                            key={subReply.post_id}
-                                            reply={subReply}
-                                            onReplyClick={onReplyClick}
-                                            isNested={true}
-                                        />
-                                    ))
+                                    <>
+                                        {replies.slice(0, visibleRepliesCount).map((subReply: any) => (
+                                            <ReplyItem
+                                                key={subReply.post_id}
+                                                reply={subReply}
+                                                onReplyClick={onReplyClick}
+                                                isNested={true}
+                                            />
+                                        ))}
+
+                                        <div className="flex gap-4 items-center mt-2 pl-6">
+                                            {visibleRepliesCount < replies.length && (
+                                                <div
+                                                    className="flex items-center gap-2 cursor-pointer group/line"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setVisibleRepliesCount((prev) => prev + 3);
+                                                    }}
+                                                >
+                                                    <div className="w-4 h-[1px] bg-[#374151] group-hover/line:bg-blue-500 transition-colors"></div>
+                                                    <span className="text-[#2B7FFF] text-sm hover:underline font-medium">
+                                                        View more replies ({replies.length - visibleRepliesCount} remaining)
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            <div
+                                                className="flex items-center gap-2 cursor-pointer group/line"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setShowReplies(false);
+                                                    setVisibleRepliesCount(3);
+                                                }}
+                                            >
+                                                <div className="w-4 h-[1px] bg-[#374151] group-hover/line:bg-red-500 transition-colors"></div>
+                                                <span className="text-[#94a3b8] text-sm hover:underline hover:text-red-400 font-medium">
+                                                    Hide replies
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         )}

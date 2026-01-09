@@ -6,7 +6,7 @@ import { useLikePost, useSavePost, useRepostPost } from "@/hooks/api/use-posts";
 import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "../Gallery";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import type { Post } from "@/types/post";
-import { formatDistanceToNow } from "date-fns";
+import { formatRelativeTime } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthProvider";
 import { LoginPrompt } from "@/components/LoginPrompt";
 // import type { MediaItem } from "@/types/common";
@@ -21,7 +21,7 @@ interface PostMainPostProps {
 
 export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProps) => {
   // Hàm format thời gian giả lập (hoặc dùng thư viện date-fns nếu có)
-  const timeAgo = formatDistanceToNow(new Date(data.created_at));
+
 
   // Hooks
   const { isAuthenticated } = useAuth();
@@ -78,14 +78,14 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
 
   const handleShare = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
-  
+
     const postUrl = `${window.location.origin}/post/${data.post_id}`;
     const shareData = {
       title: "Check out this post",
       text: data.content?.slice(0, 100) || "Interesting post",
       url: postUrl,
     };
-  
+
     // ✅ Ưu tiên Web Share API (mobile, Chrome, Safari)
     if (navigator.share) {
       navigator.share(shareData).catch(() => {
@@ -102,7 +102,7 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
         });
     }
   }, [data.post_id, data.content]);
-  
+
 
   const handleBookmark = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -116,9 +116,9 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
       bookmarks: prev.bookmarks + (actionStates.bookmarked ? -1 : 1),
     }));
     saveMutation.mutate({
-    postId: data.post_id,
-    wasSaved: actionStates.bookmarked,
-  });
+      postId: data.post_id,
+      wasSaved: actionStates.bookmarked,
+    });
 
   }, [actionStates.bookmarked, data.post_id, saveMutation, isAuthenticated]);
 
@@ -136,7 +136,7 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
     repostMutation.mutate({
       postId: data.post_id,
       wasReposted: actionStates.reposted,
-    });    
+    });
   }, [actionStates.reposted, data.post_id, repostMutation, isAuthenticated]);
 
   const handleReply = useCallback((e?: React.MouseEvent) => {
@@ -212,8 +212,9 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
               <span className="text-[#64748b] text-base">@{data.author?.username}</span>
 
               {/* THÊM THỜI GIAN Ở ĐÂY */}
+              {/* THÊM THỜI GIAN Ở ĐÂY */}
               <span className="text-[#64748b] text-sm flex items-center gap-1">
-                <span className="text-[10px]">•</span> {timeAgo}
+                <span className="text-[10px]">•</span> {formatRelativeTime(data.created_at)}
               </span>
             </div>
           </div>

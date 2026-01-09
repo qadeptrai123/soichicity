@@ -42,7 +42,7 @@ export const LoginPrompt = ({
     };
     return (
         <div className={cn(
-            "bg-secondary backdrop-blur-xl border-2 border-border! rounded-2xl shadow-2xl shadow-black/50 p-5 w-full max-w-sm text-center sticky top-20 lg:sticky lg:top-20 mb-4 lg:mb-0",
+            "bg-secondary backdrop-blur-xl border-2 border-border! rounded-2xl shadow-2xl shadow-black/50 p-5 w-full max-w-sm text-center sticky top-20 lg:sticky lg:top-20 mb-4 lg:mb-0 animate-in fade-in slide-in-from-bottom-8 duration-700",
             className
         )}>
             <h1 className={cn("text-base font-bold text-white mb-3", titleClassName)}>
