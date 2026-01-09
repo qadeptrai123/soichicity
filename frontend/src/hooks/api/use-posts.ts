@@ -64,9 +64,16 @@ export const useCreatePost = () => {
       return promise;
     },
 
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      // If it's a reply, use robust invalidation strategy to handle eventual consistency
+      if (data.reply_to_id) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["post-replies"] });
+          queryClient.invalidateQueries({ queryKey: ["post", data.reply_to_id] });
+        }, 500);
+      }
     },
   });
 };
