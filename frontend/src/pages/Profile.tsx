@@ -9,7 +9,8 @@ import FeedCard from "@/components/FeedCard";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import CreatePostDialog from "@/components/CreatePostDialog";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
-
+import { LoginPrompt } from "@/components/LoginPrompt";
+import { toast } from "sonner";
 
 export default function Profile() {
   const { username: paramUsername } = useParams<{ username: string }>();
@@ -17,6 +18,7 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState("Posts");
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
 
   // Retrieve current user from Auth Context
@@ -37,15 +39,28 @@ export default function Profile() {
   if (error || !profileData) return <div className="text-white p-4">User not found</div>;
 
   const { user, posts } = profileData;
-  const isOwnProfile = user.is_self || (me && (user.uid === me.uid || user.username === me.username));
-  const isFollowing = user.is_following;
-  console.log(user)
+  const isOwnProfile = !!me && (user.is_self || user.uid === me.uid || user.username === me.username);
+  const isFollowing = !!me && user.is_following;
+
   const handleFollowToggle = () => {
+    if (!me) {
+      setShowLoginPrompt(true);
+      return;
+    }
     if (isFollowing) {
       unfollowMutation.mutate(user.uid); // user.uid from response
     } else {
       followMutation.mutate(user.uid);
     }
+  };
+
+  const handleMention = () => {
+      if (!me) {
+          setShowLoginPrompt(true);
+          return;
+      }
+      // Future implementation: Open CreatePostDialog with @username pre-filled
+      toast.info("Mention feature is coming soon!");
   };
 
   return (
@@ -111,6 +126,7 @@ export default function Profile() {
               {isFollowing ? "Following" : "Follow"}
             </Button>
             <Button
+              onClick={handleMention}
               className="flex-1 bg-transparent border border-neutral-700 text-white hover:bg-neutral-800 rounded-xl h-[36px] font-semibold text-[15px] transition-colors"
             >
               Mention
@@ -222,6 +238,21 @@ export default function Profile() {
           }
           mockFriends={[]} // Pass necessary props or handle inside
         />
+      )}
+
+       {/* Login Prompt Overlay */}
+       {showLoginPrompt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setShowLoginPrompt(false)}
+        >
+          <div
+            className="relative w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <LoginPrompt />
+          </div>
+        </div>
       )}
     </div>
   );

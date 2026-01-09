@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowLeft } from "lucide-react"; // Nhớ import ArrowLeft
 import { useLocation, useNavigate } from "react-router-dom"; // Import hook router
 import { DropdownExtend } from "../DropdownExtend";
+import { useAuth } from "@/contexts/AuthProvider";
+import { LoginPrompt } from "@/components/LoginPrompt";
 
 interface Option {
   id: string;
@@ -9,7 +12,6 @@ interface Option {
 }
 
 export default function Topbar() {
-  const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Option>({ id: "for_you", label: "For you" });
 
   // Hook để lấy thông tin đường dẫn và điều hướng
@@ -20,10 +22,17 @@ export default function Topbar() {
   const isPostPage = location.pathname.startsWith("/post/");
 
 
-  const handleSelect = (option: Option) => {
-    setSelected(option);
-    setOpen(false);
+  const { isAuthenticated } = useAuth();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
+  const handleSelect = (option: Option) => {
+    // Check authentication for restricted filters
+    if (["following", "saved", "liked"].includes(option.id) && !isAuthenticated) {
+        setShowLoginPrompt(true);
+        return;
+    }
+
+    setSelected(option);
     // Navigate to URL with filter param
     if (option.id === "for_you") navigate("/");
     else navigate(`/?filter=${option.id}`);
@@ -78,31 +87,30 @@ export default function Topbar() {
       ) : (
         /* CASE 2: CÁC TRANG KHÁC -> HIỆN DROPDOWN CŨ CỦA BẠN */
         <div className="relative">
-          <button
-            onClick={() => setOpen(!open)}
-            className="flex items-center gap-1 text-gray-200 text-lg font-medium hover:opacity-80 transition"
-          >
-            {selected.label}
-            {/* <ChevronDown size={18} className={`${open ? "rotate-180" : ""} transition duration-200`} /> */}
-            <DropdownExtend
-              actions={postFilter}
-              triggerType="text"
-              align="center"
-            />
-          </button>
-
-          {/* Dropdown Menu (Ví dụ) */}
-          {/* {open && (
-            <DropdownExtend
-              actions={postFilter}
-              triggerType="text"
-              align="center"
-            />
-
-          )} */}
+          <DropdownExtend
+            actions={postFilter}
+            triggerType="text"
+            triggerLabel={selected.label}
+            align="center"
+          />
         </div>
       )}
 
+      {/* Login Prompt Overlay */}
+      {showLoginPrompt && createPortal(
+        <div
+          className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setShowLoginPrompt(false)}
+        >
+          <div
+            className="relative w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <LoginPrompt className="sticky-0 top-0 mb-0 lg:mb-0 shadow-none border-border" />
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

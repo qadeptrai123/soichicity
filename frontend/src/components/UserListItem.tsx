@@ -4,6 +4,8 @@ import { useFollowUser, useUnfollowUser } from "@/hooks/api/use-users";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
+import { useState } from "react";
+import { LoginPrompt } from "@/components/LoginPrompt";
 
 interface UserListItemProps {
     user: {
@@ -20,6 +22,7 @@ interface UserListItemProps {
 export const UserListItem = ({ user }: UserListItemProps) => {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const followMutation = useFollowUser();
     const unfollowMutation = useUnfollowUser();
 
@@ -29,7 +32,10 @@ export const UserListItem = ({ user }: UserListItemProps) => {
 
     const handleFollowToggle = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!isAuthenticated) return; // Add login prompt dispatch if needed
+        if (!isAuthenticated) {
+            setShowLoginPrompt(true);
+            return;
+        }
 
         if (user.is_following) {
             unfollowMutation.mutate(user.uid);
@@ -41,44 +47,64 @@ export const UserListItem = ({ user }: UserListItemProps) => {
     const isLoading = followMutation.isPending || unfollowMutation.isPending;
 
     return (
-        <div
-            onClick={handleClick}
-            className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer border-b border-[#1F2937]"
-        >
-            <div className="flex items-center gap-3">
-                <Avatar className="w-10 h-10 border border-[#374151]">
-                    <AvatarImage src={user.avatar_url || DEFAULT_AVATAR_URL} />
-                    <AvatarFallback>{user.username[0]?.toUpperCase()}</AvatarFallback>
-                </Avatar>
+        <>
+            <div
+                onClick={handleClick}
+                className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer border-b border-[#1F2937]"
+            >
+                <div className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10 border border-[#374151]">
+                        <AvatarImage src={user.avatar_url || DEFAULT_AVATAR_URL} />
+                        <AvatarFallback>{user.username[0]?.toUpperCase()}</AvatarFallback>
+                    </Avatar>
 
-                <div className="flex flex-col">
-                    <span className="text-white font-bold leading-none">
-                        {user.full_name || user.username}
-                    </span>
-                    <span className="text-[#6B7280] text-sm">
-                        @{user.username}
-                    </span>
-                    {user.bio && (
-                        <p className="text-[#9CA3AF] text-sm line-clamp-1 mt-1">
-                            {user.bio}
-                        </p>
-                    )}
+                    <div className="flex flex-col">
+                        <span className="text-white font-bold leading-none">
+                            {user.full_name || user.username}
+                        </span>
+                        <span className="text-[#6B7280] text-sm">
+                            @{user.username}
+                        </span>
+                        {user.bio && (
+                            <p className="text-[#9CA3AF] text-sm line-clamp-1 mt-1">
+                                {user.bio}
+                            </p>
+                        )}
+                    </div>
                 </div>
+
+                {!user.is_self && (
+                    <Button
+                        onClick={handleFollowToggle}
+                        disabled={isLoading}
+                        variant={user.is_following ? "outline" : "default"}
+                        className={`h-8 rounded-full px-5 text-sm font-semibold transition-all ${user.is_following
+                                ? "bg-transparent border-[#374151] text-white hover:border-red-500 hover:text-red-500 hover:bg-transparent"
+                                : "bg-white text-black hover:bg-white/90 border-none"
+                            }`}
+                    >
+                        {user.is_following ? "Following" : "Follow"}
+                    </Button>
+                )}
             </div>
 
-            {!user.is_self && (
-                <Button
-                    onClick={handleFollowToggle}
-                    disabled={isLoading}
-                    variant={user.is_following ? "outline" : "default"}
-                    className={`h-8 rounded-full px-5 text-sm font-semibold transition-all ${user.is_following
-                            ? "bg-transparent border-[#374151] text-white hover:border-red-500 hover:text-red-500 hover:bg-transparent"
-                            : "bg-white text-black hover:bg-white/90 border-none"
-                        }`}
+            {/* Login Prompt Overlay */}
+            {showLoginPrompt && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+                    onClick={(e) => {
+                         e.stopPropagation();
+                         setShowLoginPrompt(false);
+                    }}
                 >
-                    {user.is_following ? "Following" : "Follow"}
-                </Button>
+                    <div
+                        className="relative w-full max-w-sm"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <LoginPrompt />
+                    </div>
+                </div>
             )}
-        </div>
+        </>
     );
 };

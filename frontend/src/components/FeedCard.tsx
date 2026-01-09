@@ -83,7 +83,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   };
 
   const displayAuthor = author || mockAuthor;
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user: me } = useAuth();
   const navigate = useNavigate();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
@@ -94,18 +94,6 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   const [isGalleryDragging, setIsGalleryDragging] = useState(false);
 
   // Optimistic UI State - khởi tạo từ props
-  // const [localCounts, setLocalCounts] = useState({
-  //   likes: post.likes_count || 0,
-  //   replies: post.comments_count || 0,
-  //   bookmarks: post.saves_count || 0,
-  //   reposts: post.reposts_count || 0,
-  // });
-
-  // const [actionStates, setActionStates] = useState({
-  //   liked: post.is_liked || false,
-  //   bookmarked: post.is_saved || false,
-  //   reposted: post.is_reposted || false,
-  // });
   const [localCounts, setLocalCounts] = useState(() => ({
     likes: post.likes_count || 0,
     replies: post.comments_count || 0,
@@ -121,27 +109,41 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   
 
   // Sync state với props khi data từ API thay đổi (sau khi invalidateQueries)
-  // useEffect(() => {
-  //   setLocalCounts({
-  //     likes: post.likes_count || 0,
-  //     replies: post.comments_count || 0,
-  //     bookmarks: post.saves_count || 0,
-  //     reposts: post.reposts_count || 0,
-  //   });
-  //   setActionStates({
-  //     liked: post.is_liked || false,
-  //     bookmarked: post.is_saved || false,
-  //     reposted: post.is_reposted || false
-  //   });
-  // }, [
-  //   post.likes_count,
-  //   post.comments_count,
-  //   post.saves_count,
-  //   post.reposts_count,
-  //   post.is_liked,
-  //   post.is_saved,
-  //   post.is_reposted,
-  // ]);
+  useEffect(() => {
+    // Nếu không đăng nhập thì reset hết về false
+    if (!isAuthenticated) {
+        setActionStates({
+            liked: false,
+            bookmarked: false,
+            reposted: false
+        });
+        // Không reset counts vì guest vẫn nhìn thấy số lượng
+    } else {
+        // Nếu đã đăng nhập thì sync theo props (mới nhất từ server)
+        setActionStates({
+            liked: post.is_liked || false,
+            bookmarked: post.is_saved || false,
+            reposted: post.is_reposted || false
+        });
+    }
+    
+    // Luôn sync số lượng
+    setLocalCounts({
+      likes: post.likes_count || 0,
+      replies: post.comments_count || 0,
+      bookmarks: post.saves_count || 0,
+      reposts: post.reposts_count || 0,
+    });
+  }, [
+    post.likes_count,
+    post.comments_count,
+    post.saves_count,
+    post.reposts_count,
+    post.is_liked,
+    post.is_saved,
+    post.is_reposted,
+    isAuthenticated // Thêm dependency này
+  ]);
 
   // --- Xử lý click chuyển trang ---
   const handleCardClick = () => {
@@ -339,26 +341,18 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   // Dropdown Actions
   const postActions = [
     {
-      id: "bookmark",
-      label: "Save",
-      icon: <Bookmark size={16} />,
-      onClick: () => console.log("Save post", post.post_id),
-      isVisible: true,
-      showSeparatorAfter: true,
-    },
-    {
       id: "edit",
       label: "Edit",
       icon: <Edit3 size={16} />,
       onClick: () => console.log("Edit post", post.post_id),
-      isVisible: post.author_id === "currentUserId",
+      isVisible: me?.uid === post.author?.uid,
     },
     {
       id: "block",
       label: "Block",
       icon: <Ban size={16} />,
       onClick: () => console.log("Block post", post.post_id),
-      isVisible: post.author_id !== "currentUserId",
+      isVisible: isAuthenticated && me?.uid !== post.author?.uid,
       showSeparatorAfter: true,
       variant: "destructive" as const,
     },
@@ -375,17 +369,28 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
     },
   ];
 
+  // --- Navigation to Profile ---
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (displayAuthor?.username) {
+      navigate(`/profile/${displayAuthor.username}`);
+    }
+  };
+
   return (
     <Card
       className={`w-full max-w-2xl bg-secondary text-foreground border-border mb-4 cursor-pointer transition-all duration-200 hover:bg-secondary/80 hover:shadow-lg ${className || ""}`}
-      onClick={handleCardClick} // Gắn sự kiện click vào đây
+      onClick={handleCardClick}
     >
       {/* HEADER */}
       <CardHeader
         className="flex flex-row items-center gap-3 px-4 -mt-3 pb-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <Avatar className="w-10 h-10 shrink-0">
+        <Avatar 
+          className="w-10 h-10 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={handleProfileClick}
+        >
           <AvatarImage
             src={displayAuthor?.avatar_url || displayAuthor?.avatar || DEFAULT_AVATAR_URL}
             alt={displayAuthor?.name || "User"}
@@ -399,15 +404,15 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
         <div className="flex flex-col flex-1">
           <div className="flex items-center gap-2">
             <span
-              className="text hover:underline cursor-pointer text-foreground"
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log("Go to profile");
-              }}
+              className="text hover:underline cursor-pointer text-foreground font-semibold"
+              onClick={handleProfileClick}
             >
               {displayAuthor?.name || "Unknown User"}
             </span>
-            <span className="text-text-secondary text-ft">
+            <span 
+              className="text-text-secondary text-ft hover:text-foreground cursor-pointer"
+              onClick={handleProfileClick}
+            >
               {displayAuthor?.handle || ""}
             </span>
             <span className="text-text-muted text-xs">
