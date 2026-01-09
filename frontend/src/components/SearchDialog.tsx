@@ -55,7 +55,7 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
     }, [searchQuery]);
 
     const handleUserClick = (username: string) => {
-        navigate(`/@${username}`);
+        navigate(`/profile/${username}`);
         onOpenChange(false);
     };
 
