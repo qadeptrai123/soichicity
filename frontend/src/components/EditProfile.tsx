@@ -39,7 +39,8 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
       });
 
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["user", currentUser.username] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["me"] });
 
       onClose();
