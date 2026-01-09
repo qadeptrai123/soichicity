@@ -56,10 +56,18 @@ export const useCreatePost = () => {
   return useMutation({
     mutationFn: api.posts.create,
 
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Post created successfully");
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+
+      // If it's a reply, invalidate all post-replies queries to ensure parent counts and lists update
+      if (data.reply_to_id) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["post-replies"] });
+          queryClient.invalidateQueries({ queryKey: ["post", data.reply_to_id] });
+        }, 500);
+      }
     },
 
     onError: () => {
