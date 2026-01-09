@@ -1,7 +1,7 @@
 import { ActionButton } from "@/components/ActionButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLikePost, useSavePost, usePostReplies } from "@/hooks/api/use-posts";
-import { Heart, MessageCircle, Send, Bookmark, X } from "lucide-react";
+import { Heart, MessageSquare, Send, Bookmark, X, Repeat2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "../Gallery";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
@@ -230,7 +230,7 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
                     />
                     <ActionButton
                         actionId="reply"
-                        icon={<MessageCircle size={18} />}
+                        icon={<MessageSquare size={18} />}
                         count={reply.comments_count}
                         onClick={(e) => { e?.stopPropagation(); onReplyClick(reply); }}
                     />
@@ -242,11 +242,16 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
                         isActive={isSaved}
                     />
                     <ActionButton
+                        actionId="repost"
+                        icon={<Repeat2 size={18} />}
+                        count={0}
+                        onClick={(e) => { e?.stopPropagation(); }}
+                    />
+                    <ActionButton
                         actionId="share"
                         icon={<Send size={18} />}
                         onClick={(e) => { e?.stopPropagation(); }}
                     />
-                    {/* Added Bookmark/Save button, Removed Repost */}
 
                 </div>
 
