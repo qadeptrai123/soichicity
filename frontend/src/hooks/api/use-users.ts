@@ -29,6 +29,40 @@ export const useProfile = (username: string) => {
   });
 }
 
+export const useFollowing = (userId: string) => {
+  return useQuery({
+    queryKey: ['following', userId],
+    queryFn: () => api.users.getFollowing(userId),
+    enabled: !!userId,
+  });
+};
+
+export const useFollowers = (userId: string) => {
+  return useQuery({
+    queryKey: ['followers', userId],
+    queryFn: () => api.users.getFollowers(userId),
+    enabled: !!userId,
+  });
+};
+
+export const useFollowingAndFollowers = (userId: string) => {
+  const following = useFollowing(userId);
+  const followers = useFollowers(userId);
+
+  return {
+    following,
+    followers,
+    allUsers: [
+      ...(following.data || []),
+      ...(followers.data || [])
+    ].filter((user, index, self) => 
+      // Remove duplicates based on uid
+      index === self.findIndex((u) => u.uid === user.uid)
+    ),
+    isLoading: following.isLoading || followers.isLoading,
+  };
+};
+
 export const useFollowUser = () => {
   const queryClient = useQueryClient();
 

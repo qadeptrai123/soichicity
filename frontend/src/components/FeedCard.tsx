@@ -1,5 +1,5 @@
 //Kiệt
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { ActionButton } from "./ActionButton";
 import {
   Card,
@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { LoginPrompt } from "@/components/LoginPrompt";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import TextWithMentions from "./TextWithMentions";
 
 import {
   MessageSquare,
@@ -32,7 +33,6 @@ import { useAuth } from "@/contexts/AuthProvider";
 
 import type { Post as PostData, Author as AuthorData } from "@/types/post";
 
-import { downloadMedia } from "@/services/api";
 import { toast } from "sonner";
 
 interface FeedCardProps {
@@ -433,9 +433,10 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
           }}
         >
           {post.content && (
-            <p className="text-sm leading-relaxed text-foreground whitespace-normal mb-1 wrap-break-words">
-              {post.content}
-            </p>
+            <TextWithMentions 
+              content={post.content}
+              className="text-sm leading-relaxed text-foreground whitespace-normal mb-1 wrap-break-words"
+            />
           )}
 
           {hasGallery ? (
