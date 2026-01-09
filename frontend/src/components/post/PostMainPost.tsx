@@ -76,32 +76,22 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
     likeMutation.mutate(data.post_id);
   }, [actionStates.liked, data.post_id, likeMutation, isAuthenticated]);
 
-  const handleShare = useCallback((e?: React.MouseEvent) => {
-    e?.stopPropagation();
-
-    const postUrl = `${window.location.origin}/post/${data.post_id}`;
-    const shareData = {
-      title: "Check out this post",
-      text: data.content?.slice(0, 100) || "Interesting post",
-      url: postUrl,
-    };
-
-    // ✅ Ưu tiên Web Share API (mobile, Chrome, Safari)
-    if (navigator.share) {
-      navigator.share(shareData).catch(() => {
-        // user cancel → không cần báo lỗi
-      });
-    } else {
-      // 💻 Fallback: copy link
-      navigator.clipboard.writeText(postUrl)
-        .then(() => {
-          toast.success("Post link copied");
-        })
-        .catch(() => {
-          toast.error("Failed to copy link");
-        });
-    }
-  }, [data.post_id, data.content]);
+  const handleShare = useCallback(
+    async (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+  
+      const postUrl = `${window.location.origin}/post/${data.post_id}`;
+  
+      try {
+        await navigator.clipboard.writeText(postUrl);
+        toast.success("Link copied to clipboard");
+      } catch (err) {
+        toast.error("Failed to copy link");
+      }
+    },
+    [data.post_id]
+  );
+  
 
 
   const handleBookmark = useCallback((e?: React.MouseEvent) => {

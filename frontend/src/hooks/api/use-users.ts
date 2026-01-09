@@ -69,3 +69,31 @@ export const useUnfollowUser = () => {
     },
   });
 };
+
+export const useEditProfile = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: api.users.updateProfile,
+
+    onMutate: async () => {
+      toast.loading("Updating profile...", { id: "edit-profile" });
+    },
+
+    onSuccess: (_data) => {
+      toast.success("Profile updated successfully", {
+        id: "edit-profile",
+      });
+
+      // invalidate để UI cập nhật
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+
+    onError: () => {
+      toast.error("Failed to update profile", {
+        id: "edit-profile",
+      });
+    },
+  });
+};
