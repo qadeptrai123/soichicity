@@ -175,17 +175,15 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   //       toast.error("Failed to copy link");
   //     });
   // };
-  const handleExternalShare = async () => {
+  const handleExternalShare = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const postUrl = `${window.location.origin}/post/${post.post_id}`;
 
-    if (navigator.share) {
-      await navigator.share({
-        title: post.content?.slice(0, 50),
-        url: postUrl,
-      });
-    } else {
+    try {
       await navigator.clipboard.writeText(postUrl);
-      toast.success("Post link copied");
+      toast.success("Copied to clipboard");
+    } catch (err) {
+      toast.error("Failed to copy link");
     }
   };
 

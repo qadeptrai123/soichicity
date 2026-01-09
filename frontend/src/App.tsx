@@ -20,6 +20,7 @@ export default function App() {
     <BrowserRouter>
       <Toaster
         position="top-right"
+        expand={true}
         richColors
         icons={{
           loading: <Loader2 className="h-5 w-5 animate-spin text-blue-500" />,

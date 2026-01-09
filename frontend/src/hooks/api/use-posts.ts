@@ -196,13 +196,11 @@ export const useRepostPost = () => {
     },
 
     onSettled: (_data, _error, variables) => {
-      //   toast.success(
-      //     variables.wasReposted
-      //       ? "Removed from reposted posts"
-      //       : "Reposted"
-      //   );
-      // Move toast to onSuccess if we want real confirmation, or keep it removed.
-      // User requested speed.
+      toast.success(
+        variables.wasReposted
+          ? "Removed from reposts"
+          : "Reposted"
+      );
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["post", variables.postId] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
@@ -244,11 +242,11 @@ export const useSavePost = () => {
     },
 
     onSettled: (_data, _err, variables) => {
-      //   toast.success(
-      //     variables.wasSaved
-      //       ? "Removed from saved posts"
-      //       : "Post saved"
-      //   );
+      toast.success(
+        variables.wasSaved
+          ? "Removed from saved posts"
+          : "Post saved"
+      );
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["post", variables.postId] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
