@@ -65,11 +65,9 @@ export const useCreatePost = () => {
     },
 
     onSuccess: (data) => {
-      toast.success("Post created successfully");
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
-
-      // If it's a reply, invalidate all post-replies queries to ensure parent counts and lists update
+      // If it's a reply, use robust invalidation strategy to handle eventual consistency
       if (data.reply_to_id) {
         setTimeout(() => {
           queryClient.invalidateQueries({ queryKey: ["post-replies"] });

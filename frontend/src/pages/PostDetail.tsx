@@ -3,7 +3,7 @@ import { usePostDetail } from "@/hooks/api/use-posts";
 import { PostMainPost } from "@/components/post/PostMainPost";
 import React, { useState, useRef } from "react"; // Import useRef
 import { ActivityPopup } from "@/components/post/ActivityPopup";
-import { Image as ImageIcon, Smile, AtSign } from "lucide-react";
+// import { Image as ImageIcon, Smile, AtSign } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { TargetPost } from "@/components/comment";
 import ReplyCommentDialog from "@/components/comment";
@@ -185,6 +185,7 @@ const PostDetail = () => {
                         currentUser={user}
                         targetPost={selectedReply}
                         mockFriends={[]} // Pass empty or fetch friends if needed
+                        rootId={id || ""}
                     />
                 )
 
