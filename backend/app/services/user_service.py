@@ -469,6 +469,7 @@ def get_user_profile(db, username: str, current_user_id: str = None):
         "posts": final_posts,
         "posts_count": len(final_posts)
     }
+
 def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: str = None):
     """
     [API Tab 1] Lấy danh sách bài viết gốc của user (có phân trang).
@@ -582,3 +583,75 @@ def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_
         "next_cursor": repost_docs[-1].id if repost_docs else None, # Trả về ID activity
         "has_more": len(repost_docs) == limit
     }
+
+def get_users_following(db, user_id: str):
+    """
+    Get list of users that the specified user is following.
+    Returns a list of user objects.
+    """
+    user_ref = db.collection('users').document(user_id)
+    
+    # Check if user exists
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get all following from sub-collection
+    following_refs = user_ref.collection('followings').stream()
+    following_ids = [doc.id for doc in following_refs]
+    
+    if not following_ids:
+        return []
+    
+    # Batch fetch user details
+    users_map = _get_docs_batch(db, 'users', following_ids)
+    
+    # Build response list
+    result = []
+    for uid, user_doc in users_map.items():
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            result.append({
+                "uid": uid,
+                "username": user_data.get("username", ""),
+                "full_name": user_data.get("full_name", ""),
+                "avatar_url": user_data.get("avatar_url"),
+                "bio": user_data.get("bio")
+            })
+    
+    return result
+
+def get_users_followers(db, user_id: str):
+    """
+    Get list of users who are following the specified user.
+    Returns a list of user objects.
+    """
+    user_ref = db.collection('users').document(user_id)
+    
+    # Check if user exists
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get all followers from sub-collection
+    followers_refs = user_ref.collection('followers').stream()
+    follower_ids = [doc.id for doc in followers_refs]
+    
+    if not follower_ids:
+        return []
+    
+    # Batch fetch user details
+    users_map = _get_docs_batch(db, 'users', follower_ids)
+    
+    # Build response list
+    result = []
+    for uid, user_doc in users_map.items():
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            result.append({
+                "uid": uid,
+                "username": user_data.get("username", ""),
+                "full_name": user_data.get("full_name", ""),
+                "avatar_url": user_data.get("avatar_url"),
+                "bio": user_data.get("bio")
+            })
+    
+    return result

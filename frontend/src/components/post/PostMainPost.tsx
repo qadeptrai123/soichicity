@@ -9,6 +9,7 @@ import type { Post } from "@/types/post";
 import { formatRelativeTime } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthProvider";
 import { LoginPrompt } from "@/components/LoginPrompt";
+import TextWithMentions from "../TextWithMentions";
 // import type { MediaItem } from "@/types/common";
 import { toast } from "sonner";
 
@@ -219,7 +220,7 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
 
       {/* Content */}
       <div className="text-[17px] leading-7 whitespace-pre-wrap mb-6 font-normal text-[#f1f5f9]">
-        {data.content}
+        <TextWithMentions content={data.content} />
       </div>
 
       {hasGallery ? (
