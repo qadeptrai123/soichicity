@@ -122,21 +122,68 @@ class AlgoliaSearchService:
                 }
         return posts
 
+    def _enrich_users_with_follow_status(self, users: List[Dict[str, Any]], current_user_id: str = None) -> List[Dict[str, Any]]:
+        """
+        Enrich user hits with 'is_following' and 'is_self' status relative to current_user_id.
+        """
+        if not users:
+            return []
+
+        # Initialize defaults
+        for user in users:
+            user["is_following"] = False
+            user["is_self"] = False
+            if current_user_id and user["objectID"] == current_user_id:
+                user["is_self"] = True
+
+        if not current_user_id:
+            return users
+
+        # Collect refs for checking follow status
+        # Path: users/{current_user_id}/followings/{target_user_id}
+        refs = []
+        mapping = [] # to map ref back to user object if needed, or we just rely on doc id
+        
+        for user in users:
+            target_uid = user["objectID"]
+            if target_uid != current_user_id:
+                ref = db.collection("users").document(current_user_id).collection("followings").document(target_uid)
+                refs.append(ref)
+
+        if not refs:
+            return users
+
+        try:
+            # Batch get
+            docs = db.get_all(refs)
+            following_map = {d.id: d.exists for d in docs}
+
+            for user in users:
+                if user["objectID"] in following_map:
+                    user["is_following"] = following_map[user["objectID"]]
+        except Exception as e:
+            print(f"Error enriching users with follow status: {e}")
+        
+        return users
+
     # ---------------- USERS ----------------
     def search_users(
         self,
         query: str,
         page: int = 0,
-        hits_per_page: int = 20
+        hits_per_page: int = 20,
+        current_user_id: str = None
     ) -> Dict[str, Any]:
         results = self.users_index.search(query, {
             "page": page,
             "hitsPerPage": hits_per_page
         })
 
+        enriched_users = self._enrich_users_with_follow_status(results["hits"], current_user_id)
+
         return {
             "type": "users",
-            "hits": results["hits"],
+            "hits": enriched_users,
             "total": results["nbHits"],
             "page": results["page"],
             "pages": results["nbPages"]
@@ -174,7 +221,8 @@ class AlgoliaSearchService:
         query: str,
         page: int = 0,
         hits_per_page: int = 10,
-        only_root_posts: bool = True
+        only_root_posts: bool = True,
+        current_user_id: str = None
     ) -> Dict[str, Any]:
         """
         Search users + posts using Algolia multi-index search
@@ -207,19 +255,20 @@ class AlgoliaSearchService:
             }
         ]
 
-        print(f"DEBUG: requests payload: {requests}")
-        print(f"DEBUG: App ID: {settings.ALGOLIA_APP_ID}")
-        print(f"DEBUG: Index Names: {settings.ALGOLIA_USERS_INDEX_NAME}, {settings.ALGOLIA_POSTS_INDEX_NAME}")
+        # print(f"DEBUG: requests payload: {requests}")
+        # print(f"DEBUG: App ID: {settings.ALGOLIA_APP_ID}")
+        # print(f"DEBUG: Index Names: {settings.ALGOLIA_USERS_INDEX_NAME}, {settings.ALGOLIA_POSTS_INDEX_NAME}")
         response = self.client.multiple_queries(requests)
 
         users_result = response["results"][0]
         posts_result = response["results"][1]
 
+        enriched_users = self._enrich_users_with_follow_status(users_result["hits"], current_user_id)
         enriched_posts = self._enrich_posts_with_full_data(posts_result["hits"])
 
         return {
             "users": {
-                "hits": users_result["hits"],
+                "hits": enriched_users,
                 "total": users_result["nbHits"],
                 "page": users_result["page"],
                 "pages": users_result["nbPages"]

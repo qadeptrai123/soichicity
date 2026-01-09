@@ -30,6 +30,10 @@ export const api = {
     // Comments (Replies)
     getReplies: (post_id: string) => apiClient.get<Post[]>(`/api/v1/posts/${post_id}/replies`) as unknown as Promise<Post[]>,
 
+    // Activity (Likes/Reposts Detail)
+    getActivity: (post_id: string) => apiClient.get<any>(`/api/v1/posts/${post_id}/activity`) as unknown as Promise<{ likes: any[], reposts: any[] }>,
+
+
     // Interactions
     addComment: (post_id: string, data: FormData) => apiClient.post(`/api/v1/posts/${post_id}/comments`, data, {
       headers: { 'Content-Type': 'multipart/form-data' }

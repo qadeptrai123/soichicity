@@ -296,3 +296,20 @@ def get_post_replies(post_id: str):
     except Exception as e:
         print(f"Error fetching replies: {e}")
         raise HTTPException(status_code=500, detail="Error fetching replies")
+
+@router.get("/posts/{post_id}/activity")
+def get_post_activity(
+    post_id: str,
+    user = Depends(get_current_user_optional)
+):
+    """
+    Fetch detailed activity (likes, reposts) for a post.
+    """
+    current_user_id = user["uid"] if user else None
+    
+    try:
+        activity_data = PostService.get_post_activity(post_id, current_user_id)
+        return activity_data
+    except Exception as e:
+        print(f"Error fetching post activity: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching post activity")
