@@ -45,17 +45,17 @@ export const UserListItem = ({ user }: UserListItemProps) => {
             onClick={handleClick}
             className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer border-b border-[#1F2937]"
         >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-1 min-w-0 mr-4">
                 <Avatar className="w-10 h-10 border border-[#374151]">
                     <AvatarImage src={user.avatar_url || DEFAULT_AVATAR_URL} />
                     <AvatarFallback>{user.username[0]?.toUpperCase()}</AvatarFallback>
                 </Avatar>
 
-                <div className="flex flex-col">
-                    <span className="text-white font-bold leading-none">
+                <div className="flex flex-col min-w-0">
+                    <span className="text-white font-bold leading-none truncate">
                         {user.full_name || user.username}
                     </span>
-                    <span className="text-[#6B7280] text-sm">
+                    <span className="text-[#6B7280] text-sm truncate">
                         @{user.username}
                     </span>
                     {user.bio && (
