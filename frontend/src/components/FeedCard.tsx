@@ -1,5 +1,5 @@
 //Kiệt
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { ActionButton } from "./ActionButton";
 import {
   Card,
@@ -106,42 +106,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   //   bookmarked: post.is_saved || false,
   //   reposted: post.is_reposted || false,
   // });
-  const [localCounts, setLocalCounts] = useState(() => ({
-    likes: post.likes_count || 0,
-    replies: post.comments_count || 0,
-    bookmarks: post.saves_count || 0,
-    reposts: post.reposts_count || 0,
-  }));
-  
-  const [actionStates, setActionStates] = useState(() => ({
-    liked: post.is_liked || false,
-    bookmarked: post.is_saved || false,
-    reposted: post.is_reposted || false,
-  }));
-  
 
-  // Sync state với props khi data từ API thay đổi (sau khi invalidateQueries)
-  // useEffect(() => {
-  //   setLocalCounts({
-  //     likes: post.likes_count || 0,
-  //     replies: post.comments_count || 0,
-  //     bookmarks: post.saves_count || 0,
-  //     reposts: post.reposts_count || 0,
-  //   });
-  //   setActionStates({
-  //     liked: post.is_liked || false,
-  //     bookmarked: post.is_saved || false,
-  //     reposted: post.is_reposted || false
-  //   });
-  // }, [
-  //   post.likes_count,
-  //   post.comments_count,
-  //   post.saves_count,
-  //   post.reposts_count,
-  //   post.is_liked,
-  //   post.is_saved,
-  //   post.is_reposted,
-  // ]);
 
   // --- Xử lý click chuyển trang ---
   const handleCardClick = () => {
@@ -177,36 +142,31 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
         setShowLoginPrompt(true);
         return;
       }
-      setActionStates((prev) => ({ ...prev, liked: !prev.liked }));
-      setLocalCounts((prev) => ({
-        ...prev,
-        likes: prev.likes + (actionStates.liked ? -1 : 1),
-      }));
       likeMutation.mutate(post.post_id);
     },
-    [actionStates.liked, post.post_id, likeMutation, isAuthenticated]
+    [post.post_id, likeMutation, isAuthenticated]
   );
 
   const handleDownloadMedia = (
     e?: React.MouseEvent
   ) => {
     e?.stopPropagation();
-  
+
     if (!post.media_url) {
       toast.error("No media to download");
       return;
     }
-  
+
     const downloadUrl =
       "http://localhost:8000/api/media/download?url=" +
       encodeURIComponent(post.media_url);
-  
+
     window.location.href = downloadUrl;
   };
-  
+
   // const handleExternalShare = () => {
   //   const postUrl = `${window.location.origin}/post/${post.post_id}`;
-  
+
   //   navigator.clipboard.writeText(postUrl)
   //     .then(() => {
   //       toast.success("Post link copied to clipboard");
@@ -217,7 +177,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   // };
   const handleExternalShare = async () => {
     const postUrl = `${window.location.origin}/post/${post.post_id}`;
-  
+
     if (navigator.share) {
       await navigator.share({
         title: post.content?.slice(0, 50),
@@ -228,8 +188,8 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
       toast.success("Post link copied");
     }
   };
-  
-  
+
+
   // const handleBookmark = useCallback(
   //   (e?: React.MouseEvent) => {
   //     e?.stopPropagation();
@@ -253,22 +213,15 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
         setShowLoginPrompt(true);
         return;
       }
-  
-      const wasSaved = actionStates.bookmarked; // 👈 TRẠNG THÁI TRƯỚC CLICK
-  
-      // Optimistic UI
-      setActionStates((prev) => ({ ...prev, bookmarked: !prev.bookmarked }));
-      setLocalCounts((prev) => ({
-        ...prev,
-        bookmarks: prev.bookmarks + (wasSaved ? -1 : 1),
-      }));
-  
+
+      const wasSaved = post.is_saved || false;
+
       saveMutation.mutate({
         postId: post.post_id,
         wasSaved,
       });
     },
-    [actionStates.bookmarked, post.post_id, saveMutation, isAuthenticated]
+    [post.is_saved, post.post_id, saveMutation, isAuthenticated]
   );
 
   // const handleShare = useCallback(
@@ -291,24 +244,17 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
         setShowLoginPrompt(true);
         return;
       }
-  
-      const wasReposted = actionStates.reposted; // 👈 TRẠNG THÁI TRƯỚC CLICK
-  
-      // Optimistic UI
-      setActionStates((prev) => ({ ...prev, reposted: !prev.reposted }));
-      setLocalCounts((prev) => ({
-        ...prev,
-        reposts: prev.reposts + (wasReposted ? -1 : 1),
-      }));
-  
+
+      const wasReposted = post.is_reposted || false;
+
       repostMutation.mutate({
         postId: post.post_id,
         wasReposted,
       });
     },
-    [actionStates.reposted, post.post_id, repostMutation, isAuthenticated]
+    [post.is_reposted, post.post_id, repostMutation, isAuthenticated]
   );
-  
+
 
   const handleReply = useCallback(
     async (e?: React.MouseEvent) => {
@@ -563,29 +509,29 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
             <ActionButton
               actionId="like"
               icon={<Heart size={24} />}
-              count={localCounts.likes}
+              count={post.likes_count || 0}
               onClick={handleLike}
-              isActive={actionStates.liked}
+              isActive={post.is_liked}
             />
             <ActionButton
               actionId="reply"
               icon={<MessageSquare size={24} />}
-              count={localCounts.replies}
+              count={post.comments_count || 0}
               onClick={handleReply}
             />
             <ActionButton
               actionId="bookmark"
               icon={<Bookmark size={24} />}
-              count={localCounts.bookmarks}
+              count={post.saves_count || 0}
               onClick={handleBookmark}
-              isActive={actionStates.bookmarked}
+              isActive={post.is_saved}
             />
             <ActionButton
               actionId="repost"
               icon={<Repeat2 size={24} />}
-              count={localCounts.reposts}
+              count={post.reposts_count || 0}
               onClick={handleRepost}
-              isActive={actionStates.reposted}
+              isActive={post.is_reposted}
             />
             <ActionButton
               actionId="share"
