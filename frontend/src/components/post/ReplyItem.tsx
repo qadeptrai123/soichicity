@@ -8,6 +8,7 @@ import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "../Gallery";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 // import { api } from "@/services/api";
 // import type { MediaItem } from "@/types/common";
+import { parseMentions } from "@/lib/utils";
 
 
 interface ReplyItemProps {
@@ -129,9 +130,21 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
                     <span className="text-[#64748b] text-sm">@{reply.author.username}</span>
                     <span className="text-[#64748b] text-xs">• {formatRelativeTime(reply.created_at)}</span>
                 </div>
-                <div className="text-[#e2e8f0] text-[15px] leading-relaxed mb-3 font-normal whitespace-pre-wrap">
-                    {reply.content}
-                </div>
+                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                {parseMentions(reply.content).map(part =>
+                    part.type === "mention" ? (
+                    <span
+                        key={part.key}
+                        className="text-blue-500 font-medium hover:underline cursor-pointer"
+                    >
+                        {part.value}
+                    </span>
+                    ) : (
+                    <span key={part.key}>{part.value}</span>
+                    )
+                )}
+                </p>
+
                 {hasGallery ? (
                     <div className="mb-3">
                         <Gallery

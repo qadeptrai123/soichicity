@@ -66,3 +66,10 @@ export const useFollowUser = () => {
     });
   };
   
+  export const useMentionableUsers = () => {
+    return useQuery({
+      queryKey: ["mentionable-users"],
+      queryFn: api.users.getMentions,
+    });
+  };
+  

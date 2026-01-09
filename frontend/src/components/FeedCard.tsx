@@ -34,6 +34,7 @@ import type { Post as PostData, Author as AuthorData } from "@/types/post";
 
 import { downloadMedia } from "@/services/api";
 import { toast } from "sonner";
+import { parseMentions } from "@/lib/utils";
 
 interface FeedCardProps {
   post: PostData;
@@ -201,19 +202,19 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   //       toast.error("Failed to copy link");
   //     });
   // };
-  const handleExternalShare = async () => {
+  const handleExternalShare = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+  
     const postUrl = `${window.location.origin}/post/${post.post_id}`;
-
-    if (navigator.share) {
-      await navigator.share({
-        title: post.content?.slice(0, 50),
-        url: postUrl,
-      });
-    } else {
+  
+    try {
       await navigator.clipboard.writeText(postUrl);
-      toast.success("Post link copied");
+      toast.success("Link copied to clipboard");
+    } catch (err) {
+      toast.error("Failed to copy link");
     }
   };
+  
 
 
   // const handleBookmark = useCallback(
@@ -433,9 +434,21 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
           }}
         >
           {post.content && (
-            <p className="text-sm leading-relaxed text-foreground whitespace-normal mb-1 wrap-break-words">
-              {post.content}
-            </p>
+            <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
+            {parseMentions(post.content).map(part =>
+              part.type === "mention" ? (
+                <span
+                  key={part.key}
+                  className="text-blue-500 font-medium hover:underline cursor-pointer"
+                >
+                  {part.value}
+                </span>
+              ) : (
+                <span key={part.key}>{part.value}</span>
+              )
+            )}
+          </p>
+          
           )}
 
           {hasGallery ? (
