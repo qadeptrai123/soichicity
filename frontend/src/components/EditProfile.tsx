@@ -10,6 +10,8 @@ import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import AnimateEntrance from "./ui/AnimateEntrance";
 import { userService } from "@/services/userService";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+
 
 interface EditProfileProps {
   isOpen: boolean;
@@ -29,28 +31,37 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
 
   const handleSave = async () => {
     setIsLoading(true);
+  
+    const toastId = "edit-profile";
+  
     try {
+      toast.loading("Updating profile...", { id: toastId });
+  
       await userService.updateProfile({
         full_name: editName,
         bio: editBio,
-        // avatar_url is not editable via text input here yet, 
-        // usually requires file upload integration which wasn't requested.
-        // We preserve existing avatar logic if needed or just update text fields.
       });
-
-      // Invalidate queries to refresh data
+  
+      toast.success("Profile updated successfully", {
+        id: toastId,
+      });
+  
+      // Refresh data
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["me"] });
-
+  
       onClose();
     } catch (error) {
       console.error("Failed to update profile", error);
-      alert("Failed to save changes. Please try again.");
+  
+      toast.error("Failed to update profile", {
+        id: toastId,
+      });
     } finally {
       setIsLoading(false);
     }
-  };
+  };  
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
