@@ -130,7 +130,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
           <div className="flex flex-col items-center gap-8">
             {items.map((item, index) => {
               const Icon = item.icon;
-              const active = pathname === item.path && item.icon !== Search;
+              const active = pathname === item.path;
 
               return (
                 <button

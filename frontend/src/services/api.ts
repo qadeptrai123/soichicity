@@ -6,84 +6,84 @@ import type { ProfileResponse } from '@/types/response';
 export type { User, Author, Post, PostDetail, CreatePostData, CommentData, ProfileResponse };
 
 export const api = {
-    users: {
-        getAll: () => apiClient.get<User[]>('/api/v1/users/') as unknown as Promise<User[]>,
-        get: (id: string) => apiClient.get<User>(`/api/v1/users/${id}`) as unknown as Promise<User>,
-        getMe: () => apiClient.get<User>('/api/v1/me') as unknown as Promise<User>,
-        getProfile: (username: string) => apiClient.get<ProfileResponse>(`/api/v1/users/profile/${username}`) as unknown as Promise<ProfileResponse>,
-        follow: (userId: string) => apiClient.post(`/api/v1/users/${userId}/follow`),
-        unfollow: (userId: string) => apiClient.post(`/api/v1/users/${userId}/unfollow`),
-    },
-    posts: {
-        getAll: (filter?: string, cursor?: string) => apiClient.get<Post[]>('/api/v1/posts', { params: { filter, cursor } }) as unknown as Promise<Post[]>,
-        get: (post_id: string) => apiClient.get<PostDetail>(`/api/v1/posts/${post_id}`) as unknown as Promise<PostDetail>,
-        create: (data: FormData) => apiClient.post<Post>('/api/v1/posts', data, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        }) as unknown as Promise<Post>,
+  users: {
+    getAll: () => apiClient.get<User[]>('/api/v1/users/') as unknown as Promise<User[]>,
+    get: (id: string) => apiClient.get<User>(`/api/v1/users/${id}`) as unknown as Promise<User>,
+    getMe: () => apiClient.get<User>('/api/v1/me') as unknown as Promise<User>,
+    getProfile: (username: string) => apiClient.get<ProfileResponse>(`/api/v1/users/profile/${username}`) as unknown as Promise<ProfileResponse>,
+    follow: (userId: string) => apiClient.post(`/api/v1/users/${userId}/follow`),
+    unfollow: (userId: string) => apiClient.post(`/api/v1/users/${userId}/unfollow`),
+  },
+  posts: {
+    getAll: (filter?: string, cursor?: string) => apiClient.get<Post[]>('/api/v1/posts', { params: { filter, cursor } }) as unknown as Promise<Post[]>,
+    get: (post_id: string) => apiClient.get<PostDetail>(`/api/v1/posts/${post_id}`) as unknown as Promise<PostDetail>,
+    create: (data: FormData) => apiClient.post<Post>('/api/v1/posts', data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }) as unknown as Promise<Post>,
 
-        // Interactions
-        like: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/like`),
-        share: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/share`),
-        repost: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/repost`),
-        save: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/save`),
+    // Interactions
+    like: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/like`),
+    share: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/share`),
+    repost: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/repost`),
+    save: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/save`),
 
-        // Comments (Replies)
-        getReplies: (post_id: string) => apiClient.get<Post[]>(`/api/v1/posts/${post_id}/replies`) as unknown as Promise<Post[]>,
+    // Comments (Replies)
+    getReplies: (post_id: string) => apiClient.get<Post[]>(`/api/v1/posts/${post_id}/replies`) as unknown as Promise<Post[]>,
 
-        // Interactions
-        addComment: (post_id: string, data: FormData) => apiClient.post(`/api/v1/posts/${post_id}/comments`, data, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        }),
-        deleteComment: (post_id: string, comment_id: string) => apiClient.delete(`/api/v1/posts/${post_id}/comments/${comment_id}`),
-    },
+    // Interactions
+    addComment: (post_id: string, data: FormData) => apiClient.post(`/api/v1/posts/${post_id}/comments`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    deleteComment: (post_id: string, comment_id: string) => apiClient.delete(`/api/v1/posts/${post_id}/comments/${comment_id}`),
+  },
+  search: (params: { q: string, type: string, page?: number, limit?: number }) => apiClient.get('/api/v1/search', { params }),
 };
 
 export const getPostDetail = async (postId: string) => {
-    // Đường dẫn này tùy thuộc vào Backend của bạn
-    const response = await apiClient.get(`/posts/${postId}`);
-    return response.data;
+  // Đường dẫn này tùy thuộc vào Backend của bạn
+  const response = await apiClient.get(`/posts/${postId}`);
+  return response.data;
 };
 
 export const getPostActivity = async (postId: string) => {
-    const response = await apiClient.get(`/posts/${postId}/activity`);
-    return response.data;
+  const response = await apiClient.get(`/posts/${postId}/activity`);
+  return response.data;
 }
 
 export async function downloadMedia(mediaUrl: string) {
-    const apiBase = import.meta.env.VITE_API_URL;
-  
-    const res = await fetch(
-      `${apiBase}/media/download?url=${encodeURIComponent(mediaUrl)}`,
-      {
-        method: "GET",
-        credentials: "include", // nếu sau này cần auth cookie
-      }
-    );
-  
-    if (!res.ok) {
-      throw new Error("Download failed");
+  const apiBase = import.meta.env.VITE_API_URL;
+
+  const res = await fetch(
+    `${apiBase}/media/download?url=${encodeURIComponent(mediaUrl)}`,
+    {
+      method: "GET",
+      credentials: "include", // nếu sau này cần auth cookie
     }
-  
-    const blob = await res.blob();
-  
-    // lấy filename từ header backend
-    const disposition = res.headers.get("content-disposition");
-    let filename = "media";
-  
-    if (disposition) {
-      const match = disposition.match(/filename="(.+)"/);
-      if (match?.[1]) filename = match[1];
-    }
-  
-    const blobUrl = window.URL.createObjectURL(blob);
-  
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-  
-    a.remove();
-    window.URL.revokeObjectURL(blobUrl);
+  );
+
+  if (!res.ok) {
+    throw new Error("Download failed");
   }
-  
+
+  const blob = await res.blob();
+
+  // lấy filename từ header backend
+  const disposition = res.headers.get("content-disposition");
+  let filename = "media";
+
+  if (disposition) {
+    const match = disposition.match(/filename="(.+)"/);
+    if (match?.[1]) filename = match[1];
+  }
+
+  const blobUrl = window.URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+
+  a.remove();
+  window.URL.revokeObjectURL(blobUrl);
+}

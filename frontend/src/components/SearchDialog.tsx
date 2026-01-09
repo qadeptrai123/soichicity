@@ -73,6 +73,12 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
                                 placeholder="Search"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        navigate(`/search?q=${searchQuery}`);
+                                        onOpenChange(false);
+                                    }
+                                }}
                                 className="border-0 bg-input text-foreground placeholder:text-text-muted focus-visible:ring-0"
                                 autoFocus
                             />
