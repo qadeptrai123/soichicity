@@ -45,21 +45,7 @@ interface FeedCardProps {
 
 
 // Helper Functions
-const formatTime = (isoString: string): string => {
-  if (!isoString) return "";
-  try {
-    const date = new Date(isoString);
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(date);
-  } catch (e) {
-    return "";
-  }
-};
+import { formatRelativeTime } from "@/lib/utils";
 
 // --- IMPORTED GALLERY COMPONENT ---
 // Gallery logic moved to ./Gallery.tsx
@@ -112,13 +98,13 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
     bookmarks: post.saves_count || 0,
     reposts: post.reposts_count || 0,
   }));
-  
+
   const [actionStates, setActionStates] = useState(() => ({
     liked: post.is_liked || false,
     bookmarked: post.is_saved || false,
     reposted: post.is_reposted || false,
   }));
-  
+
 
   // Sync state với props khi data từ API thay đổi (sau khi invalidateQueries)
   // useEffect(() => {
@@ -191,22 +177,22 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
     e?: React.MouseEvent
   ) => {
     e?.stopPropagation();
-  
+
     if (!post.media_url) {
       toast.error("No media to download");
       return;
     }
-  
+
     const downloadUrl =
       "http://localhost:8000/api/media/download?url=" +
       encodeURIComponent(post.media_url);
-  
+
     window.location.href = downloadUrl;
   };
-  
+
   // const handleExternalShare = () => {
   //   const postUrl = `${window.location.origin}/post/${post.post_id}`;
-  
+
   //   navigator.clipboard.writeText(postUrl)
   //     .then(() => {
   //       toast.success("Post link copied to clipboard");
@@ -217,7 +203,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   // };
   const handleExternalShare = async () => {
     const postUrl = `${window.location.origin}/post/${post.post_id}`;
-  
+
     if (navigator.share) {
       await navigator.share({
         title: post.content?.slice(0, 50),
@@ -228,8 +214,8 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
       toast.success("Post link copied");
     }
   };
-  
-  
+
+
   // const handleBookmark = useCallback(
   //   (e?: React.MouseEvent) => {
   //     e?.stopPropagation();
@@ -253,16 +239,16 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
         setShowLoginPrompt(true);
         return;
       }
-  
+
       const wasSaved = actionStates.bookmarked; // 👈 TRẠNG THÁI TRƯỚC CLICK
-  
+
       // Optimistic UI
       setActionStates((prev) => ({ ...prev, bookmarked: !prev.bookmarked }));
       setLocalCounts((prev) => ({
         ...prev,
         bookmarks: prev.bookmarks + (wasSaved ? -1 : 1),
       }));
-  
+
       saveMutation.mutate({
         postId: post.post_id,
         wasSaved,
@@ -291,16 +277,16 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
         setShowLoginPrompt(true);
         return;
       }
-  
+
       const wasReposted = actionStates.reposted; // 👈 TRẠNG THÁI TRƯỚC CLICK
-  
+
       // Optimistic UI
       setActionStates((prev) => ({ ...prev, reposted: !prev.reposted }));
       setLocalCounts((prev) => ({
         ...prev,
         reposts: prev.reposts + (wasReposted ? -1 : 1),
       }));
-  
+
       repostMutation.mutate({
         postId: post.post_id,
         wasReposted,
@@ -308,7 +294,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
     },
     [actionStates.reposted, post.post_id, repostMutation, isAuthenticated]
   );
-  
+
 
   const handleReply = useCallback(
     async (e?: React.MouseEvent) => {
@@ -411,7 +397,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
               {displayAuthor?.handle || ""}
             </span>
             <span className="text-text-muted text-xs">
-              {formatTime(post.created_at)}
+              {formatRelativeTime(post.created_at)}
             </span>
           </div>
         </div>

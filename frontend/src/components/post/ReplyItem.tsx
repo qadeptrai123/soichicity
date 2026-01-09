@@ -1,4 +1,5 @@
 import { ActionButton } from "@/components/ActionButton";
+import { formatRelativeTime } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLikePost, useSavePost, usePostReplies } from "@/hooks/api/use-posts";
 import { Heart, MessageCircle, Send, Bookmark, X } from "lucide-react";
@@ -125,7 +126,7 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
                 <div className="flex items-center gap-2 mb-1">
                     <span className="font-bold text-[15px] text-white">{reply.author.full_name}</span>
                     <span className="text-[#64748b] text-sm">@{reply.author.username}</span>
-                    <span className="text-[#64748b] text-xs">• {new Date(reply.created_at).toLocaleDateString()}</span>
+                    <span className="text-[#64748b] text-xs">• {formatRelativeTime(reply.created_at)}</span>
                 </div>
                 <div className="text-[#e2e8f0] text-[15px] leading-relaxed mb-3 font-normal whitespace-pre-wrap">
                     {reply.content}
