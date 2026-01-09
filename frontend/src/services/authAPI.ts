@@ -53,15 +53,22 @@ export const authAPI = {
         try {
             const result = await signInWithPopup(auth, googleProvider);
             const idToken = await result.user.getIdToken();
-            return {
-                access_token: idToken,
-                token_type: "bearer",
-                user: {
-                    email: result.user.email,
-                    displayName: result.user.displayName,
-                    uid: result.user.uid,
+
+            // Call Backend to sync user and get token with claims (username)
+            const response = await fetch(`${API_BASE_URL}/api/v1/google`, {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${idToken}`
                 },
-            };
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || "Google login failed on backend");
+            }
+
+            return response.json();
         } catch (error) {
             throw new Error(error instanceof Error ? error.message : "Google login failed");
         }

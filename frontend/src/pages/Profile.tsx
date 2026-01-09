@@ -37,7 +37,7 @@ export default function Profile() {
   if (error || !profileData) return <div className="text-white p-4">User not found</div>;
 
   const { user, posts } = profileData;
-  const isOwnProfile = user.is_self;
+  const isOwnProfile = user.is_self || (me && (user.uid === me.uid || user.username === me.username));
   const isFollowing = user.is_following;
   console.log(user)
   const handleFollowToggle = () => {
