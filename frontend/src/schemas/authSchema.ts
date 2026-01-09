@@ -33,13 +33,12 @@ export const forgotPasswordSchema = z.object({
 });
 
 // Schema cho Đặt lại mật khẩu
+// Schema cho Đặt lại mật khẩu
 export const resetPasswordSchema = z.object({
     newPassword: z.string()
-        .min(8, "Password must be at least 8 characters long")
-        .max(50, "Password cannot exceed 50 characters"),
+        .min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string()
-        .min(8, "Password must be at least 8 characters long")
-        .max(50, "Password cannot exceed 50 characters"),
+        .min(6, "Password must be at least 6 characters"),
 }).refine(data => data.newPassword === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"], // Gắn lỗi vào trường confirmPassword
