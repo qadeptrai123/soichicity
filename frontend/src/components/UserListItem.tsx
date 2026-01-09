@@ -71,9 +71,9 @@ export const UserListItem = ({ user }: UserListItemProps) => {
                     onClick={handleFollowToggle}
                     disabled={isLoading}
                     variant={user.is_following ? "outline" : "default"}
-                    className={`h-8 rounded-full px-5 text-sm font-semibold transition-all ${user.is_following
-                            ? "bg-transparent border-[#374151] text-white hover:border-red-500 hover:text-red-500 hover:bg-transparent"
-                            : "bg-white text-black hover:bg-white/90 border-none"
+                    className={`h-8 rounded-full w-24 text-sm font-semibold transition-all ${user.is_following
+                        ? "bg-transparent border-[#374151] text-white hover:border-white hover:text-white hover:bg-[#374151]"
+                        : "bg-white text-black hover:bg-white/90 border-none"
                         }`}
                 >
                     {user.is_following ? "Following" : "Follow"}
