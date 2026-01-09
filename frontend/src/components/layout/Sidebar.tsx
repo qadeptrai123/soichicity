@@ -75,6 +75,11 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
+
   return (
     <>
       {/* Mobile overlay */}
@@ -104,7 +109,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
             {isAuthenticated ? (
               <button
                 className="p-3 rounded-xl text-red-400 hover:bg-red-500/20 hover:text-red-500 transition"
-                onClick={logout}
+                onClick={handleLogout}
               >
                 <LogOut size={24} />
               </button>
@@ -153,7 +158,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
           {isAuthenticated && (
             <button
               className="p-3 rounded-xl text-red-400 hover:bg-red-500/20 hover:text-red-500 transition"
-              onClick={logout}
+              onClick={handleLogout}
             >
               <LogOut size={24} />
             </button>

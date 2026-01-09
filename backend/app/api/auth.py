@@ -140,3 +140,58 @@ def login(db=Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
         "refresh_token": data["refreshToken"],
         "expires_in": int(data["expiresIn"])
     }
+
+from app.api import deps
+@router.post("/google", tags=["auth"])
+def google_auth(
+    db=Depends(get_db),
+    current_user=Depends(deps.get_current_user)
+):
+    """
+    Exchange Google ID Token for a Firebase ID Token with Custom Claims (username).
+    The dependency 'get_current_user' already syncs the user to Firestore if new.
+    """
+    uid = current_user["uid"] # current_user is a dict from get_current_user
+    
+    # 1. Prepare Custom Claims
+    claims = {
+        "username": current_user.get("username"),
+        "full_name": current_user.get("full_name"),
+        "avatar_url": current_user.get("avatar_url"),
+        "is_active": current_user.get("is_active"),
+        "provider": "google",
+        "followers_count": current_user.get("followers_count", 0),
+        "followings_count": current_user.get("followings_count", 0),
+    }
+    # Clean None values
+    claims = {k: v for k, v in claims.items() if v is not None}
+
+    try:
+        # 2. Set Custom Claims (Persistent)
+        auth.set_custom_user_claims(uid, claims)
+
+        # 3. Create Custom Token
+        custom_token = auth.create_custom_token(uid, claims)
+
+        # 4. Exchange Custom Token for ID Token
+        exchange_url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key={settings.FIREBASE_API_KEY}"
+        exchange_res = requests.post(exchange_url, json={
+            "token": custom_token.decode("utf-8") if isinstance(custom_token, bytes) else custom_token,
+            "returnSecureToken": True
+        })
+        data = exchange_res.json()
+
+        if "idToken" not in data:
+            raise HTTPException(status_code=400, detail="Failed to exchange token")
+
+        return {
+            "access_token": data["idToken"], 
+            "token_type": "bearer",
+            "refresh_token": data["refreshToken"],
+            "expires_in": int(data["expiresIn"]),
+            "user": current_user 
+        }
+
+    except Exception as e:
+        print(f"Error in google_auth: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
