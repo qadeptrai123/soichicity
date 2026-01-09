@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, confirmPasswordReset } from "firebase/auth";
 
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -66,4 +66,29 @@ export const authAPI = {
             throw new Error(error instanceof Error ? error.message : "Google login failed");
         }
     },
+
+    requestPasswordReset: async (email: string) => {
+        try {
+            // Configure redirection URL to our React app
+            const redirectUrl = window.location.origin + '/reset-password';
+            console.log("Sending password reset email with redirect URL:", redirectUrl);
+            
+            const actionCodeSettings = {
+                url: redirectUrl, 
+                handleCodeInApp: true,
+            };
+            await sendPasswordResetEmail(auth, email, actionCodeSettings);
+        } catch (error: any) {
+            console.error("Error sending reset email:", error);
+            throw new Error(error.message || "Failed to send password reset email.");
+        }
+    },
+
+    completePasswordReset: async (oobCode: string, newPassword: string) => {
+        try {
+            await confirmPasswordReset(auth, oobCode, newPassword);
+        } catch (error: any) {
+             throw new Error(error.message || "Failed to reset password.");
+        }
+    }
 };

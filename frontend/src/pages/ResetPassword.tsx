@@ -23,21 +23,40 @@ import {
 } from "@/components/ui/card";
 import { resetPasswordSchema, type ResetPasswordValues } from "@/schemas/authSchema";
 import LoginForm from "./Login";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { authAPI } from "@/services/authAPI";
 
 export default function ResetPassword() {
     const [isResetComplete, setIsResetComplete] = useState(false);
     const navigate = useNavigate();
+
+    const [searchParams] = useSearchParams();
+    const oobCode = searchParams.get("oobCode");
 
     const form = useForm<ResetPasswordValues>({
         resolver: zodResolver(resetPasswordSchema),
         defaultValues: { newPassword: "", confirmPassword: "" },
     });
 
-    const onSubmit = (data: ResetPasswordValues) => {
-        console.log("New Password Data:", data);
-        toast.success("Password has been successfully reset!");
-        setIsResetComplete(true);
+    // If no oobCode is present, we should probably redirect or show an error
+    if (!oobCode) {
+         // Ideally redirect to home or login with an error message
+         // For now, we can render an error state or let it fail gracefully
+    }
+
+    const onSubmit = async (data: ResetPasswordValues) => {
+        if (!oobCode) {
+            toast.error("Invalid password reset link.");
+            return;
+        }
+
+        try {
+            await authAPI.completePasswordReset(oobCode, data.newPassword);
+            toast.success("Password has been successfully reset!");
+            setIsResetComplete(true);
+        } catch (error: any) {
+            toast.error(error.message || "Failed to reset password.");
+        }
     };
 
     if (isResetComplete) {
