@@ -30,7 +30,7 @@ class VideoService:
             # Set audio codec to aac, code to libx264, medium preset
             with VideoFileClip(temp_input_path) as clip:
                 if clip.h > 720:
-                    clip = clip.resize(height=720)
+                    clip = clip.resized(height=720)
                 
                 # Write to temp output
                 # Using a lower bitrate target or preset can help compression

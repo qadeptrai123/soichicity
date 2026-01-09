@@ -4,7 +4,7 @@ import sys
 import os
 
 # Add backend to path
-sys.path.append(os.path.join(os.getcwd(), "backend"))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Mock moviepy before import
 sys.modules["moviepy"] = MagicMock()
@@ -25,7 +25,7 @@ class TestVideoCompression(unittest.TestCase):
         
         mock_clip_instance = MagicMock()
         mock_clip_instance.h = 1080
-        mock_clip_instance.resize.return_value = mock_clip_instance # Support chaining
+        mock_clip_instance.resized.return_value = mock_clip_instance # Support chaining
         mock_video_clip.return_value.__enter__.return_value = mock_clip_instance
         
         # Test input file mock
@@ -37,7 +37,7 @@ class TestVideoCompression(unittest.TestCase):
         
         # Verify
         self.assertEqual(result, "temp/compressed.mp4")
-        mock_clip_instance.resize.assert_called_with(height=720) # Should resize
+        mock_clip_instance.resized.assert_called_with(height=720) # Should resize
         mock_clip_instance.write_videofile.assert_called()
 
     @patch("app.api.posts.VideoService")
