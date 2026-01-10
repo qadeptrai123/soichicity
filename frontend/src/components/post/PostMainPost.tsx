@@ -144,6 +144,14 @@ export const PostMainPost = ({ data, onViewActivity, onReply, onEdit }: PostMain
   // Dropdown Actions
   const postActions = [
     {
+      id: "bookmark",
+      label: actionStates.bookmarked ? "Unsave" : "Save",
+      icon: <Bookmark size={16} fill={actionStates.bookmarked ? "currentColor" : "none"} />,
+      onClick: handleBookmark,
+      isVisible: true,
+      showSeparatorAfter: true,
+    },
+    {
       id: "edit",
       label: "Edit",
       icon: <Edit3 size={16} />,

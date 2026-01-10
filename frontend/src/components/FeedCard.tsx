@@ -286,9 +286,9 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
   const postActions = [
     {
       id: "bookmark",
-      label: "Save",
-      icon: <Bookmark size={16} />,
-      onClick: () => console.log("Save post", post.post_id),
+      label: post.is_saved ? "Unsave" : "Save",
+      icon: <Bookmark size={16} fill={post.is_saved ? "currentColor" : "none"} />,
+      onClick: handleBookmark,
       isVisible: true,
       showSeparatorAfter: true,
     },
