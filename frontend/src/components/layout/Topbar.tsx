@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft } from "lucide-react"; // Nhớ import ArrowLeft
 import { useLocation, useNavigate } from "react-router-dom"; // Import hook router
@@ -20,6 +20,19 @@ export default function Topbar() {
 
   // Kiểm tra: Nếu đường dẫn bắt đầu bằng "/post/" thì đang ở trang chi tiết
   const isPostPage = location.pathname.startsWith("/post/");
+
+  // Sync selected state with URL params
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const filter = params.get("filter");
+    
+    if (location.pathname === "/") {
+        if (filter === "following") setSelected({ id: "following", label: "Following" });
+        else if (filter === "saved") setSelected({ id: "saved", label: "Saved" });
+        else if (filter === "liked") setSelected({ id: "liked", label: "Liked" });
+        else setSelected({ id: "for_you", label: "For you" });
+    }
+  }, [location.pathname, location.search]);
 
 
   const { isAuthenticated } = useAuth();

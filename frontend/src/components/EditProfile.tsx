@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ChevronRight, Loader2 } from "lucide-react";
 import type { User } from "@/types/user";
 import BlockList from "@/components/BlockList";
@@ -28,6 +29,17 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
   const [view, setView] = useState<"main" | "links" | "add-link">("main");
   const [tempLinkUrl, setTempLinkUrl] = useState("");
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+
+  // Reset state when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setEditName(currentUser.full_name || currentUser.name || "");
+      setEditBio(currentUser.bio || "");
+      setEditLink(currentUser.link || "");
+      setView("main");
+      setShowRemoveConfirm(false);
+    }
+  }, [isOpen, currentUser]);
 
   const queryClient = useQueryClient();
 
@@ -189,6 +201,7 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
 
             {view === "links" && (
                 <div className="flex flex-col gap-4">
+                     {!editLink && (
                      <div 
                         className="bg-hover border border-accent rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-neutral-800"
                         onClick={() => {
@@ -199,6 +212,7 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
                         <span className="text-[15px] text-white">Add link</span>
                         <div className="w-6 h-6 rounded-full bg-neutral-700 flex items-center justify-center text-white text-lg leading-none">+</div>
                     </div>
+                    )}
 
                     {editLink && (
                         <div className="space-y-2">
@@ -246,33 +260,42 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
           </div>
 
           {/* Remove Confirmation Dialog Overlay */}
-            {showRemoveConfirm && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowRemoveConfirm(false)}>
-                    <div className="bg-[#1e1e1e] border border-neutral-800 rounded-2xl w-full max-w-[280px] overflow-hidden shadow-2xl scale-100" onClick={e => e.stopPropagation()}>
-                        <div className="p-6 text-center space-y-2">
-                             <h3 className="text-lg font-bold text-white">Remove link?</h3>
-                             {/* <p className="text-sm text-neutral-400">This will remove the link from your profile.</p> */}
-                        </div>
-                        <div className="flex border-t border-neutral-800">
-                             <button 
-                                className="flex-1 py-3 text-[15px] font-medium text-white hover:bg-white/5 border-r border-neutral-800"
-                                onClick={() => setShowRemoveConfirm(false)}
-                             >
-                                Cancel
-                             </button>
-                             <button 
-                                className="flex-1 py-3 text-[15px] font-bold text-red-500 hover:bg-white/5"
-                                onClick={() => {
-                                    setEditLink("");
-                                    setShowRemoveConfirm(false);
-                                }}
-                             >
-                                Remove
-                             </button>
-                        </div>
+          {/* Remove Confirmation Dialog */}
+            <Dialog open={showRemoveConfirm} onOpenChange={setShowRemoveConfirm}>
+                <DialogContent 
+                    onClick={(e) => e.stopPropagation()} 
+                    className="sm:max-w-[320px] p-0 gap-0 overflow-hidden bg-secondary border-border text-white"
+                >
+                    <div className="flex flex-col items-center gap-4 text-center p-8 pb-6">
+                        <DialogHeader className="space-y-2">
+                             <DialogTitle className="text-center text-xl font-bold">Remove link?</DialogTitle>
+                             <DialogDescription className="sr-only">
+                                 Are you sure you want to remove this link?
+                             </DialogDescription>
+                        </DialogHeader>
                     </div>
-                </div>
-            )}
+
+                    <div className="flex w-full border-t border-border">
+                         <Button 
+                            variant="ghost"
+                            className="flex-1 h-12 rounded-none border-r border-border text-white hover:bg-white/5 hover:text-white font-normal text-base"
+                            onClick={() => setShowRemoveConfirm(false)}
+                         >
+                            Cancel
+                         </Button>
+                         <Button 
+                            variant="ghost"
+                            className="flex-1 h-12 rounded-none text-red-500 hover:bg-white/5 hover:text-red-500 font-bold text-base"
+                            onClick={() => {
+                                setEditLink("");
+                                setShowRemoveConfirm(false);
+                            }}
+                         >
+                            Remove
+                         </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
           {/* Footer Button - Only for Main View */}
           {view === "main" && (

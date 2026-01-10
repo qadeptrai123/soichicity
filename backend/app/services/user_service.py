@@ -386,71 +386,21 @@ def get_user_profile(db, username: str, current_user_id: str = None):
     target_uid = user_data['uid']
     raw_feed = [] 
 
-    # Gather posts and reposts 
-    posts_ref = db.collection('posts')\
-                  .where('author_id', '==', target_uid)\
-                  .order_by('created_at', direction=firestore.Query.DESCENDING)\
-                  .limit(50)
+    # OPTIMIZATION: Use the paginated fetcher to get the first page of "posts" only.
+    # This avoids fetching 50 posts + 50 reposts and manually filtering/sorting.
+    # We fetch just 10 root posts to bootstrap the profile view fast.
+    posts_page = get_user_posts_paginated(
+        db, 
+        target_uid, 
+        limit=10, 
+        post_type="posts", 
+        current_user_id=current_user_id
+    )
     
-    for doc in posts_ref.stream():
-        raw_feed.append({
-            "is_reposted": False,
-            "timestamp": doc.get("created_at"),
-            "post_doc": doc,                    
-            "post_id": doc.id,
-            "reposted_by": None
-        })
+    final_posts = posts_page.get("items", [])
+    next_cursor = posts_page.get("next_cursor")
 
-    reposts_ref = db.collection('users').document(target_uid)\
-                    .collection('activity_reposts')\
-                    .order_by('created_at', direction=firestore.Query.DESCENDING)\
-                    .limit(50)
-    
-    repost_items = []
-    for doc in reposts_ref.stream():
-        data = doc.to_dict()
-        original_post_id = data.get('post_id') 
-        
-        repost_items.append({
-            "is_reposted": True,
-            "timestamp": data.get("created_at"), 
-            "post_id": original_post_id,
-            "repost_id": doc.id,
-            "reposted_by": target_uid,           
-            "post_doc": None                     
-        })
-
-    # Fetch post and reposts details
-    
-    if repost_items:
-        repost_ids = [item['post_id'] for item in repost_items if item['post_id']]
-        fetched_posts_map = _get_docs_batch(db, "posts", repost_ids)
-        
-        for item in repost_items:
-            if item['post_id'] in fetched_posts_map:
-                item['post_doc'] = fetched_posts_map[item['post_id']]
-                raw_feed.append(item) # Only add if the original post still exists
-
-    # Fetch author information for the entire feed
-    author_ids = set()
-    for item in raw_feed:
-        if item.get("post_doc"):
-            p_data = item["post_doc"].to_dict()
-            if p_data.get("author_id"):
-                author_ids.add(p_data.get("author_id"))
-        if item.get("reposted_by"):
-            author_ids.add(item["reposted_by"])
-    
-    authors_map = _get_docs_batch(db, "users", list(author_ids))
-
-    # Sort final feed by timestamp descending
-    raw_feed.sort(key=lambda x: x["timestamp"], reverse=True)
-
-    final_posts = []
-    for item in raw_feed:
-        normalized_item = _normalize_feed_item(db, item, authors_map, current_user_id)
-        if normalized_item:
-            final_posts.append(normalized_item)
+    # Check follow status
 
     # Check follow status
     is_following = False
@@ -473,6 +423,7 @@ def get_user_profile(db, username: str, current_user_id: str = None):
     return {
         "user": final_user_data,
         "posts": final_posts,
+        "posts_cursor": next_cursor, # Pass the cursor for frontend use
         "posts_count": len(final_posts)
     }
 
@@ -484,16 +435,18 @@ def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: 
     posts_ref = db.collection('posts')
     
     # 1. Query cơ bản
-    query = posts_ref.where('author_id', '==', author_id)\
-                     .order_by('created_at', direction=firestore.Query.DESCENDING)
+    query = posts_ref.where(filter=firestore.FieldFilter('author_id', '==', author_id))
 
-    # Note: Firestore requires composite indexes for combining equality (author_id) 
-    # with inequality/null checks (reply_to_id) and sort (created_at).
-    # To be safe without manual index creation, we maintain the base query and filter in memory 
-    # (using a larger fetch limit to minimize trips).
-    
-    # scan_limit allows us to fetch more items to filter down to the requested 'limit'
-    scan_limit = limit * 4 
+    # OPTIMIZATION: Filter root posts directly in DB
+    # Note: This requires a Firestore Composite Index: author_id (ASC) + reply_to_id (ASC) + created_at (DESC)
+    if post_type == "posts":
+        query = query.where(filter=firestore.FieldFilter('reply_to_id', '==', None))
+        scan_limit = limit # DB handles filtering, so we don't need to over-fetch
+    else:
+        # Fallback for 'replies', 'media', 'all' which might not have specific indexes yet
+        scan_limit = limit * 4 
+
+    query = query.order_by('created_at', direction=firestore.Query.DESCENDING) 
 
     # 2. Xử lý Cursor
     if last_post_id:

@@ -24,7 +24,7 @@ export const usePosts = (filter: string = "all") => {
     getNextPageParam: (lastPage: any) => {
       if (!lastPage || lastPage.length === 0) return undefined;
       const lastPost = lastPage[lastPage.length - 1];
-      return lastPost.created_at; // Use created_at as cursor
+      return lastPost.interaction_at || lastPost.created_at; // Use interaction_at if available, else created_at
     }
   });
 };
@@ -278,7 +278,6 @@ export const useSavePost = () => {
   });
 };
 
-// ✅ ADD COMMENT
 export const useAddComment = () => {
   const queryClient = useQueryClient();
 

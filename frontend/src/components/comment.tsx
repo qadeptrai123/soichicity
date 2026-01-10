@@ -62,7 +62,7 @@ export default function ReplyCommentDialog({
     resetEditor,
     onEmojiClick,
     handleTagUser,
-  } = usePostEditor({ mockFriends });
+  } = usePostEditor({ mockFriends, enabled: open });
 
 
   const handlePostSubmit = async () => {

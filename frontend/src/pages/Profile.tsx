@@ -59,7 +59,21 @@ export default function Profile() {
   const isRepostsTab = activeTab === "Reposts";
   const postType = activeTab === "Posts" ? "posts" : activeTab === "Replies" ? "replies" : activeTab === "Media" ? "media" : "posts";
 
-  const postsQuery = useUserPosts(targetUid, postType, { enabled: !isRepostsTab && !!targetUid });
+  // OPTIMIZATION: Use embedded posts from Profile response as initial data to avoid 2nd fetch
+  const initialPostsData = (postType === "posts" && profileData?.posts) 
+    ? {
+        pages: [{
+            items: profileData.posts,
+            next_cursor: profileData.posts_cursor ?? null,
+        }],
+        pageParams: [null]
+    } 
+    : undefined;
+
+  const postsQuery = useUserPosts(targetUid, postType, { 
+    enabled: !isRepostsTab && !!targetUid,
+    initialData: initialPostsData
+  });
   const repostsQuery = useUserReposts(targetUid, { enabled: isRepostsTab && !!targetUid });
 
   const currentQuery = isRepostsTab ? repostsQuery : postsQuery;
@@ -268,7 +282,11 @@ export default function Profile() {
 
       {/* CONTENT FEED */}
       <div className="mt-4 px-4 sm:px-0">
-        {posts && posts.length > 0 ? (
+        {isPostsLoading ? (
+           <div className="flex justify-center p-8">
+             <LoadingSpinner />
+           </div>
+        ) : posts && posts.length > 0 ? (
           posts.map((post) => (
               <FeedCard
                 key={post.post_id || post.repost_id} // Use repost_id if available to avoid duplicates if user reposts + posts? Actually API returns unique items per feed.

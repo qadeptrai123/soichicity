@@ -52,7 +52,7 @@ export default function CreatePostDialog({
     resetEditor,
     onEmojiClick,
     handleTagUser,
-  } = usePostEditor({ mockFriends, initialContent });
+  } = usePostEditor({ mockFriends, initialContent, enabled: open });
 
   const createPostMutation = useCreatePost();
 

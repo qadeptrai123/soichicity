@@ -102,7 +102,11 @@ class PostResponse(BaseModel):
     likes_count: int = 0
     reposts_count: int = 0
     saves_count: int = 0
+    saves_count: int = 0
     comments_count: int = 0
+    
+    # Cursor pagination helper for liked/saved feeds
+    interaction_at: Optional[str] = None
 
     class Config:
         populate_by_name = True
