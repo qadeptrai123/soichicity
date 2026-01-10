@@ -120,11 +120,24 @@ const updatePostCache = (queryClient: any, postId: string, updater: (post: any) 
       if (!oldData) return oldData;
       return {
         ...oldData,
-        pages: oldData.pages.map((page: any) =>
-          page.map((post: any) =>
-            post.post_id === postId ? updater(post) : post
-          )
-        ),
+        pages: oldData.pages.map((page: any) => {
+          // Handle Main Feed (Array)
+          if (Array.isArray(page)) {
+             return page.map((post: any) =>
+                post.post_id === postId ? updater(post) : post
+             );
+          }
+          // Handle User/Profile Feed (Object with items)
+          if (page?.items && Array.isArray(page.items)) {
+             return {
+                 ...page,
+                 items: page.items.map((post: any) => 
+                    post.post_id === postId ? updater(post) : post
+                 )
+             };
+          }
+          return page;
+        }),
       };
     });
   });
@@ -159,14 +172,15 @@ export const useLikePost = () => {
 
       return { previousPosts, previousPost };
     },
-    onError: (_err, postId, context) => {
+    onError: (err: any, postId, context) => {
       if (context?.previousPosts) {
         queryClient.setQueryData(["posts"], context.previousPosts);
       }
       if (context?.previousPost) {
         queryClient.setQueryData(["post", postId], context.previousPost);
       }
-      toast.error("Failed to like post");
+      const msg = err.response?.data?.detail || "Failed to like post";
+      toast.error(msg);
     },
     onSettled: (_data, _error, postId) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
@@ -178,7 +192,6 @@ export const useLikePost = () => {
   });
 };
 
-// ✅ SHARE POST
 export const useSharePost = () => {
   // Keep as is for now or implement similar if needed
   const queryClient = useQueryClient();
@@ -193,13 +206,13 @@ export const useSharePost = () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
 
-    onError: () => {
-      toast.error("Failed to share post");
+    onError: (err: any) => {
+      const msg = err.response?.data?.detail || "Failed to share post";
+      toast.error(msg);
     },
   });
 };
 
-// ✅ REPOST
 export const useRepostPost = () => {
   const queryClient = useQueryClient();
 
@@ -229,22 +242,26 @@ export const useRepostPost = () => {
       return { previousPosts, previousPost };
     },
 
-    onError: (_err, variables, context) => {
+    onError: (err: any, variables, context) => {
       if (context?.previousPosts) {
         queryClient.setQueryData(["posts"], context.previousPosts);
       }
       if (context?.previousPost) {
         queryClient.setQueryData(["post", variables.postId], context.previousPost);
       }
-      toast.error("Failed to repost");
+      const msg = err.response?.data?.detail || "Failed to repost";
+      toast.error(msg);
+    },
+
+    onSuccess: (_data, variables) => {
+         toast.success(
+            variables.wasReposted
+              ? "Removed from reposts"
+              : "Reposted"
+          );
     },
 
     onSettled: (_data, _error, variables) => {
-      toast.success(
-        variables.wasReposted
-          ? "Removed from reposts"
-          : "Reposted"
-      );
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["user-posts"] });
       queryClient.invalidateQueries({ queryKey: ["user-reposts"] });
@@ -281,18 +298,23 @@ export const useSavePost = () => {
       return { previousPosts, previousPost };
     },
 
-    onError: (_err, variables, context) => {
+    onError: (err: any, variables, context) => {
       if (context?.previousPosts) queryClient.setQueryData(["posts"], context.previousPosts);
       if (context?.previousPost) queryClient.setQueryData(["post", variables.postId], context.previousPost);
-      toast.error("Failed to save post");
+      
+      const msg = err.response?.data?.detail || "Failed to save post";
+      toast.error(msg);
     },
 
-    onSettled: (_data, _err, variables) => {
+    onSuccess: (_data, variables) => {
       toast.success(
         variables.wasSaved
           ? "Removed from saved posts"
           : "Post saved"
       );
+    },
+
+    onSettled: (_data, _err, variables) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["user-posts"] });
       queryClient.invalidateQueries({ queryKey: ["user-reposts"] });

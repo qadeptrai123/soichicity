@@ -373,59 +373,136 @@ def unfollow_user(db, current_user_id:str, target_user_id:str):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error unfollowing user: {str(e)}")
     
-def get_user_profile(db, username: str, current_user_id: str = None):
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error unfollowing user: {str(e)}")
+
+def block_user(db, current_user_id: str, target_user_id: str):
     """
-    Logic get user profile by username, including their posts and reposts.
+    Block a user.
+    1. Add to users/{current_user_id}/blocks/{target_user_id}
+    2. Increment blocks_count
+    3. FORCE UNFOLLOW both directions
     """
-
-    #  Get Target User Info
-    user_data = get_user_by_username(db, username)
-    if not user_data:
-        raise HTTPException(status_code=404, detail="User not found")
+    if current_user_id == target_user_id:
+        raise HTTPException(status_code=400, detail="You cannot block yourself.")
     
-    target_uid = user_data['uid']
-    raw_feed = [] 
-
-    # OPTIMIZATION: Use the paginated fetcher to get the first page of "posts" only.
-    # This avoids fetching 50 posts + 50 reposts and manually filtering/sorting.
-    # We fetch just 10 root posts to bootstrap the profile view fast.
-    posts_page = get_user_posts_paginated(
-        db, 
-        target_uid, 
-        limit=10, 
-        post_type="posts", 
-        current_user_id=current_user_id
-    )
+    current_ref = db.collection('users').document(current_user_id)
+    target_ref = db.collection('users').document(target_user_id)
     
-    final_posts = posts_page.get("items", [])
-    next_cursor = posts_page.get("next_cursor")
+    if not target_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Target user not found")
+        
+    # Check if already blocked
+    block_ref = current_ref.collection('blocks').document(target_user_id)
+    if block_ref.get().exists:
+        return {"status": "success", "message": "User already blocked"}
 
-    # Check follow status
-
-    # Check follow status
-    is_following = False
-    is_self = False
-
-    if current_user_id:
-        if current_user_id == target_uid:
-            is_self = True
-        elif db.collection('users').document(current_user_id).collection('followings').document(target_uid).get().exists:
-            is_following = True
-
-    # Validating and formatting user data with UserResponse schema
-    # This ensures all fields (like followers, following, counts) are returned with defaults if missing
-    user_obj = UserResponse.model_validate(user_data)
-    final_user_data = user_obj.model_dump()
+    batch = db.batch()
+    timestamp = datetime.utcnow().isoformat()
     
-    final_user_data["is_following"] = is_following
-    final_user_data["is_self"] = is_self # Check if viewing own profile
+    # 1. Add to blocks sub-collection
+    batch.set(block_ref, {
+        "user_id": target_user_id, 
+        "created_at": timestamp
+    })
+    
+    # 2. Increment blocks_count
+    batch.update(current_ref, {
+        "blocks_count": firestore.Increment(1)
+    })
+    
+    # 3. Force Unfollow (Both directions)
+    # Remove target from current's following
+    batch.delete(current_ref.collection("followings").document(target_user_id))
+    batch.delete(target_ref.collection("followers").document(current_user_id))
+    
+    # Remove current from target's following (Target following Current)
+    batch.delete(target_ref.collection("followings").document(current_user_id))
+    batch.delete(current_ref.collection("followers").document(target_user_id))
 
-    return {
-        "user": final_user_data,
-        "posts": final_posts,
-        "posts_cursor": next_cursor, # Pass the cursor for frontend use
-        "posts_count": len(final_posts)
-    }
+    # We should update counts if they were following, but checking existence inside a transaction/batch 
+    # for counts conditionally is hard without transaction. 
+    # Simplified approach: We accept counts might drift slightly OR we check first.
+    # To be safe/clean: We just run the delete. If they weren't following, delete is no-op. 
+    # BUT decrementing count blindly is bad.
+    
+    # Correct approach: Use individual helper functions or simple discrete checks?
+    # Let's do a best-effort cleanup without risking negative counts weirdly, 
+    # or just assume the `unfollow_user` logic is too heavy to call here inside a batch.
+    # Let's just remove the relationships. The counts will be eventually consistent or require a recalc script.
+    # OR: we can check "is_following" before batch?
+    # Let's keep it simple: Just remove the relationship docs. 
+    # Users will disappear from lists. Counts might be +1 off until next strict recount. 
+    # For this project scope, it's acceptable vs complex transactions.
+    # Note: `unfollow_user` logic does decr counters. We can call it? 
+    # No, `unfollow_user` commits its own batch.
+    
+    # Let's manually decrement ONLY if we know they exist. 
+    # Checking 2 reads is cheap.
+    
+    is_following_target = current_ref.collection("followings").document(target_user_id).get().exists
+    is_followed_by_target = target_ref.collection("followings").document(current_user_id).get().exists
+    
+    if is_following_target:
+         batch.update(current_ref, {"followings_count": firestore.Increment(-1)})
+         batch.update(target_ref, {"followers_count": firestore.Increment(-1)})
+         # Update arrays
+         batch.update(current_ref, {"following": firestore.ArrayRemove([target_user_id])})
+         batch.update(target_ref, {"followers": firestore.ArrayRemove([current_user_id])})
+
+    if is_followed_by_target:
+         batch.update(target_ref, {"followings_count": firestore.Increment(-1)})
+         batch.update(current_ref, {"followers_count": firestore.Increment(-1)})
+         # Update arrays
+         batch.update(target_ref, {"following": firestore.ArrayRemove([current_user_id])})
+         batch.update(current_ref, {"followers": firestore.ArrayRemove([target_user_id])})
+
+    try:
+        batch.commit()
+        return {"status": "success", "message": f"Blocked user {target_user_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error blocking user: {str(e)}")
+
+def unblock_user(db, current_user_id: str, target_user_id: str):
+    current_ref = db.collection('users').document(current_user_id)
+    block_ref = current_ref.collection('blocks').document(target_user_id)
+    
+    if not block_ref.get().exists:
+         return {"status": "success", "message": "User was not blocked"}
+         
+    batch = db.batch()
+    batch.delete(block_ref)
+    batch.update(current_ref, {
+        "blocks_count": firestore.Increment(-1)
+    })
+    
+    try:
+        batch.commit()
+        return {"status": "success", "message": f"Unblocked user {target_user_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error unblocking: {str(e)}")
+
+def get_blocked_users(db, current_user_id: str):
+    blocks = db.collection('users').document(current_user_id).collection('blocks').stream()
+    blocked_ids = [b.id for b in blocks]
+    
+    if not blocked_ids:
+        return []
+        
+    users_map = _get_docs_batch(db, "users", blocked_ids)
+    results = []
+    
+    for uid, u_doc in users_map.items():
+        if u_doc.exists:
+            d = u_doc.to_dict()
+            results.append({
+                "uid": uid,
+                "username": d.get("username", "Unknown"),
+                "full_name": d.get("full_name", ""),
+                "avatar_url": d.get("avatar_url"),
+                "bio": d.get("bio")
+            })
+    return results
 
 def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: str = None, post_type: str = "posts", current_user_id: str = None):
     """
@@ -578,25 +655,170 @@ def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: 
     authors_map = _get_docs_batch(db, "users", list(author_ids))
 
     # 5. Normalize
-    results = []
-    for doc in items_to_fetch_author:
-        item_input = {
-            "post_doc": doc,
-            "timestamp": doc.get("created_at"),
-            "is_reposted": False,
-            "reposted_by": None
-        }
-        normalized = _normalize_feed_item(db, item_input, authors_map, current_user_id)
-        if normalized:
-            results.append(normalized)
+    # 4. Batch Fetch Author (This part remains as it's needed for the items)
+    author_ids = {d.get("author_id") for d in filtered_docs} # Use filtered_docs here
+    authors_map = _get_docs_batch(db, "users", list(author_ids))
+
+    # --- 4. Populate Interaction Status (Batch Fetch) ---
+    final_items = []
+    
+    # Pre-fetch authors for ALL filtered docs
+    author_ids = {d.get("author_id") for d in filtered_docs if d.get("author_id")}
+    authors_map = _get_docs_batch(db, "users", list(author_ids))
+
+    if current_user_id and filtered_docs:
+        like_refs = []
+        repost_refs = []
+        save_refs = []
+        
+        # Prepare refs
+        for doc in filtered_docs:
+             pid = doc.id
+             post_ref = db.collection("posts").document(pid)
+             like_refs.append(post_ref.collection("likes").document(current_user_id))
+             repost_refs.append(post_ref.collection("reposts").document(current_user_id))
+             save_refs.append(post_ref.collection("saves").document(current_user_id))
+
+        # Execute batches
+        likes_snapshots = list(db.get_all(like_refs))
+        reposts_snapshots = list(db.get_all(repost_refs))
+        saves_snapshots = list(db.get_all(save_refs))
+        
+        # Map results
+        likes_map = {snap.reference.parent.parent.id: snap.exists for snap in likes_snapshots}
+        reposts_map = {snap.reference.parent.parent.id: snap.exists for snap in reposts_snapshots}
+        saves_map = {snap.reference.parent.parent.id: snap.exists for snap in saves_snapshots}
+        
+        for doc in filtered_docs:
+            data = doc.to_dict()
+            pid = doc.id
+            
+            # Normalize keys to match Post model expected by FE
+            item = data.copy()
+            item["post_id"] = pid
+            item["likes_count"] = data.get("likes_count") or data.get("likeCount", 0)
+            item["reposts_count"] = data.get("reposts_count") or data.get("repostCount") or data.get("shareCount", 0)
+            item["saves_count"] = data.get("saves_count") or data.get("saveCount", 0)
+            item["comments_count"] = data.get("comments_count") or data.get("commentCount", 0)
+            
+            item["is_liked"] = likes_map.get(pid, False)
+            item["is_reposted"] = reposts_map.get(pid, False)
+            item["is_saved"] = saves_map.get(pid, False)
+            
+            # Ensure Author info is consistent if needed, but usually FE has it from Profile
+            # But let's keep it robust
+            
+            # Inject Author Data
+            author_id = data.get("author_id")
+            if author_id and author_id in authors_map:
+                 author_doc = authors_map[author_id]
+                 item["author"] = author_doc.to_dict() if author_doc.exists else None
+                 # Ensure uid checks
+                 if item["author"]:
+                     item["author"]["uid"] = author_id 
+            else:
+                 item["author"] = {"uid": author_id, "username": "Unknown", "full_name": "Unknown"}
+
+            final_items.append(item)
+    else:
+        # No user or no docs
+        for doc in filtered_docs:
+            data = doc.to_dict()
+            item = data.copy()
+            item["post_id"] = doc.id
+            item["likes_count"] = data.get("likes_count") or data.get("likeCount", 0)
+            item["reposts_count"] = data.get("reposts_count") or data.get("repostCount") or data.get("shareCount", 0)
+            item["saves_count"] = data.get("saves_count") or data.get("saveCount", 0)
+            item["comments_count"] = data.get("comments_count") or data.get("commentCount", 0)
+            
+            item["is_liked"] = False
+            item["is_reposted"] = False
+            item["is_saved"] = False
+            
+            # Inject Author Data (Copied logic)
+            author_id = data.get("author_id")
+            if author_id and author_id in authors_map:
+                 author_doc = authors_map[author_id]
+                 item["author"] = author_doc.to_dict() if author_doc.exists else None
+                 if item["author"]:
+                     item["author"]["uid"] = author_id 
+            else:
+                 item["author"] = {"uid": author_id, "username": "Unknown", "full_name": "Unknown"}
+            
+            final_items.append(item)
 
     return {
-        "items": results,
-        "next_cursor": next_cursor, 
+        "items": final_items,
+        "next_cursor": next_cursor,
         "has_more": len(docs) == scan_limit or (len(filtered_docs) == limit and len(docs) > len(filtered_docs))
-        # Logic for has_more: 
-        # If we fetched full scan_limit, assume there is likely more DB data.
-        # If we fetched less than scan_limit, we exhausted DB.
+    }
+
+
+def get_user_profile(db, username: str, current_user_id: str = None):
+    """
+    Logic get user profile by username, including their posts and reposts.
+    """
+
+    #  Get Target User Info
+    user_data = get_user_by_username(db, username)
+    if not user_data:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    target_uid = user_data['uid']
+
+    # Flags
+    is_self = False
+    is_following = False
+    is_blocked_by_me = False
+    is_blocking_me = False
+    
+    if current_user_id:
+        is_self = (current_user_id == target_uid)
+        
+        if not is_self:
+            # Check Following
+            is_following = db.collection('users').document(current_user_id).collection('followings').document(target_uid).get().exists
+            
+            # Check Blocked By Me
+            is_blocked_by_me = db.collection('users').document(current_user_id).collection('blocks').document(target_uid).get().exists
+
+            # Check Blocking Me
+            is_blocking_me = db.collection('users').document(target_uid).collection('blocks').document(current_user_id).get().exists
+            
+            if is_blocking_me:
+                 raise HTTPException(status_code=404, detail="User not found")
+
+    # Posts fetching (Paginated)
+    final_posts = []
+    next_cursor = None
+
+    # Do not fetch contents if blocked
+    if not is_blocked_by_me and not is_blocking_me:
+        # OPTIMIZATION: Use the paginated fetcher to get the first page of "posts" only.
+        posts_page = get_user_posts_paginated(
+            db, 
+            target_uid, 
+            limit=10, 
+            post_type="posts", 
+            current_user_id=current_user_id
+        )
+        final_posts = posts_page.get("items", [])
+        next_cursor = posts_page.get("next_cursor")
+
+    # Validating and formatting user data with UserResponse schema
+    user_obj = UserResponse.model_validate(user_data)
+    final_user_data = user_obj.model_dump()
+    
+    final_user_data["is_following"] = is_following
+    final_user_data["is_self"] = is_self
+    final_user_data["is_blocked_by_me"] = is_blocked_by_me
+    final_user_data["is_blocking_me"] = is_blocking_me
+
+    return {
+        "user": final_user_data,
+        "posts": final_posts,
+        "posts_cursor": next_cursor, 
+        "posts_count": len(final_posts)
     }
 
 def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_id: str = None, current_user_id: str = None):

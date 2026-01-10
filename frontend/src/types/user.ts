@@ -27,6 +27,8 @@ export interface User {
     // Interaction status
     is_following?: boolean;
     is_self?: boolean;
+    is_blocked_by_me?: boolean;
+    is_blocking_me?: boolean;
 }
 
 export type Author = User;

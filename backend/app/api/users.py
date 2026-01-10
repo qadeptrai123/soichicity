@@ -119,3 +119,24 @@ def get_user_followers(
     """
     current_user_id = current_user['uid'] if current_user else None
     return user_service.get_users_followers_paginated(db, user_id, limit, cursor, current_user_id)
+
+@router.post("/users/{target_user_id}/block", tags=["users"])
+def block_user(target_user_id: str, db=Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Block a user.
+    """
+    return user_service.block_user(db, current_user['uid'], target_user_id)
+
+@router.post("/users/{target_user_id}/unblock", tags=["users"])
+def unblock_user(target_user_id: str, db=Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Unblock a user.
+    """
+    return user_service.unblock_user(db, current_user['uid'], target_user_id)
+
+@router.get("/users/me/blocks", tags=["users"])
+def get_blocked_users(db=Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Get list of blocked users.
+    """
+    return user_service.get_blocked_users(db, current_user['uid'])

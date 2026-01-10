@@ -19,7 +19,6 @@ import {
   Send,
   X,
   Edit3,
-  Ban,
   Link2,
 } from "lucide-react";
 import { DropdownExtend } from "./DropdownExtend";
@@ -30,6 +29,9 @@ import {
   useRepostPost,
 } from "@/hooks/api/use-posts";
 import { useAuth } from "@/contexts/AuthProvider";
+import { BlockUserDialog } from "@/components/BlockUserDialog";
+import { useBlockUser } from "@/hooks/api/use-users";
+import { Ban } from "lucide-react";
 
 import type { Post as PostData, Author as AuthorData } from "@/types/post";
 
@@ -305,23 +307,47 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
       : post.media_type
     : null;
 
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const blockMutation = useBlockUser();
+
+  const handleBlockConfirm = () => {
+      blockMutation.mutate(displayAuthor.uid, {
+          onSuccess: () => {
+              setShowBlockDialog(false);
+          }
+      });
+  };
+
+  // Debug Block Visibility
+  const isAuthor = Boolean(me?.uid && post.author?.uid && String(me.uid) === String(post.author.uid));
+  // console.log("FeedCard Debug:", { meUid: me?.uid, authorUid: post.author?.uid, isAuthor, isAuthenticated });
+
   // Dropdown Actions
   const postActions = [
     {
       id: "edit",
       label: "Edit",
       icon: <Edit3 size={16} />,
-      onClick: () => onEdit?.(post),
-      isVisible: me?.uid === displayAuthor?.uid && !!onEdit,
+      onClick: () => console.log("Edit post", post.post_id),
+      isVisible: isAuthor,
     },
     {
-      id: "block",
-      label: "Block",
-      icon: <Ban size={16} />,
-      onClick: () => console.log("Block post", post.post_id),
-      isVisible: isAuthenticated && me?.uid !== displayAuthor?.uid,
-      showSeparatorAfter: true,
-      variant: "destructive" as const,
+        id: "save",
+        label: actionStates.bookmarked ? "Unsave" : "Save",
+        icon: <Bookmark size={16} />,
+        onClick: handleBookmark,
+        isVisible: true,
+    },
+    {
+        id: "block",
+        label: "Block",
+        icon: <Ban size={16} />,
+        onClick: () => setShowBlockDialog(true),
+        isVisible: isAuthenticated && !isAuthor,
+        showSeparatorAfter: true,
+        variant: "destructive" as const,
+      onClick: () => onEdit?.(post),
+      isVisible: me?.uid === displayAuthor?.uid && !!onEdit,
     },
     {
       id: "copy-link",
@@ -592,6 +618,16 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
           <div className="spacer-column"></div>
         </CardFooter>
       )}
+        {/* Block User Dialog */}
+        <BlockUserDialog
+            isOpen={showBlockDialog}
+            onClose={() => setShowBlockDialog(false)}
+            onConfirm={handleBlockConfirm}
+            username={displayAuthor.username}
+            avatarUrl={displayAuthor.avatar_url}
+            isPending={blockMutation.isPending}
+        />
+
       {/* Login Prompt Overlay */}
       {showLoginPrompt && (
         <div

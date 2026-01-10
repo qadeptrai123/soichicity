@@ -19,6 +19,9 @@ export const api = {
     getUserReposts: (userId: string, limit: number = 10, cursor?: string | null) => apiClient.get<any>(`/api/v1/users/${userId}/reposts`, { params: { limit, cursor } }) as unknown as Promise<{ items: Post[], next_cursor: string | null }>,
     updateProfile: (data: { full_name?: string; bio?: string; avatar_url?: string; link?: string }) =>
       apiClient.put('/api/v1/users/me', data) as unknown as Promise<User>,
+    block: (userId: string) => apiClient.post(`/api/v1/users/${userId}/block`),
+    unblock: (userId: string) => apiClient.post(`/api/v1/users/${userId}/unblock`),
+    getBlockedUsers: () => apiClient.get<User[]>('/api/v1/users/me/blocks') as unknown as Promise<User[]>,
   },
   posts: {
     getAll: (filter?: string, cursor?: string) => apiClient.get<Post[]>('/api/v1/posts', { params: { filter, cursor } }) as unknown as Promise<Post[]>,
@@ -28,10 +31,11 @@ export const api = {
     }) as unknown as Promise<Post>,
 
     // Interactions
-    like: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/like`),
-    share: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/share`),
-    repost: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/repost`),
-    save: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/save`),
+    // Interactions
+    like: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/like`, {}),
+    share: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/share`, {}),
+    repost: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/repost`, {}),
+    save: (post_id: string) => apiClient.post(`/api/v1/posts/${post_id}/save`, {}),
 
     // Comments (Replies)
     getReplies: (post_id: string) => apiClient.get<Post[]>(`/api/v1/posts/${post_id}/replies`) as unknown as Promise<Post[]>,

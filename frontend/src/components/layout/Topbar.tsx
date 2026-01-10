@@ -97,6 +97,10 @@ export default function Topbar() {
         <div className="text-gray-200 text-lg font-medium">
           Activity
         </div>
+      ) : (location.pathname.startsWith("/@") || location.pathname.startsWith("/profile")) ? (
+        <div className="text-gray-200 text-lg font-medium">
+          Profile
+        </div>
       ) : (
         /* CASE 2: CÁC TRANG KHÁC -> HIỆN DROPDOWN CŨ CỦA BẠN */
         <div className="relative">
