@@ -3,7 +3,7 @@ import { usePostDetail } from "@/hooks/api/use-posts";
 import { PostMainPost } from "@/components/post/PostMainPost";
 import React, { useState, useRef } from "react"; // Import useRef
 import { ActivityPopup } from "@/components/post/ActivityPopup";
-import { Image as ImageIcon, Smile, AtSign } from "lucide-react";
+// import { Image as ImageIcon, Smile, AtSign } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { TargetPost } from "@/components/comment";
 import ReplyCommentDialog from "@/components/comment";
@@ -94,7 +94,7 @@ const PostDetail = () => {
                 <div className={`w-[700px] h-full ${COLORS.bgCard} rounded-[32px] border ${COLORS.border} shadow-2xl flex flex-col z-10 relative overflow-hidden`}>
 
                     {/* Scrollable Area */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+                    <div className="flex-1 overflow-y-auto no-scrollbar p-0">
 
                         {/* Bài Post */}
                         <PostMainPost
@@ -167,7 +167,7 @@ const PostDetail = () => {
                         style={{ top: `${popupTop}px` }}
                     >
                         <ActivityPopup
-                            data={postData.activity}
+                            postId={postData.post_id}
                             onClose={() => setShowActivity(false)}
                         />
                     </div>
@@ -185,6 +185,7 @@ const PostDetail = () => {
                         currentUser={user}
                         targetPost={selectedReply}
                         mockFriends={[]} // Pass empty or fetch friends if needed
+                        rootId={id || ""}
                     />
                 )
 

@@ -526,16 +526,21 @@ class PostService:
             # db.get_all accepts mixed references? Yes.
             # But let's do 3 batches for clarity and likely similar performance
             
+            
             likes_snapshots = list(db.get_all(like_refs))
             reposts_snapshots = list(db.get_all(repost_refs))
             saves_snapshots = list(db.get_all(save_refs))
             
-            # Process results
-            # The order of snapshots matches the order of refs
-            for i, post in enumerate(final_posts):
-                post["is_liked"] = likes_snapshots[i].exists
-                post["is_reposted"] = reposts_snapshots[i].exists
-                post["is_saved"] = saves_snapshots[i].exists
+            # Map results by post_id to avoid order mismatch
+            likes_map = {snap.reference.parent.parent.id: snap.exists for snap in likes_snapshots}
+            reposts_map = {snap.reference.parent.parent.id: snap.exists for snap in reposts_snapshots}
+            saves_map = {snap.reference.parent.parent.id: snap.exists for snap in saves_snapshots}
+
+            for post in final_posts:
+                pid = post["post_id"]
+                post["is_liked"] = likes_map.get(pid, False)
+                post["is_reposted"] = reposts_map.get(pid, False)
+                post["is_saved"] = saves_map.get(pid, False)
                 
         else:
              # Guest user or no posts
@@ -768,3 +773,93 @@ class PostService:
             })
         
         return results
+
+    @staticmethod
+    def get_post_activity(post_id: str, current_user_id: str = None):
+        """
+        Fetch full activity (likes, reposts) for a post.
+        Returns: {
+            "likes": [{user, created_at, type='like', is_following}],
+            "reposts": [{user, created_at, type='repost', is_following}]
+        }
+        """
+        post_ref = db.collection("posts").document(post_id)
+        
+        # 1. Fetch Likes
+        likes_stream = post_ref.collection("likes").order_by("created_at", direction=firestore.Query.DESCENDING).stream()
+        likes_data = [{"uid": doc.id, **doc.to_dict(), "type": "like"} for doc in likes_stream]
+        
+        # 2. Fetch Reposts (reposts subcollection)
+        reposts_stream = post_ref.collection("reposts").order_by("created_at", direction=firestore.Query.DESCENDING).stream()
+        reposts_data = [{"uid": doc.id, **doc.to_dict(), "type": "repost"} for doc in reposts_stream]
+        
+        # 3. Collect all unique User IDs
+        all_uids = set([item["uid"] for item in likes_data] + [item["uid"] for item in reposts_data])
+        
+        # 4. Batch Fetch Users
+        users_map = {}
+        if all_uids:
+            # Chunking because Firestore limits where_in or we can use get_all
+            # get_all handles batching automatically? SDK usually does.
+            user_refs = [db.collection("users").document(uid) for uid in all_uids]
+            user_docs = db.get_all(user_refs)
+            for doc in user_docs:
+                if doc.exists:
+                    d = doc.to_dict()
+                    users_map[doc.id] = {
+                        "uid": doc.id,
+                        "username": d.get("username", "unknown"),
+                        "full_name": d.get("full_name"),
+                        "avatar_url": d.get("avatar_url") or d.get("avatar") or d.get("picture"),
+                        "bio": d.get("bio")
+                    }
+        
+        # 5. Check Follow Status (if current_user_id provided)
+        following_map = {}
+        if current_user_id and all_uids:
+            # We can check specific followings. 
+            # Check users/{current_user_id}/followings/{target_uid}
+            # Batch checking existence.
+            # Create refs
+            check_refs = []
+            check_uids = [] # to map back
+            current_following_ref = db.collection("users").document(current_user_id).collection("followings")
+            
+            for uid in all_uids:
+                if uid != current_user_id:
+                    check_refs.append(current_following_ref.document(uid))
+                    check_uids.append(uid)
+            
+            if check_refs:
+                checks = db.get_all(check_refs)
+                for i, doc in enumerate(checks):
+                    if doc.exists:
+                        following_map[check_uids[i]] = True
+        
+        # 6. Hydrate Results
+        def hydrate(items):
+            res = []
+            for item in items:
+                uid = item["uid"]
+                user_obj = users_map.get(uid, {
+                    "uid": uid, 
+                    "username": "unknown", 
+                    "full_name": "Unknown User", 
+                    "avatar_url": None
+                })
+                
+                # Attach follow status
+                is_following = following_map.get(uid, False)
+                is_self = (uid == current_user_id)
+                
+                res.append({
+                    "user": {**user_obj, "is_following": is_following, "is_self": is_self},
+                    "created_at": item.get("created_at"),
+                    "type": item.get("type")
+                })
+            return res
+
+        return {
+            "likes": hydrate(likes_data),
+            "reposts": hydrate(reposts_data)
+        }

@@ -45,6 +45,14 @@ export const usePostReplies = (postId: string, enabled: boolean = false) => {
   });
 };
 
+export const usePostActivity = (postId: string, enabled: boolean = false) => {
+  return useQuery({
+    queryKey: ["post-activity", postId],
+    queryFn: () => api.posts.getActivity(postId),
+    enabled: !!postId && enabled,
+  });
+};
+
 // ====================
 // MUTATIONS
 // ====================
@@ -54,17 +62,50 @@ export const useCreatePost = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: api.posts.create,
+    mutationFn: (data: any) => {
+      const promise = api.posts.create(data);
+      toast.promise(promise, {
+        loading: 'Uploading post...',
+        success: 'Post created successfully',
+        error: 'Failed to create post',
+      });
+      return promise;
+    },
 
-    onSuccess: () => {
-      toast.success("Post created successfully");
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      // If it's a reply, use robust invalidation strategy to handle eventual consistency
+      if (data.reply_to_id) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["post-replies"] });
+          queryClient.invalidateQueries({ queryKey: ["post", data.reply_to_id] });
+        }, 500);
+      }
     },
+  });
+};
 
-    onError: () => {
-      toast.error("Failed to create post");
-    },
+
+// Helper to update cache
+const updatePostCache = (queryClient: any, postId: string, updater: (post: any) => any) => {
+  // 1. Update Infinite Query Cache (Feed)
+  queryClient.setQueriesData({ queryKey: ["posts"] }, (oldData: any) => {
+    if (!oldData) return oldData;
+    return {
+      ...oldData,
+      pages: oldData.pages.map((page: any) =>
+        page.map((post: any) =>
+          post.post_id === postId ? updater(post) : post
+        )
+      ),
+    };
+  });
+
+  // 2. Update Detail Query Cache
+  queryClient.setQueryData(["post", postId], (oldPost: any) => {
+    if (!oldPost) return oldPost;
+    return updater(oldPost);
   });
 };
 
@@ -73,8 +114,34 @@ export const useLikePost = () => {
 
   return useMutation({
     mutationFn: api.posts.like,
+    onMutate: async (postId) => {
+      await queryClient.cancelQueries({ queryKey: ["posts"] });
+      await queryClient.cancelQueries({ queryKey: ["post", postId] });
 
-    onSuccess: (_data, postId) => {
+      const previousPosts = queryClient.getQueryData(["posts"]);
+      const previousPost = queryClient.getQueryData(["post", postId]);
+
+      updatePostCache(queryClient, postId, (post) => {
+        const isLiked = !post.is_liked;
+        return {
+          ...post,
+          is_liked: isLiked,
+          likes_count: (post.likes_count || 0) + (isLiked ? 1 : -1),
+        };
+      });
+
+      return { previousPosts, previousPost };
+    },
+    onError: (_err, postId, context) => {
+      if (context?.previousPosts) {
+        queryClient.setQueryData(["posts"], context.previousPosts);
+      }
+      if (context?.previousPost) {
+        queryClient.setQueryData(["post", postId], context.previousPost);
+      }
+      toast.error("Failed to like post");
+    },
+    onSettled: (_data, _error, postId) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["post", postId] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
@@ -84,6 +151,7 @@ export const useLikePost = () => {
 
 // ✅ SHARE POST
 export const useSharePost = () => {
+  // Keep as is for now or implement similar if needed
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -110,20 +178,47 @@ export const useRepostPost = () => {
     mutationFn: ({ postId }: ToggleRepostPayload) =>
       api.posts.repost(postId),
 
-    onSuccess: (_data, variables) => {
+    onMutate: async ({ postId, wasReposted: _wasReposted }) => {
+      await queryClient.cancelQueries({ queryKey: ["posts"] });
+      await queryClient.cancelQueries({ queryKey: ["post", postId] });
+
+      const previousPosts = queryClient.getQueryData(["posts"]);
+      const previousPost = queryClient.getQueryData(["post", postId]);
+
+      updatePostCache(queryClient, postId, (post) => {
+        const isReposted = !post.is_reposted;
+        // If we rely on passed 'wasReposted', we assume it's correct. 
+        // Ideally we toggle based on current cache state to be safe? 
+        // But UI passes 'wasReposted'. Let's trust cache toggle for consistency.
+        return {
+          ...post,
+          is_reposted: isReposted,
+          reposts_count: (post.reposts_count || 0) + (isReposted ? 1 : -1),
+        };
+      });
+
+      return { previousPosts, previousPost };
+    },
+
+    onError: (_err, variables, context) => {
+      if (context?.previousPosts) {
+        queryClient.setQueryData(["posts"], context.previousPosts);
+      }
+      if (context?.previousPost) {
+        queryClient.setQueryData(["post", variables.postId], context.previousPost);
+      }
+      toast.error("Failed to repost");
+    },
+
+    onSettled: (_data, _error, variables) => {
       toast.success(
         variables.wasReposted
-          ? "Removed from reposted posts"
+          ? "Removed from reposts"
           : "Reposted"
       );
-
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["post", variables.postId] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
-    },
-
-    onError: () => {
-      toast.error("Failed to repost");
     },
   });
 };
@@ -136,20 +231,40 @@ export const useSavePost = () => {
     mutationFn: ({ postId }: ToggleSavePayload) =>
       api.posts.save(postId),
 
-    onSuccess: (_data, variables) => {
+    onMutate: async ({ postId }) => {
+      await queryClient.cancelQueries({ queryKey: ["posts"] });
+      await queryClient.cancelQueries({ queryKey: ["post", postId] });
+
+      const previousPosts = queryClient.getQueryData(["posts"]);
+      const previousPost = queryClient.getQueryData(["post", postId]);
+
+      updatePostCache(queryClient, postId, (post) => {
+        const isSaved = !post.is_saved;
+        return {
+          ...post,
+          is_saved: isSaved,
+          saves_count: (post.saves_count || 0) + (isSaved ? 1 : -1),
+        };
+      });
+
+      return { previousPosts, previousPost };
+    },
+
+    onError: (_err, variables, context) => {
+      if (context?.previousPosts) queryClient.setQueryData(["posts"], context.previousPosts);
+      if (context?.previousPost) queryClient.setQueryData(["post", variables.postId], context.previousPost);
+      toast.error("Failed to save post");
+    },
+
+    onSettled: (_data, _err, variables) => {
       toast.success(
         variables.wasSaved
           ? "Removed from saved posts"
           : "Post saved"
       );
-
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["post", variables.postId] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
-    },
-
-    onError: () => {
-      toast.error("Failed to save post");
     },
   });
 };

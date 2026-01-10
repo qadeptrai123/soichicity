@@ -9,39 +9,116 @@ from app.services.video_service import VideoService
 from app.api.deps import get_current_user, get_current_user_optional
 import os
 
+# ... existing imports ...
+from fastapi.concurrency import run_in_threadpool
+
 router = APIRouter()
 
+import asyncio
+from concurrent.futures import ProcessPoolExecutor
+import shutil
+import tempfile
+
+# Global ProcessPoolExecutor (Lazy)
+_process_pool = None
+
+def get_process_pool():
+    global _process_pool
+    if _process_pool is None:
+        _process_pool = ProcessPoolExecutor(max_workers=2)
+    return _process_pool
+
+def save_to_temp_file(upload_file, suffix):
+    fd, path = tempfile.mkstemp(suffix=suffix)
+    with os.fdopen(fd, 'wb') as tmp:
+        shutil.copyfileobj(upload_file.file, tmp)
+    return path
+
+def compress_video_process(input_path):
+    # Wrapper for ProcessPool
+    # Must import VideoService here if not picklable? 
+    # VideoService is a class, imports should be fine.
+    try:
+        # Re-import inside process to avoid pickling complex objects if necessary, 
+        # though VideoService is just a class with static methods.
+        # But we need to ensure 'input_path' is valid.
+        with open(input_path, "rb") as f:
+            return VideoService.compress_video(f, os.path.basename(input_path))
+    except Exception as e:
+        print(f"Compression error: {e}")
+        # Ensure cleanup if wrapper fails
+        if os.path.exists(input_path):
+            os.remove(input_path)
+        raise e
+
+def upload_post_media(path, folder="posts"):
+    with open(path, "rb") as f:
+        new_filename = os.path.basename(path)
+        return upload_file(f, new_filename, "video/mp4", folder=folder)
+
 @router.post("/posts", response_model=PostResponse)
-def create_post(
+async def create_post(
     form_data: PostCreateForm = Depends(),
     user = Depends(get_current_user)
 ):
     image_urls = []
     if form_data.files:
+        loop = asyncio.get_event_loop()
+        
         for file in form_data.files:
             # file.file is the file-like object
             if file.content_type.startswith("video/"):
-                # 1. Compress Video
-                compressed_path = VideoService.compress_video(file.file, file.filename)
+                # 1. Compress Video (Process Bound)
+                # Save to temp
+                temp_input_path = await run_in_threadpool(
+                    save_to_temp_file, 
+                    file, 
+                    f"_{file.filename}"
+                )
+
+                # Run compression in Process Pool
+                try:
+                    compressed_path = await loop.run_in_executor(
+                        get_process_pool(), 
+                        compress_video_process, 
+                        temp_input_path
+                    )
+                except Exception as e:
+                    # Cleanup temp if compression failed
+                    if os.path.exists(temp_input_path):
+                        os.remove(temp_input_path)
+                    print(f"Compression processing failed: {e}")
+                    raise HTTPException(status_code=500, detail="Video processing failed")
                 
-                # 2. Upload to Firebase Storage
-                with open(compressed_path, "rb") as f:
-                    # Upload with same name but maybe different extension or keep it
-                    # We'll rely on unique naming in upload_file or pass a new name
-                    new_filename = os.path.basename(compressed_path)
-                    url = upload_file(f, new_filename, "video/mp4", folder="posts")
-                
-                # 3. Cleanup compressed file
-                if os.path.exists(compressed_path):
-                    os.remove(compressed_path)
+                # Cleanup input
+                if os.path.exists(temp_input_path):
+                    os.remove(temp_input_path)
+
+                # 2. Upload to Firebase Storage (IO Bound)
+                try:
+                    url = await run_in_threadpool(upload_post_media, compressed_path, "posts")
+                finally:
+                   # 3. Cleanup compressed file
+                   if os.path.exists(compressed_path):
+                       os.remove(compressed_path)
             else:
-                # Upload to Firebase Storage
-                url = upload_file(file.file, file.filename, file.content_type, folder="posts")
+                # Upload Image (IO Bound)
+                def upload_params_wrapper(f_obj, f_name, f_type):
+                    return upload_file(f_obj, f_name, f_type, folder="posts")
+
+                url = await run_in_threadpool(
+                    upload_params_wrapper, 
+                    file.file, 
+                    file.filename, 
+                    file.content_type
+                )
             
             image_urls.append(url)
 
-    created = PostService.create_post(
-        user_id=user["uid"], # IMPORTANT: Use 'uid' consistent with other endpoints
+    # Database operation
+    created = await run_in_threadpool(
+        PostService.create_post,
+        user_id=user["uid"],
         content=form_data.content,
         media_urls=image_urls,
         level=form_data.level,
@@ -219,3 +296,20 @@ def get_post_replies(post_id: str):
     except Exception as e:
         print(f"Error fetching replies: {e}")
         raise HTTPException(status_code=500, detail="Error fetching replies")
+
+@router.get("/posts/{post_id}/activity")
+def get_post_activity(
+    post_id: str,
+    user = Depends(get_current_user_optional)
+):
+    """
+    Fetch detailed activity (likes, reposts) for a post.
+    """
+    current_user_id = user["uid"] if user else None
+    
+    try:
+        activity_data = PostService.get_post_activity(post_id, current_user_id)
+        return activity_data
+    except Exception as e:
+        print(f"Error fetching post activity: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching post activity")

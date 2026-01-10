@@ -74,3 +74,17 @@ def get_user_posts(
     API này thay thế cho việc load tất cả post trong get_user_profile
     """
     return user_service.get_user_posts_paginated(db, user_id, limit, cursor)
+
+@router.get("/users/{user_id}/following", tags=["users"])
+def get_user_following(user_id: str, db=Depends(get_db)):
+    """
+    Get list of users that the specified user is following.
+    """
+    return user_service.get_users_following(db, user_id)
+
+@router.get("/users/{user_id}/followers", tags=["users"])
+def get_user_followers(user_id: str, db=Depends(get_db)):
+    """
+    Get list of users who are following the specified user (followers).
+    """
+    return user_service.get_users_followers(db, user_id)

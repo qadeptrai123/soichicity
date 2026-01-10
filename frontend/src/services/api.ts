@@ -13,6 +13,10 @@ export const api = {
     getProfile: (username: string) => apiClient.get<ProfileResponse>(`/api/v1/users/profile/${username}`) as unknown as Promise<ProfileResponse>,
     follow: (userId: string) => apiClient.post(`/api/v1/users/${userId}/follow`),
     unfollow: (userId: string) => apiClient.post(`/api/v1/users/${userId}/unfollow`),
+    getFollowing: (userId: string) => apiClient.get<User[]>(`/api/v1/users/${userId}/following`) as unknown as Promise<User[]>,
+    getFollowers: (userId: string) => apiClient.get<User[]>(`/api/v1/users/${userId}/followers`) as unknown as Promise<User[]>,
+    updateProfile: (data: { full_name?: string; bio?: string; avatar_url?: string }) => 
+      apiClient.put('/api/v1/users/me', data) as unknown as Promise<User>,
   },
   posts: {
     getAll: (filter?: string, cursor?: string) => apiClient.get<Post[]>('/api/v1/posts', { params: { filter, cursor } }) as unknown as Promise<Post[]>,
@@ -29,6 +33,10 @@ export const api = {
 
     // Comments (Replies)
     getReplies: (post_id: string) => apiClient.get<Post[]>(`/api/v1/posts/${post_id}/replies`) as unknown as Promise<Post[]>,
+
+    // Activity (Likes/Reposts Detail)
+    getActivity: (post_id: string) => apiClient.get<any>(`/api/v1/posts/${post_id}/activity`) as unknown as Promise<{ likes: any[], reposts: any[] }>,
+
 
     // Interactions
     addComment: (post_id: string, data: FormData) => apiClient.post(`/api/v1/posts/${post_id}/comments`, data, {

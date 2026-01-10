@@ -24,7 +24,12 @@ export default function Profile() {
   // Retrieve current user from Auth Context
   const { user: me } = useAuth();
 
-  const username = paramUsername || me?.username || "";
+  /* Ensure we handle both "username" and "@username" from URL params */
+  const normalizedParamUsername = paramUsername?.startsWith("@")
+    ? paramUsername.substring(1)
+    : paramUsername;
+
+  const username = normalizedParamUsername || me?.username || "";
 
   // Fetch Profile Data
   const { data: profileData, isLoading, error } = useProfile(username);

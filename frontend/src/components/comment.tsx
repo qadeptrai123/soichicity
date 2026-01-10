@@ -38,12 +38,16 @@ export type TargetPost = {
   level?: number;
 };
 
+// Add useQueryClient import
+import { useQueryClient } from "@tanstack/react-query";
+
 interface ReplyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentUser: User;
   targetPost: TargetPost;
   mockFriends: User[];
+  rootId?: string; // New prop
 }
 
 export default function ReplyCommentDialog({
@@ -52,9 +56,11 @@ export default function ReplyCommentDialog({
   currentUser,
   targetPost,
   mockFriends,
+  rootId
 }: ReplyDialogProps) {
 
   const createPost = useCreatePost();
+  const queryClient = useQueryClient(); // Initialize queryClient
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -102,6 +108,11 @@ export default function ReplyCommentDialog({
           setIsSubmitting(false);
           resetEditor();
           onOpenChange(false);
+          if (rootId) {
+            setTimeout(() => {
+              queryClient.invalidateQueries({ queryKey: ["post", rootId] });
+            }, 500);
+          }
         },
         onError: () => {
           setIsSubmitting(false);
@@ -232,7 +243,7 @@ export default function ReplyCommentDialog({
               handle: `@${targetPost.user.username}`,
               avatar: targetPost.user.avatar_url || "",
             }}
-            className="mb-0 border-none shadow-none bg-transparent hover:bg-transparent"
+            className="mb-0 border-none shadow-none bg-transparent hover:bg-transparent hover:shadow-none cursor-default"
             compact={true}
           />
         </div>

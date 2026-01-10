@@ -9,27 +9,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
-// Type definitions for Search Response
-interface SearchResponse {
-    users?: {
-        hits: any[];
-        total: number;
-        page: number;
-        pages: number;
-    };
-    posts?: {
-        hits: any[];
-        total: number;
-        page: number;
-        pages: number;
-    };
-    // When type specific
-    hits?: any[];
-    total?: number;
-    page?: number;
-    pages?: number;
-    type?: string;
-}
+
 
 export default function Search() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -242,6 +222,8 @@ export default function Search() {
                                                         full_name: hit.full_name,
                                                         avatar_url: hit.avatar_url,
                                                         bio: hit.bio,
+                                                        is_following: hit.is_following,
+                                                        is_self: hit.is_self,
                                                     }}
                                                 />
                                             </div>
