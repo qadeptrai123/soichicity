@@ -26,7 +26,11 @@ export const authAPI = {
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.detail || "Registration failed");
+            let errorMessage = error.detail || "Registration failed";
+            if (Array.isArray(errorMessage)) {
+                errorMessage = errorMessage.map((e: any) => e.msg.replace("Value error, ", "")).join(", ");
+            }
+            throw new Error(errorMessage);
         }
         return response.json();
     },
@@ -44,7 +48,11 @@ export const authAPI = {
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.detail || "Login failed");
+            let errorMessage = error.detail || "Login failed";
+            if (Array.isArray(errorMessage)) {
+                errorMessage = errorMessage.map((e: any) => e.msg.replace("Value error, ", "")).join(", ");
+            }
+            throw new Error(errorMessage);
         }
         return response.json();
     },
@@ -65,7 +73,11 @@ export const authAPI = {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || "Google login failed on backend");
+                let errorMessage = error.detail || "Google login failed on backend";
+                if (Array.isArray(errorMessage)) {
+                    errorMessage = errorMessage.map((e: any) => e.msg.replace("Value error, ", "")).join(", ");
+                }
+                throw new Error(errorMessage);
             }
 
             return response.json();

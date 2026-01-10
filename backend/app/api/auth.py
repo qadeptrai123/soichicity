@@ -17,7 +17,7 @@ def register(user_in: UserCreate, db=Depends(get_db)):
     # Logic: Create user in Auth -> Get UID -> Create doc in Firestore
     # Check duplicate username in Firestore
     users_ref = db.collection('users')
-    if not users_ref.where('username', '==', user_in.username.lower()).get() == []:
+    if not users_ref.where('username', '==', user_in.username).get() == []:
          raise HTTPException(status_code=400, detail="Username already taken")
 
     user = user_service.create_user(db, user_in)

@@ -131,7 +131,7 @@ def get_user_by_email_admin(email: str):
     
 def get_user_by_username(db, username: str):
     users_ref = db.collection('users')
-    query = users_ref.where('username', '==', username.lower()).limit(1)
+    query = users_ref.where('username', '==', username).limit(1)
     results = query.stream()
     for user in results:
         return {"uid": user.id, **user.to_dict()}
@@ -147,7 +147,7 @@ def create_user(db, user: UserCreate):
             email_verified=True
         )
     except auth.EmailAlreadyExistsError:
-        raise HTTPException(status_code=400, detail="Email already registered in Firebase Auth")
+        raise HTTPException(status_code=400, detail="Email already registered")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
 
@@ -157,7 +157,7 @@ def create_user(db, user: UserCreate):
     # 3. Prepare data to save to Firestore
     # Initialize all new fields with defaults
     user_data = {
-        "username": user.username.lower(),
+        "username": user.username,
         "email": user.email,
         "full_name": user.full_name or user.username, # Fallback
         "bio": None,
