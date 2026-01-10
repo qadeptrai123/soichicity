@@ -4,6 +4,8 @@ import { useFollowUser, useUnfollowUser } from "@/hooks/api/use-users";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
+import { useState } from "react";
+import { LoginPrompt } from "@/components/LoginPrompt";
 
 interface UserListItemProps {
     user: {
@@ -20,6 +22,7 @@ interface UserListItemProps {
 export const UserListItem = ({ user }: UserListItemProps) => {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const followMutation = useFollowUser();
     const unfollowMutation = useUnfollowUser();
 
@@ -29,7 +32,10 @@ export const UserListItem = ({ user }: UserListItemProps) => {
 
     const handleFollowToggle = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!isAuthenticated) return; // Add login prompt dispatch if needed
+        if (!isAuthenticated) {
+            setShowLoginPrompt(true);
+            return;
+        }
 
         if (user.is_following) {
             unfollowMutation.mutate(user.uid);
