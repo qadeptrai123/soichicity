@@ -34,7 +34,7 @@ class UserCreate(UserBase):
              raise ValueError('Username can only contain alphanumeric characters, dots, and underscores')
 
         # 3.Convert all to lowercase
-        return v.lower()
+        return v
     
     @field_validator('email')
     @classmethod
