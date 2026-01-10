@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useProfile, useFollowUser, useUnfollowUser, useUserPosts, useUserReposts } from "@/hooks/api/use-users";
 import { useAuth } from "@/contexts/AuthProvider";
+import ReplyCommentDialog, { type TargetPost } from "@/components/comment";
 import FeedCard from "@/components/FeedCard";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import CreatePostDialog from "@/components/CreatePostDialog";
@@ -28,6 +29,9 @@ export default function Profile() {
       isOpen: boolean;
       type: "followers" | "following";
   }>({ isOpen: false, type: "followers" });
+
+  const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
+  const [targetPost, setTargetPost] = useState<TargetPost | null>(null);
 
 
   // Retrieve current user from Auth Context
@@ -121,6 +125,29 @@ export default function Profile() {
       }
       // Future implementation: Open CreatePostDialog with @username pre-filled
       toast.info("Mention feature is coming soon!");
+  };
+
+  const handleReply = (post: any, author: any) => {
+    if (!me) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    setTargetPost({
+        id: post.post_id,
+        user: {
+            uid: author.uid,
+            username: author.username,
+            full_name: author.name,
+            avatar_url: author.avatar_url
+        },
+        content: post.content,
+        date: post.created_at,
+        media_url: post.media_url,
+        media_type: post.media_type,
+        gallery: post.gallery,
+        level: post.level
+    });
+    setIsReplyDialogOpen(true);
   };
 
   return (
@@ -220,7 +247,7 @@ export default function Profile() {
       </div>
 
       {/* WHAT'S NEW INPUT (Only for own profile) */}
-      {isOwnProfile && (
+      {isOwnProfile && activeTab === "Posts" && (
         <div className="px-4 sm:px-0 py-6 flex gap-3 items-center border-b border-neutral-800 cursor-pointer" onClick={() => setIsCreatePostOpen(true)}>
           <Avatar className="w-9 h-9 border border-neutral-800">
             <AvatarImage src={user.avatar_url || DEFAULT_AVATAR_URL} />
@@ -254,6 +281,7 @@ export default function Profile() {
                   uid: post.author?.uid || post.author_id, // Use string ID
                   username: post.author?.username || "Unknown"
                 }}
+                onReply={handleReply}
               />
             ))
         ) : (
@@ -332,6 +360,25 @@ export default function Profile() {
           avatarUrl={user.avatar_url}
           isPending={unfollowMutation.isPending}
       />
+
+      {/* REPLY DIALOG */}
+      {targetPost && (
+        <ReplyCommentDialog
+          open={isReplyDialogOpen}
+          onOpenChange={setIsReplyDialogOpen}
+          currentUser={{
+            uid: me?.uid || "",
+            id: me?.uid || "",
+            username: me?.username || "user",
+            name: me?.full_name || "User",
+            avatar_url: me?.avatar_url || DEFAULT_AVATAR_URL,
+            bio: ""
+          }}
+          targetPost={targetPost}
+          mockFriends={[]}
+          rootId={targetPost.id.toString()}
+        />
+      )}
     </div>
   );
 }

@@ -131,7 +131,7 @@ def get_user_by_email_admin(email: str):
     
 def get_user_by_username(db, username: str):
     users_ref = db.collection('users')
-    query = users_ref.where('username', '==', username).limit(1)
+    query = users_ref.where('username', '==', username.lower()).limit(1)
     results = query.stream()
     for user in results:
         return {"uid": user.id, **user.to_dict()}
@@ -157,7 +157,7 @@ def create_user(db, user: UserCreate):
     # 3. Prepare data to save to Firestore
     # Initialize all new fields with defaults
     user_data = {
-        "username": user.username,
+        "username": user.username.lower(),
         "email": user.email,
         "full_name": user.full_name or user.username, # Fallback
         "bio": None,
@@ -470,7 +470,7 @@ def get_user_profile(db, username: str, current_user_id: str = None):
         "posts_count": len(final_posts)
     }
 
-def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: str = None, post_type: str = "posts"):
+def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: str = None, post_type: str = "posts", current_user_id: str = None):
     """
     [API Tab 1] Lấy danh sách bài viết gốc của user (có phân trang).
     post_type: 'posts' (default - no replies), 'replies', 'media', 'all'
@@ -627,7 +627,7 @@ def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: 
             "is_reposted": False,
             "reposted_by": None
         }
-        normalized = _normalize_feed_item(db, item_input, authors_map)
+        normalized = _normalize_feed_item(db, item_input, authors_map, current_user_id)
         if normalized:
             results.append(normalized)
 
@@ -640,7 +640,7 @@ def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: 
         # If we fetched less than scan_limit, we exhausted DB.
     }
 
-def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_id: str = None):
+def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_id: str = None, current_user_id: str = None):
     """
     [API Tab 2] Lấy danh sách bài Repost (có phân trang).
     Cursor: ID của document trong sub-collection 'activity_reposts'.
@@ -697,7 +697,7 @@ def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_
             "repost_id": item["repost_doc"].id
         }
         
-        normalized = _normalize_feed_item(db, item_input, authors_map)
+        normalized = _normalize_feed_item(db, item_input, authors_map, current_user_id)
         if normalized:
             results.append(normalized)
 
