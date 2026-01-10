@@ -28,6 +28,7 @@ interface CreatePostDialogProps {
   onOpenChange: (open: boolean) => void;
   currentUser: User;
   mockFriends: User[];
+  initialContent?: string;
 }
 
 export default function CreatePostDialog({
@@ -35,6 +36,7 @@ export default function CreatePostDialog({
   onOpenChange,
   currentUser,
   mockFriends,
+  initialContent,
 }: CreatePostDialogProps) {
 
   const {
@@ -50,7 +52,7 @@ export default function CreatePostDialog({
     resetEditor,
     onEmojiClick,
     handleTagUser,
-  } = usePostEditor({ mockFriends });
+  } = usePostEditor({ mockFriends, initialContent });
 
   const createPostMutation = useCreatePost();
 
