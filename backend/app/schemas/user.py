@@ -10,6 +10,7 @@ class UserBase(BaseModel):
     email: EmailStr
     full_name: str # Not Null
     bio: Optional[str] = None
+    link: Optional[str] = None
     avatar_url: Optional[str] = None
     is_active: bool = True # Not Null, default True
     provider: str = "password" # "google"/"password"
@@ -52,6 +53,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     bio: Optional[str] = None
+    link: Optional[str] = None
     avatar_url: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)

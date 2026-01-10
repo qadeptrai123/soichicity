@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { toast } from "sonner";
 
@@ -29,19 +29,23 @@ export const useProfile = (username: string) => {
   });
 }
 
-export const useFollowing = (userId: string) => {
-  return useQuery({
+export const useFollowing = (userId: string, options?: { enabled?: boolean }) => {
+  return useInfiniteQuery({
     queryKey: ['following', userId],
-    queryFn: () => api.users.getFollowing(userId),
-    enabled: !!userId,
+    queryFn: ({ pageParam = null }) => api.users.getFollowing(userId, 10, pageParam),
+    getNextPageParam: (lastPage: any) => lastPage?.next_cursor ?? undefined,
+    initialPageParam: null,
+    enabled: options?.enabled ?? !!userId,
   });
 };
 
-export const useFollowers = (userId: string) => {
-  return useQuery({
+export const useFollowers = (userId: string, options?: { enabled?: boolean }) => {
+  return useInfiniteQuery({
     queryKey: ['followers', userId],
-    queryFn: () => api.users.getFollowers(userId),
-    enabled: !!userId,
+    queryFn: ({ pageParam = null }) => api.users.getFollowers(userId, 10, pageParam),
+    getNextPageParam: (lastPage: any) => lastPage?.next_cursor ?? undefined,
+    initialPageParam: null,
+    enabled: options?.enabled ?? !!userId,
   });
 };
 
@@ -53,9 +57,9 @@ export const useFollowingAndFollowers = (userId: string) => {
     following,
     followers,
     allUsers: [
-      ...(following.data || []),
-      ...(followers.data || [])
-    ].filter((user, index, self) => 
+      ...(following.data?.pages.flatMap((page: any) => page.items) || []),
+      ...(followers.data?.pages.flatMap((page: any) => page.items) || [])
+    ].filter((user: any, index, self) => 
       // Remove duplicates based on uid
       index === self.findIndex((u) => u.uid === user.uid)
     ),
@@ -75,6 +79,8 @@ export const useFollowUser = () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       queryClient.invalidateQueries({ queryKey: ["search"] });
       queryClient.invalidateQueries({ queryKey: ["post-activity"] });
+      queryClient.invalidateQueries({ queryKey: ["followers"] });
+      queryClient.invalidateQueries({ queryKey: ["following"] });
     },
 
     onError: () => {
@@ -96,6 +102,8 @@ export const useUnfollowUser = () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       queryClient.invalidateQueries({ queryKey: ["search"] });
       queryClient.invalidateQueries({ queryKey: ["post-activity"] });
+      queryClient.invalidateQueries({ queryKey: ["followers"] });
+      queryClient.invalidateQueries({ queryKey: ["following"] });
     },
 
     onError: () => {
@@ -129,5 +137,27 @@ export const useEditProfile = () => {
         id: "edit-profile",
       });
     },
+  });
+};
+
+// ... (previous imports)
+
+export const useUserPosts = (userId: string, type: string = "posts", options?: { enabled?: boolean }) => {
+  return useInfiniteQuery({
+    queryKey: ['user-posts', userId, type],
+    queryFn: ({ pageParam = null }) => api.users.getUserPosts(userId, 10, pageParam, type),
+    getNextPageParam: (lastPage: any) => lastPage?.next_cursor ?? undefined,
+    initialPageParam: null,
+    enabled: options?.enabled ?? !!userId,
+  });
+};
+
+export const useUserReposts = (userId: string, options?: { enabled?: boolean }) => {
+  return useInfiniteQuery({
+    queryKey: ['user-reposts', userId],
+    queryFn: ({ pageParam = null }) => api.users.getUserReposts(userId, 10, pageParam),
+    getNextPageParam: (lastPage: any) => lastPage?.next_cursor ?? undefined,
+    initialPageParam: null,
+    enabled: options?.enabled ?? !!userId,
   });
 };

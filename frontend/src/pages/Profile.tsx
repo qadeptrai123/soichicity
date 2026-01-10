@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import EditProfile from "@/components/EditProfile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useProfile, useFollowUser, useUnfollowUser } from "@/hooks/api/use-users";
+import { useProfile, useFollowUser, useUnfollowUser, useUserPosts, useUserReposts } from "@/hooks/api/use-users";
 import { useAuth } from "@/contexts/AuthProvider";
 import FeedCard from "@/components/FeedCard";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -11,6 +11,8 @@ import CreatePostDialog from "@/components/CreatePostDialog";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { LoginPrompt } from "@/components/LoginPrompt";
 import { toast } from "sonner";
+import { UserListDialog } from "@/components/UserListDialog";
+import { UnfollowDialog } from "@/components/UnfollowDialog";
 
 export default function Profile() {
   const { username: paramUsername } = useParams<{ username: string }>();
@@ -19,6 +21,13 @@ export default function Profile() {
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [showUnfollowDialog, setShowUnfollowDialog] = useState(false);
+  
+  // User List Dialog State
+  const [userListDialog, setUserListDialog] = useState<{
+      isOpen: boolean;
+      type: "followers" | "following";
+  }>({ isOpen: false, type: "followers" });
 
 
   // Retrieve current user from Auth Context
@@ -38,12 +47,52 @@ export default function Profile() {
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
 
+  // Fetch Posts Separately - Use activeTab to drive the query
+  // We use optional chaining because profileData might be undefined initially
+  const targetUid = profileData?.user?.uid ?? "";
+  
+  const isRepostsTab = activeTab === "Reposts";
+  const postType = activeTab === "Posts" ? "posts" : activeTab === "Replies" ? "replies" : activeTab === "Media" ? "media" : "posts";
+
+  const postsQuery = useUserPosts(targetUid, postType, { enabled: !isRepostsTab && !!targetUid });
+  const repostsQuery = useUserReposts(targetUid, { enabled: isRepostsTab && !!targetUid });
+
+  const currentQuery = isRepostsTab ? repostsQuery : postsQuery;
+  
+  const { 
+    data: postsData, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage,
+    isLoading: isPostsLoading
+  } = currentQuery;
+
+  // Flatten posts from infinite query pages
+  const posts = postsData?.pages.flatMap((page: any) => page.items) || [];
+
+  // Infinite scroll observer
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
+      // Logic disabled if loading, but hook must run
+      if (isPostsLoading || isFetchingNextPage) return;
+      if (observerRef.current) observerRef.current.disconnect();
+
+      observerRef.current = new IntersectionObserver((entries) => {
+          if (entries[0].isIntersecting && hasNextPage) {
+              fetchNextPage();
+          }
+      });
+
+      if (node) observerRef.current.observe(node);
+  }, [isPostsLoading, isFetchingNextPage, hasNextPage, fetchNextPage]);
+
   if (!username) return <div className="text-white p-4">User not specified</div>;
   if (isLoading) return <LoadingSpinner />;
 
   if (error || !profileData) return <div className="text-white p-4">User not found</div>;
 
-  const { user, posts } = profileData;
+  const { user } = profileData;
+
   const isOwnProfile = !!me && (user.is_self || user.uid === me.uid || user.username === me.username);
   const isFollowing = !!me && user.is_following;
 
@@ -53,10 +102,16 @@ export default function Profile() {
       return;
     }
     if (isFollowing) {
-      unfollowMutation.mutate(user.uid); // user.uid from response
+      setShowUnfollowDialog(true);
     } else {
       followMutation.mutate(user.uid);
     }
+  };
+
+  const handleConfirmUnfollow = () => {
+      unfollowMutation.mutate(user.uid, {
+          onSettled: () => setShowUnfollowDialog(false)
+      });
   };
 
   const handleMention = () => {
@@ -85,14 +140,20 @@ export default function Profile() {
             </div>
           )}
           <div className="mt-4 text-[15px] text-neutral-500 flex items-center gap-4">
-            <span className="hover:underline cursor-pointer">
+            <div 
+                className="hover:underline cursor-pointer"
+                onClick={() => setUserListDialog({ isOpen: true, type: "followers" })}
+            >
               <span className="text-white mr-1">{user.followers_count || 0}</span>
               followers
-            </span>
-            <span className="hover:underline cursor-pointer">
+            </div>
+            <div 
+                className="hover:underline cursor-pointer"
+                onClick={() => setUserListDialog({ isOpen: true, type: "following" })}
+            >
               <span className="text-white mr-1">{user.followings_count || 0}</span>
               following
-            </span>
+            </div>
             {user.link && (
               <a href={user.link} target="_blank" rel="noreferrer" className="text-neutral-500 hover:text-neutral-300 truncate">
                 {user.link.replace(/^https?:\/\//, '')}
@@ -101,7 +162,7 @@ export default function Profile() {
           </div>
         </div>
         <Avatar className="w-[84px] h-[84px] rounded-full border border-neutral-800 shrink-0">
-          <AvatarImage src={user.avatar_url || DEFAULT_AVATAR_URL} className="object-cover" />
+          <AvatarImage src={user.avatar_url || DEFAULT_AVATAR_URL} className="object-cover" loading="eager" />
           <AvatarFallback className="text-3xl bg-neutral-800 text-white">
             {user.username?.[0]?.toUpperCase()}
           </AvatarFallback>
@@ -175,17 +236,9 @@ export default function Profile() {
       {/* CONTENT FEED */}
       <div className="mt-4 px-4 sm:px-0">
         {posts && posts.length > 0 ? (
-          posts
-            .filter(post => {
-              if (activeTab === "Posts") return !post.is_reposted && !post.reply_to_id;
-              if (activeTab === "Reposts") return post.is_reposted;
-              if (activeTab === "Replies") return !!post.reply_to_id;
-              if (activeTab === "Media") return post.media_urls && post.media_urls.length > 0;
-              return true;
-            })
-            .map((post) => (
+          posts.map((post) => (
               <FeedCard
-                key={post.post_id}
+                key={post.post_id || post.repost_id} // Use repost_id if available to avoid duplicates if user reposts + posts? Actually API returns unique items per feed.
                 post={{
                   ...post,
                   media_url: post.media_urls?.[0] || null,
@@ -208,6 +261,10 @@ export default function Profile() {
             No posts yet.
           </div>
         )}
+          {/* Load more trigger */}
+          <div ref={loadMoreRef} className="h-4 w-full flex justify-center items-center mt-2">
+            {isFetchingNextPage && <LoadingSpinner />}
+          </div>
       </div>
 
       {/* EDIT PROFILE DIALOG */}
@@ -216,15 +273,13 @@ export default function Profile() {
           isOpen={isEditProfileOpen}
           onClose={() => setIsEditProfileOpen(false)}
           currentUser={{
-            uid: me.uid,
-            id: me.uid, // Pass string ID directly
-            name: me.full_name || me.username || "",
-            username: me.username || "",
-            bio: me.bio || "",
-            link: "",
-            avatar_url: me.avatar_url || DEFAULT_AVATAR_URL, // Map to avatar_url
-            // followers/following not needed for EditProfile
-
+            uid: user.uid,
+            id: user.uid,
+            name: user.full_name || user.username || "",
+            username: user.username || "",
+            bio: user.bio || "",
+            link: user.link || "",
+            avatar_url: user.avatar_url || DEFAULT_AVATAR_URL,
           }}
         />
       )}
@@ -259,6 +314,24 @@ export default function Profile() {
           </div>
         </div>
       )}
+
+      {/* USER LIST DIALOG */}
+      <UserListDialog
+          isOpen={userListDialog.isOpen}
+          onClose={() => setUserListDialog(prev => ({ ...prev, isOpen: false }))}
+          userId={user.uid}
+          type={userListDialog.type}
+          username={user.username}
+      />
+
+       <UnfollowDialog
+          isOpen={showUnfollowDialog}
+          onClose={() => setShowUnfollowDialog(false)}
+          onConfirm={handleConfirmUnfollow}
+          username={user.username}
+          avatarUrl={user.avatar_url}
+          isPending={unfollowMutation.isPending}
+      />
     </div>
   );
 }
