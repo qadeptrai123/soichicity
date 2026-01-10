@@ -23,11 +23,7 @@ import {
 } from "lucide-react";
 import { DropdownExtend } from "./DropdownExtend";
 import { useNavigate } from "react-router-dom";
-import {
-  useLikePost,
-  useSavePost,
-  useRepostPost,
-} from "@/hooks/api/use-posts";
+import { useLikePost, useSavePost, useRepostPost } from "@/hooks/api/use-posts";
 import { useAuth } from "@/contexts/AuthProvider";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { useBlockUser } from "@/hooks/api/use-users";
@@ -47,7 +43,6 @@ interface FeedCardProps {
   hideBorder?: boolean;
 }
 
-
 // Helper Functions
 import { formatRelativeTime } from "@/lib/utils";
 
@@ -57,7 +52,15 @@ import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "./Gallery";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 // --- MAIN FEED CARD COMPONENT ---
-const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, className, compact, hideBorder }) => {
+const FeedCard: React.FC<FeedCardProps> = ({
+  post,
+  author,
+  onReply,
+  onEdit,
+  className,
+  compact,
+  hideBorder,
+}) => {
   // Add mock author data fallback
   // const [activeMediaUrl, setActiveMediaUrl] = useState<string | null>(null);
   const mockAuthor: AuthorData = {
@@ -96,7 +99,6 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
     reposted: post.is_reposted || false,
   }));
 
-
   // Sync state với props khi data từ API thay đổi (sau khi invalidateQueries)
   useEffect(() => {
     // Nếu không đăng nhập thì reset hết về false
@@ -104,7 +106,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
       setActionStates({
         liked: false,
         bookmarked: false,
-        reposted: false
+        reposted: false,
       });
       // Không reset counts vì guest vẫn nhìn thấy số lượng
     } else {
@@ -112,7 +114,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
       setActionStates({
         liked: post.is_liked || false,
         bookmarked: post.is_saved || false,
-        reposted: post.is_reposted || false
+        reposted: post.is_reposted || false,
       });
     }
 
@@ -131,7 +133,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
     post.is_liked,
     post.is_saved,
     post.is_reposted,
-    isAuthenticated // Thêm dependency này
+    isAuthenticated, // Thêm dependency này
   ]);
 
   // --- Xử lý click chuyển trang ---
@@ -178,9 +180,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
     [actionStates.liked, post.post_id, likeMutation, isAuthenticated]
   );
 
-  const handleDownloadMedia = (
-    e?: React.MouseEvent
-  ) => {
+  const handleDownloadMedia = (e?: React.MouseEvent) => {
     e?.stopPropagation();
 
     if (!post.media_url) {
@@ -218,8 +218,6 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
       toast.error("Failed to copy link");
     }
   };
-
-
 
   // const handleBookmark = useCallback(
   //   (e?: React.MouseEvent) => {
@@ -270,7 +268,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
         return;
       }
 
-      const wasReposted = post.is_reposted; // 👈 TRẠNG THÁI TRƯỚC CLICK
+      const wasReposted = post.is_reposted || false; // 👈 TRẠNG THÁI TRƯỚC CLICK
 
       repostMutation.mutate({
         postId: post.post_id,
@@ -279,7 +277,6 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
     },
     [post.is_reposted, post.post_id, repostMutation, isAuthenticated]
   );
-
 
   const handleReply = useCallback(
     async (e?: React.MouseEvent) => {
@@ -311,15 +308,17 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
   const blockMutation = useBlockUser();
 
   const handleBlockConfirm = () => {
-      blockMutation.mutate(displayAuthor.uid, {
-          onSuccess: () => {
-              setShowBlockDialog(false);
-          }
-      });
+    blockMutation.mutate(displayAuthor.uid, {
+      onSuccess: () => {
+        setShowBlockDialog(false);
+      },
+    });
   };
 
   // Debug Block Visibility
-  const isAuthor = Boolean(me?.uid && post.author?.uid && String(me.uid) === String(post.author.uid));
+  const isAuthor = Boolean(
+    me?.uid && post.author?.uid && String(me.uid) === String(post.author.uid)
+  );
   // console.log("FeedCard Debug:", { meUid: me?.uid, authorUid: post.author?.uid, isAuthor, isAuthenticated });
 
   // Dropdown Actions
@@ -328,26 +327,24 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
       id: "edit",
       label: "Edit",
       icon: <Edit3 size={16} />,
-      onClick: () => console.log("Edit post", post.post_id),
-      isVisible: isAuthor,
-    },
-    {
-        id: "save",
-        label: actionStates.bookmarked ? "Unsave" : "Save",
-        icon: <Bookmark size={16} />,
-        onClick: handleBookmark,
-        isVisible: true,
-    },
-    {
-        id: "block",
-        label: "Block",
-        icon: <Ban size={16} />,
-        onClick: () => setShowBlockDialog(true),
-        isVisible: isAuthenticated && !isAuthor,
-        showSeparatorAfter: true,
-        variant: "destructive" as const,
       onClick: () => onEdit?.(post),
       isVisible: me?.uid === displayAuthor?.uid && !!onEdit,
+    },
+    {
+      id: "save",
+      label: actionStates.bookmarked ? "Unsave" : "Save",
+      icon: <Bookmark size={16} />,
+      onClick: handleBookmark,
+      isVisible: true,
+    },
+    {
+      id: "block",
+      label: "Block",
+      icon: <Ban size={16} />,
+      onClick: () => setShowBlockDialog(true),
+      isVisible: isAuthenticated && !isAuthor,
+      showSeparatorAfter: true,
+      variant: "destructive" as const,
     },
     {
       id: "copy-link",
@@ -372,7 +369,9 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
 
   return (
     <Card
-      className={`w-full max-w-2xl bg-secondary text-foreground border-border mb-4 cursor-pointer transition-all duration-200 hover:bg-secondary/80 hover:shadow-lg ${className || ""}`}
+      className={`w-full max-w-2xl bg-secondary text-foreground border-border mb-4 cursor-pointer transition-all duration-200 hover:bg-secondary/80 hover:shadow-lg ${
+        className || ""
+      }`}
       onClick={handleCardClick}
     >
       {/* Repost Indicator */}
@@ -390,13 +389,17 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
           >
             {post.repost_info.reposted_by?.username || "Someone"}
           </span>
-          <span>reposted {formatRelativeTime(post.repost_info.reposted_at)}</span>
+          <span>
+            reposted {formatRelativeTime(post.repost_info.reposted_at)}
+          </span>
         </div>
       )}
 
       {/* HEADER */}
       <CardHeader
-        className={`flex flex-row items-center gap-3 px-4 pb-0 ${post.is_repost_item ? "pt-0" : "-mt-3"}`}
+        className={`flex flex-row items-center gap-3 px-4 pb-0 ${
+          post.is_repost_item ? "pt-0" : "-mt-3"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <Avatar
@@ -404,7 +407,11 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
           onClick={handleProfileClick}
         >
           <AvatarImage
-            src={displayAuthor?.avatar_url || displayAuthor?.avatar || DEFAULT_AVATAR_URL}
+            src={
+              displayAuthor?.avatar_url ||
+              displayAuthor?.avatar ||
+              DEFAULT_AVATAR_URL
+            }
             alt={displayAuthor?.name || "User"}
           />
           <AvatarFallback>
@@ -610,23 +617,23 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
               actionId="share"
               icon={<Send size={24} />}
               onClick={handleExternalShare}
-            // count={localCounts.shares}
-            // onClick={handleShare}
-            // isActive={actionStates.shared}
+              // count={localCounts.shares}
+              // onClick={handleShare}
+              // isActive={actionStates.shared}
             />
           </div>
           <div className="spacer-column"></div>
         </CardFooter>
       )}
-        {/* Block User Dialog */}
-        <BlockUserDialog
-            isOpen={showBlockDialog}
-            onClose={() => setShowBlockDialog(false)}
-            onConfirm={handleBlockConfirm}
-            username={displayAuthor.username}
-            avatarUrl={displayAuthor.avatar_url}
-            isPending={blockMutation.isPending}
-        />
+      {/* Block User Dialog */}
+      <BlockUserDialog
+        isOpen={showBlockDialog}
+        onClose={() => setShowBlockDialog(false)}
+        onConfirm={handleBlockConfirm}
+        username={displayAuthor.username}
+        avatarUrl={displayAuthor.avatar_url}
+        isPending={blockMutation.isPending}
+      />
 
       {/* Login Prompt Overlay */}
       {showLoginPrompt && (
@@ -645,7 +652,6 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
           </div>
         </div>
       )}
-
     </Card>
   );
 };
