@@ -166,6 +166,94 @@ class AlgoliaSearchService:
         
         return users
 
+    def _filter_out_blocked_items(self, items: List[Dict[str, Any]], type: str, current_user_id: str) -> List[Dict[str, Any]]:
+        """
+        Filter out items (users or posts) where there is a block relationship 
+        (I blocked them OR they blocked me).
+        """
+        if not items or not current_user_id:
+            return items
+
+        # 1. Get List of Users I Blocked
+        my_blocks_stream = db.collection("users").document(current_user_id).collection("blocks").stream()
+        my_blocked_ids = {b.id for b in my_blocks_stream}
+
+        # 2. Identify Target User IDs from items
+        target_uids = set()
+        for item in items:
+            uid = None
+            if type == "users":
+                uid = item.get("objectID")
+            elif type == "posts":
+                # Ensure author_id is present (should be after enrichment)
+                uid = item.get("author_id")
+            
+            if uid and uid != current_user_id:
+                target_uids.add(uid)
+        
+        if not target_uids:
+            return items
+
+        # 3. Batch Check: Are they blocking me?
+        # Check users/{target_uid}/blocks/{current_user_id}
+        blocking_me_ids = set()
+        
+        check_refs = []
+        ref_map = {} # target_uid -> ref
+
+        for uid in target_uids:
+            ref = db.collection("users").document(uid).collection("blocks").document(current_user_id)
+            check_refs.append(ref)
+            ref_map[uid] = ref
+            
+        try:
+            # Batch Get
+            # Note: db.get_all accepts a list of references
+            block_docs = db.get_all(check_refs)
+            
+            # Map back: If exists, then uid is blocking me
+            # But get_all returns docs in order (usually), need to be careful mapping back?
+            # actually get_all returns snapshots. snapshot.reference.parent.parent.id is the target_uid
+            
+            for doc in block_docs:
+                if doc.exists:
+                    # Access the user ID who owns this block collection
+                    # Path: users/{uid}/blocks/{me}
+                    # Parent = blocks, Parent.Parent = users/{uid}
+                    # This works for standard collections
+                    blocker_uid = doc.reference.parent.parent.id
+                    blocking_me_ids.add(blocker_uid)
+
+        except Exception as e:
+            print(f"Error checking block status in search: {e}")
+            pass
+
+        # 4. Filter
+        filtered_items = []
+        for item in items:
+            uid = None
+            if type == "users":
+                uid = item.get("objectID")
+            elif type == "posts":
+                uid = item.get("author_id")
+            
+            # Allow if:
+            # 1. Unknown UID (fallback)
+            # 2. It's me
+            # 3. Not in my_blocked_ids AND not in blocking_me_ids
+            if not uid or uid == current_user_id:
+                 filtered_items.append(item)
+                 continue
+            
+            if uid in my_blocked_ids:
+                continue
+            if uid in blocking_me_ids:
+                continue
+            
+            filtered_items.append(item)
+            
+        return filtered_items
+
     # ---------------- USERS ----------------
     def search_users(
         self,
@@ -178,13 +266,19 @@ class AlgoliaSearchService:
             "page": page,
             "hitsPerPage": hits_per_page
         })
+        
+        hits = results["hits"]
+        
+        # Filter Blocked
+        if current_user_id:
+            hits = self._filter_out_blocked_items(hits, "users", current_user_id)
 
-        enriched_users = self._enrich_users_with_follow_status(results["hits"], current_user_id)
+        enriched_users = self._enrich_users_with_follow_status(hits, current_user_id)
 
         return {
             "type": "users",
             "hits": enriched_users,
-            "total": results["nbHits"],
+            "total": results["nbHits"], # Note: "Total" might be inaccurate after filter, but fixing nbHits is hard without full scan
             "page": results["page"],
             "pages": results["nbPages"]
         }
@@ -195,7 +289,8 @@ class AlgoliaSearchService:
         query: str,
         page: int = 0,
         hits_per_page: int = 20,
-        only_root_posts: bool = True
+        only_root_posts: bool = True,
+        current_user_id: str = None # Added param
     ) -> Dict[str, Any]:
         filters = "level = 0" if only_root_posts else None
 
@@ -204,8 +299,15 @@ class AlgoliaSearchService:
             "hitsPerPage": hits_per_page,
             "filters": filters
         })
-
-        enriched_hits = self._enrich_posts_with_full_data(results["hits"])
+        
+        hits = results["hits"]
+        
+        # Enrich FIRST to get author_id
+        enriched_hits = self._enrich_posts_with_full_data(hits)
+        
+        # Filter Blocked (requires author_id from enriched data)
+        if current_user_id:
+            enriched_hits = self._filter_out_blocked_items(enriched_hits, "posts", current_user_id)
 
         return {
             "type": "posts",
@@ -255,16 +357,23 @@ class AlgoliaSearchService:
             }
         ]
 
-        # print(f"DEBUG: requests payload: {requests}")
-        # print(f"DEBUG: App ID: {settings.ALGOLIA_APP_ID}")
-        # print(f"DEBUG: Index Names: {settings.ALGOLIA_USERS_INDEX_NAME}, {settings.ALGOLIA_POSTS_INDEX_NAME}")
         response = self.client.multiple_queries(requests)
 
         users_result = response["results"][0]
         posts_result = response["results"][1]
-
-        enriched_users = self._enrich_users_with_follow_status(users_result["hits"], current_user_id)
-        enriched_posts = self._enrich_posts_with_full_data(posts_result["hits"])
+        
+        user_hits = users_result["hits"]
+        post_hits = posts_result["hits"]
+        
+        # Filter & Enrich Users
+        if current_user_id:
+             user_hits = self._filter_out_blocked_items(user_hits, "users", current_user_id)
+        enriched_users = self._enrich_users_with_follow_status(user_hits, current_user_id)
+        
+        # Enrich & Filter Posts
+        enriched_posts = self._enrich_posts_with_full_data(post_hits)
+        if current_user_id:
+             enriched_posts = self._filter_out_blocked_items(enriched_posts, "posts", current_user_id)
 
         return {
             "users": {

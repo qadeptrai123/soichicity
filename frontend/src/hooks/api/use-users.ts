@@ -140,6 +140,57 @@ export const useEditProfile = () => {
   });
 };
 
+export const useBlockUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: api.users.block,
+
+    onSuccess: () => {
+      toast.success("Blocked user");
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["search"] });
+      queryClient.invalidateQueries({ queryKey: ["post-activity"] });
+      queryClient.invalidateQueries({ queryKey: ["followers"] });
+      queryClient.invalidateQueries({ queryKey: ["following"] });
+      queryClient.invalidateQueries({ queryKey: ["blocked-users"] });
+      queryClient.invalidateQueries({ queryKey: ["user-posts"] }); // force refetch feed
+    },
+
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || "Failed to block user");
+    },
+  });
+};
+
+export const useUnblockUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: api.users.unblock,
+
+    onSuccess: () => {
+      toast.success("Unblocked user");
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["blocked-users"] });
+    },
+
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || "Failed to unblock user");
+    },
+  });
+};
+
+export const useBlockedUsers = (options?: { enabled?: boolean }) => {
+  return useQuery({
+    queryKey: ['blocked-users'],
+    queryFn: api.users.getBlockedUsers,
+    enabled: options?.enabled,
+  });
+};
+
 // ... (previous imports)
 
 export const useUserPosts = (userId: string, type: string = "posts", options?: { enabled?: boolean, initialData?: any }) => {

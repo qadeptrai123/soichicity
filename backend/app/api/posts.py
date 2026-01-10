@@ -215,7 +215,11 @@ def get_posts(
 ):
     # Logic lấy feed (đã lọc bài đã xem)
     user_id = user["uid"] if user else None
-    return PostService.get_feed_posts(user_id, limit, filter, cursor)
+    try:
+        return PostService.get_feed_posts(user_id, limit, filter, cursor)
+    except Exception as e:
+        print(f"Error in get_posts: {e}")
+        raise HTTPException(status_code=500, detail=f"Feed Error: {str(e)}")
 
 # --- CÁC API MỚI CHO SUB-COLLECTIONS (LIKE, SHARE, COMMENT) ---
 
@@ -234,6 +238,9 @@ def like_post(post_id: str, user = Depends(get_current_user)):
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        print(f"Error liking post: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 # @router.delete("/posts/{post_id}/like")
 # def unlike_post(post_id: str, user = Depends(get_current_user)):
@@ -258,6 +265,9 @@ def share_post(post_id: str, user = Depends(get_current_user)):
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        print(f"Error sharing post: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 @router.post("/posts/{post_id}/repost")
 def repost_post(post_id: str, user = Depends(get_current_user)):
@@ -273,6 +283,9 @@ def repost_post(post_id: str, user = Depends(get_current_user)):
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        print(f"Error reposting post: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 # @router.delete("/posts/{post_id}/share")
 # def unshare_post(post_id: str, user = Depends(get_current_user)):
@@ -297,6 +310,9 @@ def save_post(post_id: str, user = Depends(get_current_user)):
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        print(f"Error saving post: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 # @router.delete("/posts/{post_id}/save")
 # def unsave_post(post_id: str, user = Depends(get_current_user)):

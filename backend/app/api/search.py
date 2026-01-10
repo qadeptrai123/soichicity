@@ -30,7 +30,8 @@ def search(
         return algolia_search_service.search_posts(
             query=q,
             page=page,
-            hits_per_page=limit
+            hits_per_page=limit,
+            current_user_id=current_user_id
         )
     else:
         return algolia_search_service.search_all(
