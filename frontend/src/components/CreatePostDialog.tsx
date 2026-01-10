@@ -5,7 +5,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter
+  DialogFooter,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,6 +28,7 @@ interface CreatePostDialogProps {
   onOpenChange: (open: boolean) => void;
   currentUser: User;
   mockFriends: User[];
+  initialContent?: string;
 }
 
 export default function CreatePostDialog({
@@ -34,6 +36,7 @@ export default function CreatePostDialog({
   onOpenChange,
   currentUser,
   mockFriends,
+  initialContent,
 }: CreatePostDialogProps) {
 
   const {
@@ -49,7 +52,7 @@ export default function CreatePostDialog({
     resetEditor,
     onEmojiClick,
     handleTagUser,
-  } = usePostEditor({ mockFriends });
+  } = usePostEditor({ mockFriends, initialContent });
 
   const createPostMutation = useCreatePost();
 
@@ -106,6 +109,9 @@ export default function CreatePostDialog({
             Cancel
           </button>
           <DialogTitle className="text-base font-bold text-foreground m-0">New Post</DialogTitle>
+          <DialogDescription className="sr-only">
+            Create a new post to share with your friends.
+          </DialogDescription>
           <div className="w-[50px]"></div>
         </DialogHeader>
 

@@ -68,9 +68,54 @@ def get_user_posts(
     user_id: str, 
     limit: int = 10, 
     cursor: Optional[str] = None, # Cursor chính là last_post_id
-    db=Depends(get_db)
+    type: str = "posts", # posts, replies, media, all
+    db=Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user_optional)
 ):
     """
     API này thay thế cho việc load tất cả post trong get_user_profile
     """
-    return user_service.get_user_posts_paginated(db, user_id, limit, cursor)
+    current_user_id = current_user['uid'] if current_user else None
+    return user_service.get_user_posts_paginated(db, user_id, limit, cursor, post_type=type, current_user_id=current_user_id)
+
+@router.get("/users/{user_id}/reposts", tags=["users"])
+def get_user_reposts(
+    user_id: str, 
+    limit: int = 10, 
+    cursor: Optional[str] = None, 
+    db=Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user_optional)
+):
+    """
+    Get user reposts
+    """
+    current_user_id = current_user['uid'] if current_user else None
+    return user_service.get_user_reposts_paginated(db, user_id, limit, cursor, current_user_id=current_user_id)
+
+@router.get("/users/{user_id}/following", tags=["users"])
+def get_user_following(
+    user_id: str, 
+    limit: int = 10,
+    cursor: Optional[str] = None,
+    db=Depends(get_db), 
+    current_user: Optional[dict] = Depends(get_current_user_optional)
+):
+    """
+    Get list of users that the specified user is following (Paginated).
+    """
+    current_user_id = current_user['uid'] if current_user else None
+    return user_service.get_users_following_paginated(db, user_id, limit, cursor, current_user_id)
+
+@router.get("/users/{user_id}/followers", tags=["users"])
+def get_user_followers(
+    user_id: str, 
+    limit: int = 10,
+    cursor: Optional[str] = None,
+    db=Depends(get_db), 
+    current_user: Optional[dict] = Depends(get_current_user_optional)
+):
+    """
+    Get list of users who are following the specified user (Paginated).
+    """
+    current_user_id = current_user['uid'] if current_user else None
+    return user_service.get_users_followers_paginated(db, user_id, limit, cursor, current_user_id)

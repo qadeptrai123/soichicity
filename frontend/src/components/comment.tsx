@@ -7,6 +7,8 @@ import FeedCard from "./FeedCard";
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,23 +24,7 @@ import { useCreatePost } from "@/hooks/api/use-posts";
 import type { User } from "@/types/user";
 import { usePostEditor } from "@/hooks/usePostEditor";
 
-export type TargetPost = {
-  id: string | number;
-  user: {
-    uid: string;
-    username: string;
-    full_name: string | null;
-    avatar_url?: string;
-  };
-  content: string;
-  date: string;
-  media_url?: string | null;
-  media_type?: string | null;
-  gallery?: string[];
-  level?: number;
-};
-
-// Add useQueryClient import
+import type { TargetPost } from "@/types/post";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ReplyDialogProps {
@@ -132,6 +118,8 @@ export default function ReplyCommentDialog({
       <DialogContent
         className="sm:max-w-[600px] bg-secondary border-border p-0 shadow-2xl gap-0 overflow-visible [&>button]:hidden max-h-[90vh] flex rounded-t-3xl rounded-b-none flex-col fixed top-auto bottom-0 left-[50%] translate-x-[-50%] translate-y-0 mb-0 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom"
       >
+        <DialogTitle className="sr-only">Reply to Post</DialogTitle>
+        <DialogDescription className="sr-only">Reply to {targetPost.user.username}'s post</DialogDescription>
         {/* --- 1. HANDLE BAR (Thanh gạch ngang trên cùng) --- */}
         <div
           className="w-full flex justify-center pt-3 pb-1 cursor-pointer group"

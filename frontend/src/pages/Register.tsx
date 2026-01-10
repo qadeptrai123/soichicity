@@ -49,17 +49,22 @@ export default function Register() {
             const errorMsg = error instanceof Error ? error.message : "Registration failed";
 
             // Gắn lỗi vào field tương ứng dựa vào message
-            if (errorMsg.includes("Username already taken")) {
+            if (errorMsg.includes("Username")) {
                 registerForm.setError("username", {
                     type: "manual",
                     message: errorMsg,
                 });
-            } else if (errorMsg.includes("Email already")) {
+            } else if (errorMsg.includes("Email")) {
                 registerForm.setError("email", {
                     type: "manual",
                     message: errorMsg,
                 });
             } else {
+                // Generic error, set on email or show a global alert? 
+                // For now keeping on email as fallback or maybe password if related?
+                // Let's keep it on email but maybe full_name if related.
+                // Better fallback: just set on root or generic. 
+                // Given the current UI structure, email is central.
                 registerForm.setError("email", {
                     type: "manual",
                     message: errorMsg,

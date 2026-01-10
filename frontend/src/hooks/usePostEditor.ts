@@ -1,20 +1,37 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { User } from "@/types/auth";
+import { useAuth } from "@/contexts/AuthProvider";
+import { useFollowingAndFollowers } from "./api/use-users";
 
 export type MediaFile = { url: string; type: "image" | "video"; file?: File; };
 
 interface UsePostEditorProps {
-    mockFriends: User[];
+    mockFriends?: User[]; // Make it optional since we'll fetch real data
+    initialContent?: string;
 }
 
-export function usePostEditor({ mockFriends }: UsePostEditorProps) {
-    const [content, setContent] = useState<string>("");
+export function usePostEditor({ mockFriends = [], initialContent = "" }: UsePostEditorProps) {
+    const [content, setContent] = useState<string>(initialContent);
     const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
     const [tagSearch, setTagSearch] = useState<string>("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const filteredFriends = mockFriends.filter((user) => {
+    // Get current user to fetch their following/followers
+    const { user } = useAuth();
+    const { allUsers, isLoading } = useFollowingAndFollowers(user?.uid || '');
+
+    // Sync initialContent when it changes
+    useEffect(() => {
+        if (initialContent) {
+            setContent(initialContent);
+        }
+    }, [initialContent]);
+
+    // Use real data if available, otherwise fall back to mockFriends
+    const availableUsers = allUsers.length > 0 ? allUsers : mockFriends;
+
+    const filteredFriends = availableUsers.filter((user) => {
         const query = tagSearch.toLowerCase();
         const matchName = user.full_name ? user.full_name.toLowerCase().includes(query) : false;
         const matchUsername = user.username.toLowerCase().includes(query);
@@ -65,5 +82,6 @@ export function usePostEditor({ mockFriends }: UsePostEditorProps) {
         resetEditor,
         onEmojiClick,
         handleTagUser,
+        isLoadingUsers: isLoading,
     };
 }

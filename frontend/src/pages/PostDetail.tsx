@@ -167,7 +167,7 @@ const PostDetail = () => {
                         style={{ top: `${popupTop}px` }}
                     >
                         <ActivityPopup
-                            data={postData.activity}
+                            postId={postData.post_id}
                             onClose={() => setShowActivity(false)}
                         />
                     </div>

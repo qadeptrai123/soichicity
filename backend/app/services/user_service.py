@@ -97,10 +97,14 @@ def _normalize_feed_item(db, item_data, author_map, current_user_id=None):
         "comments_count": p_data.get("comments_count", 0),
         
         # --- Flags ---
-        "is_reposted": item_data["is_reposted"], # Whether this specific feed item IS a repost action
+        "is_repost_item": item_data.get("is_reposted", False), # Whether this specific feed item IS a repost action
         "is_liked": is_liked, 
         "is_saved": is_saved,
-        "is_reposted": is_reposted # Whether the current user HAS reposted this content
+        "is_reposted": is_reposted, # Whether the current user HAS reposted this content
+        "repost_info": {
+            "reposted_by": author_map.get(item_data.get("reposted_by")).to_dict() if item_data.get("reposted_by") and item_data.get("reposted_by") in author_map else None,
+            "reposted_at": item_data.get("timestamp")
+        } if item_data.get("is_reposted") else None
     }
 
 # --- Main Service Functions ---
@@ -147,7 +151,7 @@ def create_user(db, user: UserCreate):
             email_verified=True
         )
     except auth.EmailAlreadyExistsError:
-        raise HTTPException(status_code=400, detail="Email already registered in Firebase Auth")
+        raise HTTPException(status_code=400, detail="Email already registered")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
 
@@ -434,6 +438,8 @@ def get_user_profile(db, username: str, current_user_id: str = None):
             p_data = item["post_doc"].to_dict()
             if p_data.get("author_id"):
                 author_ids.add(p_data.get("author_id"))
+        if item.get("reposted_by"):
+            author_ids.add(item["reposted_by"])
     
     authors_map = _get_docs_batch(db, "users", list(author_ids))
 
@@ -469,9 +475,11 @@ def get_user_profile(db, username: str, current_user_id: str = None):
         "posts": final_posts,
         "posts_count": len(final_posts)
     }
-def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: str = None):
+
+def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: str = None, post_type: str = "posts", current_user_id: str = None):
     """
     [API Tab 1] Lấy danh sách bài viết gốc của user (có phân trang).
+    post_type: 'posts' (default - no replies), 'replies', 'media', 'all'
     """
     posts_ref = db.collection('posts')
     
@@ -479,44 +487,166 @@ def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: 
     query = posts_ref.where('author_id', '==', author_id)\
                      .order_by('created_at', direction=firestore.Query.DESCENDING)
 
+    # Note: Firestore requires composite indexes for combining equality (author_id) 
+    # with inequality/null checks (reply_to_id) and sort (created_at).
+    # To be safe without manual index creation, we maintain the base query and filter in memory 
+    # (using a larger fetch limit to minimize trips).
+    
+    # scan_limit allows us to fetch more items to filter down to the requested 'limit'
+    scan_limit = limit * 4 
+
     # 2. Xử lý Cursor
     if last_post_id:
         last_doc = posts_ref.document(last_post_id).get()
         if last_doc.exists:
             query = query.start_after(last_doc)
 
-    query = query.limit(limit)
+    query = query.limit(scan_limit)
     docs = list(query.stream()) # Lấy metadata trước
 
     if not docs:
         return {"items": [], "next_cursor": None, "has_more": False}
 
-    # 3. Batch Fetch Author (Quan trọng: Để hiển thị avatar/tên)
-    # Vì là bài gốc của author_id nên thực ra chỉ có 1 author, nhưng dùng logic chung cho chuẩn
-    author_ids = {d.get("author_id") for d in docs}
+    # 3. Filter in memory
+    filtered_docs = []
+    last_scanned_doc = None
+    
+    for doc in docs:
+        data = doc.to_dict()
+        last_scanned_doc = doc
+        
+        is_reply = data.get("reply_to_id") is not None
+        has_media = bool(data.get("media_urls")) or bool(data.get("link_url")) # fallback if any
+        
+        should_include = False
+        if post_type == "all":
+            should_include = True
+        elif post_type == "posts":
+            should_include = not is_reply
+        elif post_type == "replies":
+            should_include = is_reply
+        elif post_type == "media":
+            should_include = has_media
+            
+        if should_include:
+            filtered_docs.append(doc)
+            if len(filtered_docs) >= limit:
+                break
+    
+    # Note: if we filtered out everything in this batch but there are more in DB, 
+    # the frontend might see empty page but 'has_more' might technically be true if we verified DB.
+    # However, with cursor pagination, we return the cursor of the last SCANNED item (or last Returned?).
+    # If we return cursor of last *returned* item, we might skip checked-but-filtered items next time? 
+    # NO: 'start_after' starts after the cursor doc.
+    # If we return the cursor of the last *filtered* (valid) item, say item 10.
+    # But item 11, 12 were scanned and rejected.
+    # Next request starts after item 10. Item 11, 12 will be scanned AGAIN? 
+    # Yes, efficiently we should return the cursor of the last *scanned* item effectively to skip them.
+    # BUT client typically uses the last item in the list as cursor.
+    # If we return a "next_cursor" explicitly, we can control this.
+    
+    next_cursor = None
+    has_more = False
+    
+    if filtered_docs:
+        # If we filled the limit
+        if len(filtered_docs) == limit:
+            # We stopped at filtered_docs[-1]. 
+            # Was this the last item in 'docs'?
+            if filtered_docs[-1].id == docs[-1].id:
+                # We reached end of fetch. There might be more in DB.
+                # Assuming simple efficient approach: just use last item ID.
+                next_cursor = filtered_docs[-1].id
+                has_more = True # Potential more
+            else:
+                 # We stopped early in the 'docs' list. Definitely more (the rest of 'docs')
+                 next_cursor = filtered_docs[-1].id
+                 has_more = True
+        else:
+            # We didn't fill limit.
+            # Did we exhaust 'docs'?
+            if len(docs) < scan_limit:
+                 # We fetched everything available (less than scan limit request)
+                 has_more = False
+                 next_cursor = filtered_docs[-1].id
+            else:
+                 # We exhausted scan_limit but didn't fill requested limit.
+                 # There are likely more in DB.
+                 # We need to continue from the LAST SCANNED doc (docs[-1]), 
+                 # BUT frontend uses the last ITEM as cursor usually.
+                 # We must return a specific next_cursor.
+                 has_more = True
+                 next_cursor = docs[-1].id 
+                 # WARNING: If we return `docs[-1].id` as cursor, but don't return `docs[-1]` in items,
+                 # The frontend might be confused if it tries to find that item?
+                 # Standard infinite scroll often uses `items[last].id`.
+                 # If we return a hidden cursor, frontend must use `next_cursor` from response, not item[last].id.
+                 pass
+
+    # Simplified Logic for Cursor:
+    # Always return `next_cursor` pointing to the last document we *processed* (scanned),
+    # so next fetch starts after strictly.
+    # BUT if we found items, we usually want to chain from the last item. 
+    # Let's stick to: use the ID of the last item *considered* (scanned) as the continuation point
+    # if we didn't finish.
+    
+    # Actually, to trigger "Next Page" correctly:
+    # If we found `limit` items, we stop. The cursor for next page should be the ID of the last item in `results`.
+    # Why? Because we want to start after *that* item.
+    # What about the items between (scanned but rejected)? They are "before" the last item in sort order?
+    # Query is DESC by created_at.
+    # Docs: [A (valid), B (invalid), C (valid)]. Limit 2.
+    # Result: [A, C].
+    # Next fetch start after C.
+    # B was skipped. Correct.
+    
+    # Case 2: [A (invalid), B (invalid), C (valid)]. Limit 1.
+    # Result: [C].
+    # Next start after C. A, B skipped. Correct.
+    
+    # Case 3: [A (invalid), ... Z (invalid)]. Batch 50. Results 0.
+    # We return [], next_cursor = Z.id. has_more = True.
+    # Frontend receives empty list but has_more.
+    # It might trigger next fetch immediately or wait for user scroll (which won't happen if empty).
+    # This is the "Empty Gap" problem.
+    # For now, we assume user has mixed content and batch size 4x is enough to find *something*. 
+    
+    if filtered_docs:
+        next_cursor = filtered_docs[-1].id
+    elif docs:
+        # We scanned docs but found nothing matching.
+        # We must return the last scanned doc so client can continue searching.
+        next_cursor = docs[-1].id
+        
+    items_to_fetch_author = filtered_docs
+
+    # 4. Batch Fetch Author
+    author_ids = {d.get("author_id") for d in items_to_fetch_author}
     authors_map = _get_docs_batch(db, "users", list(author_ids))
 
-    # 4. Normalize dữ liệu (Để khớp với UI component)
+    # 5. Normalize
     results = []
-    for doc in docs:
+    for doc in items_to_fetch_author:
         item_input = {
             "post_doc": doc,
             "timestamp": doc.get("created_at"),
             "is_reposted": False,
             "reposted_by": None
         }
-        # Tái sử dụng hàm _normalize_feed_item có sẵn
-        normalized = _normalize_feed_item(db, item_input, authors_map)
+        normalized = _normalize_feed_item(db, item_input, authors_map, current_user_id)
         if normalized:
             results.append(normalized)
 
     return {
         "items": results,
-        "next_cursor": docs[-1].id if docs else None,
-        "has_more": len(docs) == limit
+        "next_cursor": next_cursor, 
+        "has_more": len(docs) == scan_limit or (len(filtered_docs) == limit and len(docs) > len(filtered_docs))
+        # Logic for has_more: 
+        # If we fetched full scan_limit, assume there is likely more DB data.
+        # If we fetched less than scan_limit, we exhausted DB.
     }
 
-def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_id: str = None):
+def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_id: str = None, current_user_id: str = None):
     """
     [API Tab 2] Lấy danh sách bài Repost (có phân trang).
     Cursor: ID của document trong sub-collection 'activity_reposts'.
@@ -544,6 +674,7 @@ def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_
 
     # 4. Batch Fetch Author của các bài viết gốc đó
     author_ids = set()
+    author_ids.add(author_id) # Add the profile owner (reposter) to be fetched
     valid_items = []
 
     for r_doc in repost_docs:
@@ -573,7 +704,7 @@ def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_
             "repost_id": item["repost_doc"].id
         }
         
-        normalized = _normalize_feed_item(db, item_input, authors_map)
+        normalized = _normalize_feed_item(db, item_input, authors_map, current_user_id)
         if normalized:
             results.append(normalized)
 
@@ -581,4 +712,247 @@ def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_
         "items": results,
         "next_cursor": repost_docs[-1].id if repost_docs else None, # Trả về ID activity
         "has_more": len(repost_docs) == limit
+    }
+
+def get_users_following(db, user_id: str, current_user_id: str = None):
+    """
+    Get list of users that the specified user is following.
+    Returns a list of user objects.
+    """
+    user_ref = db.collection('users').document(user_id)
+    
+    # Check if user exists
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get all following from sub-collection
+    following_refs = user_ref.collection('followings').stream()
+    following_ids = [doc.id for doc in following_refs]
+    
+    if not following_ids:
+        return []
+    
+    # Batch fetch user details
+    users_map = _get_docs_batch(db, 'users', following_ids)
+    
+    # Check is_following for current_user
+    following_set = set()
+    if current_user_id:
+        current_following_refs = db.collection('users').document(current_user_id).collection('followings').stream()
+        following_set = {doc.id for doc in current_following_refs}
+
+    # Build response list
+    result = []
+    for uid, user_doc in users_map.items():
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            is_following = False
+            if current_user_id:
+               if uid == current_user_id:
+                   # Self is not "following" self in the UI sense usually, or handled by UI
+                   pass 
+               elif uid in following_set:
+                   is_following = True
+
+            result.append({
+                "uid": uid,
+                "username": user_data.get("username", ""),
+                "full_name": user_data.get("full_name", ""),
+                "avatar_url": user_data.get("avatar_url"),
+                "bio": user_data.get("bio"),
+                "is_following": is_following,
+                "is_self": uid == current_user_id
+            })
+    
+    return result
+
+def get_users_following_paginated(db, user_id: str, limit: int = 10, cursor: str = None, current_user_id: str = None):
+    """
+    Get list of users that the specified user is following (Paginated).
+    cursor: The ID of the last user item (from the sub-collection).
+    """
+    user_ref = db.collection('users').document(user_id)
+    
+    # Check if user exists
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Query sub-collection
+    # Remove order_by('created_at') to ensure legacy data (without created_at) is also returned.
+    # Default ordering is by Document ID.
+    query = user_ref.collection('followings')
+    
+    if cursor:
+        last_doc = user_ref.collection('followings').document(cursor).get()
+        if last_doc.exists:
+            query = query.start_after(last_doc)
+            
+    query = query.limit(limit)
+    docs = list(query.stream())
+    
+    if not docs:
+        return {"items": [], "next_cursor": None, "has_more": False}
+        
+    following_ids = [doc.id for doc in docs]
+    
+    # Batch fetch user details
+    users_map = _get_docs_batch(db, 'users', following_ids)
+    
+    # Check is_following for current_user
+    following_set = set()
+    if current_user_id:
+        current_following_refs = db.collection('users').document(current_user_id).collection('followings').stream()
+        following_set = {doc.id for doc in current_following_refs}
+
+    # Build response list
+    items = []
+    # Preserve order from docs
+    for doc in docs:
+        uid = doc.id
+        user_doc = users_map.get(uid)
+        
+        if user_doc:
+            user_data = user_doc.to_dict()
+            is_following = False
+            if current_user_id:
+               if uid == current_user_id:
+                   pass 
+               elif uid in following_set:
+                   is_following = True
+
+            items.append({
+                "uid": uid,
+                "username": user_data.get("username", ""),
+                "full_name": user_data.get("full_name", ""),
+                "avatar_url": user_data.get("avatar_url"),
+                "bio": user_data.get("bio"),
+                "is_following": is_following,
+                "is_self": uid == current_user_id
+            })
+    
+    return {
+        "items": items,
+        "next_cursor": docs[-1].id if docs else None,
+        "has_more": len(docs) == limit
+    }
+
+def get_users_followers(db, user_id: str, current_user_id: str = None):
+    """
+    Get list of users who are following the specified user.
+    Returns a list of user objects.
+    """
+    user_ref = db.collection('users').document(user_id)
+    
+    # Check if user exists
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get all followers from sub-collection
+    followers_refs = user_ref.collection('followers').stream()
+    follower_ids = [doc.id for doc in followers_refs]
+    
+    if not follower_ids:
+        return []
+    
+    # Batch fetch user details
+    users_map = _get_docs_batch(db, 'users', follower_ids)
+    
+    # Check is_following for current_user
+    following_set = set()
+    if current_user_id:
+        current_following_refs = db.collection('users').document(current_user_id).collection('followings').stream()
+        following_set = {doc.id for doc in current_following_refs}
+
+    # Build response list
+    result = []
+    for uid, user_doc in users_map.items():
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            
+            is_following = False
+            if current_user_id:
+               if uid == current_user_id:
+                   pass
+               elif uid in following_set:
+                   is_following = True
+
+            result.append({
+                "uid": uid,
+                "username": user_data.get("username", ""),
+                "full_name": user_data.get("full_name", ""),
+                "avatar_url": user_data.get("avatar_url"),
+                "bio": user_data.get("bio"),
+                "is_following": is_following,
+                "is_self": uid == current_user_id
+            })
+    
+    return result
+
+def get_users_followers_paginated(db, user_id: str, limit: int = 10, cursor: str = None, current_user_id: str = None):
+    """
+    Get list of users who are following the specified user (Paginated).
+    cursor: The ID of the last user item (from the sub-collection).
+    """
+    user_ref = db.collection('users').document(user_id)
+    
+    # Check if user exists
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Query sub-collection
+    # Remove order_by('created_at') to ensure legacy data (without created_at) is also returned.
+    query = user_ref.collection('followers')
+    
+    if cursor:
+        last_doc = user_ref.collection('followers').document(cursor).get()
+        if last_doc.exists:
+            query = query.start_after(last_doc)
+            
+    query = query.limit(limit)
+    docs = list(query.stream())
+    
+    if not docs:
+        return {"items": [], "next_cursor": None, "has_more": False}
+        
+    follower_ids = [doc.id for doc in docs]
+    
+    # Batch fetch user details
+    users_map = _get_docs_batch(db, 'users', follower_ids)
+    
+    # Check is_following for current_user
+    following_set = set()
+    if current_user_id:
+        current_following_refs = db.collection('users').document(current_user_id).collection('followings').stream()
+        following_set = {doc.id for doc in current_following_refs}
+
+    # Build response list
+    items = []
+    # Preserve order
+    for doc in docs:
+        uid = doc.id
+        user_doc = users_map.get(uid)
+        
+        if user_doc:
+            user_data = user_doc.to_dict()
+            is_following = False
+            if current_user_id:
+               if uid == current_user_id:
+                   pass 
+               elif uid in following_set:
+                   is_following = True
+
+            items.append({
+                "uid": uid,
+                "username": user_data.get("username", ""),
+                "full_name": user_data.get("full_name", ""),
+                "avatar_url": user_data.get("avatar_url"),
+                "bio": user_data.get("bio"),
+                "is_following": is_following,
+                "is_self": uid == current_user_id
+            })
+    
+    return {
+        "items": items,
+        "next_cursor": docs[-1].id if docs else None,
+        "has_more": len(docs) == limit
     }

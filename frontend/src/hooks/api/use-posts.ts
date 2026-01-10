@@ -45,6 +45,14 @@ export const usePostReplies = (postId: string, enabled: boolean = false) => {
   });
 };
 
+export const usePostActivity = (postId: string, enabled: boolean = false) => {
+  return useQuery({
+    queryKey: ["post-activity", postId],
+    queryFn: () => api.posts.getActivity(postId),
+    enabled: !!postId && enabled,
+  });
+};
+
 // ====================
 // MUTATIONS
 // ====================
