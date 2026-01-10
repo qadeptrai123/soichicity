@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { MoreHorizontal, Heart, MessageSquare, Repeat2, Send, Bookmark, X } from "lucide-react";
+import { MoreHorizontal, Heart, MessageSquare, Repeat2, Send, Bookmark, X, Edit3, Ban, Link2 } from "lucide-react";
+import { DropdownExtend } from "../DropdownExtend";
 import { ActionButton } from "@/components/ActionButton";
 import { useLikePost, useSavePost, useRepostPost } from "@/hooks/api/use-posts";
 import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "../Gallery";
@@ -18,14 +19,15 @@ interface PostMainPostProps {
   data: Post;
   onViewActivity: () => void;
   onReply?: () => void;
+  onEdit?: (post: Post) => void;
 }
 
-export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProps) => {
+export const PostMainPost = ({ data, onViewActivity, onReply, onEdit }: PostMainPostProps) => {
   // Hàm format thời gian giả lập (hoặc dùng thư viện date-fns nếu có)
 
 
   // Hooks
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user: me } = useAuth();
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
   const repostMutation = useRepostPost();
@@ -80,9 +82,9 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
   const handleShare = useCallback(
     async (e?: React.MouseEvent) => {
       e?.stopPropagation();
-  
+
       const postUrl = `${window.location.origin}/post/${data.post_id}`;
-  
+
       try {
         await navigator.clipboard.writeText(postUrl);
         toast.success("Link copied to clipboard");
@@ -92,7 +94,7 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
     },
     [data.post_id]
   );
-  
+
 
 
   const handleBookmark = useCallback((e?: React.MouseEvent) => {
@@ -138,6 +140,41 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
     }
     onReply?.();
   }, [onReply, isAuthenticated]);
+
+  // Dropdown Actions
+  const postActions = [
+    {
+      id: "edit",
+      label: "Edit",
+      icon: <Edit3 size={16} />,
+      onClick: () => onEdit?.(data),
+      isVisible: me?.uid === data.author?.uid && !!onEdit,
+    },
+    {
+      id: "block",
+      label: "Block",
+      icon: <Ban size={16} />,
+      onClick: () => console.log("Block post", data.post_id),
+      isVisible: isAuthenticated && me?.uid !== data.author?.uid,
+      showSeparatorAfter: true,
+      variant: "destructive" as const,
+    },
+    {
+      id: "copy-link",
+      label: "Copy link",
+      icon: <Link2 size={16} />,
+      onClick: async () => {
+        const postUrl = `${window.location.origin}/post/${data.post_id}`;
+        try {
+          await navigator.clipboard.writeText(postUrl);
+          toast.success("Link copied to clipboard");
+        } catch (err) {
+          toast.error("Failed to copy link");
+        }
+      },
+      isVisible: true,
+    },
+  ];
 
   // --- Preprocess Gallery Data (similar to Feed.tsx) ---
   const processedData = useMemo(() => {
@@ -210,12 +247,11 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
             </div>
           </div>
         </div>
-        <button
-          className="text-[#94a3b8] hover:text-white p-2 rounded-full hover:bg-white/10"
-          onClick={onViewActivity}
-        >
-          <MoreHorizontal size={20} />
-        </button>
+        <DropdownExtend
+          actions={postActions}
+          triggerType="icon"
+          align="end"
+        />
       </div>
 
       {/* Content */}
@@ -223,71 +259,28 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
         <TextWithMentions content={data.content} />
       </div>
 
-      {hasGallery ? (
-        <div className="mb-4">
-          <Gallery
-            items={processedData.gallery!}
-            onDragStateChange={setIsGalleryDragging}
-            size="small"
-          />
-        </div>
-      ) : (
-        hasSingleMedia && (
-          <>
-            <div
-              className="rounded-lg overflow-hidden mt-2 mb-4 w-fit cursor-pointer border border-[#374151]"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSingleMediaLightbox(true);
-              }}
-            >
-              {isYoutube ? (
-                <div
-                  className="relative w-full bg-black min-w-[500px]"
-                  style={{ paddingBottom: "56.25%" }}
-                >
-                  <iframe
-                    src={embedUrl!}
-                    title="YouTube video"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="absolute top-0 left-0 w-full h-full pointer-events-none"
-                  />
-                </div>
-              ) : actualMediaType === "video" ? (
-                <video
-                  controls
-                  className="media-content max-h-[600px] w-full object-cover"
-                  src={processedData.media_url!}
-                />
-              ) : (
-                <img
-                  src={processedData.media_url!}
-                  alt="Post media"
-                  className="media-content max-h-[600px] w-full h-auto object-contain object-left"
-                />
-              )}
-            </div>
-
-            {showSingleMediaLightbox && (
+      {
+        hasGallery ? (
+          <div className="mb-4" >
+            <Gallery
+              items={processedData.gallery!}
+              onDragStateChange={setIsGalleryDragging}
+              size="small"
+            />
+          </div>
+        ) : (
+          hasSingleMedia && (
+            <>
               <div
-                className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
-                onClick={(e) => e.stopPropagation()}
+                className="rounded-lg overflow-hidden mt-2 mb-4 w-fit cursor-pointer border border-[#374151]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSingleMediaLightbox(true);
+                }}
               >
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowSingleMediaLightbox(false);
-                  }}
-                  className="absolute top-4 right-4 text-white hover:bg-white/20 p-2 rounded-full transition z-50"
-                >
-                  <X size={24} />
-                </button>
-
                 {isYoutube ? (
                   <div
-                    className="relative w-full max-w-4xl bg-black"
+                    className="relative w-full bg-black min-w-[500px]"
                     style={{ paddingBottom: "56.25%" }}
                   >
                     <iframe
@@ -296,28 +289,72 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
-                      className="absolute top-0 left-0 w-full h-full"
+                      className="absolute top-0 left-0 w-full h-full pointer-events-none"
                     />
                   </div>
                 ) : actualMediaType === "video" ? (
                   <video
                     controls
-                    autoPlay
-                    className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
+                    className="media-content max-h-[600px] w-full object-cover"
                     src={processedData.media_url!}
                   />
                 ) : (
                   <img
                     src={processedData.media_url!}
-                    alt="Post media lightbox"
-                    className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
+                    alt="Post media"
+                    className="media-content max-h-[600px] w-full h-auto object-contain object-left"
                   />
                 )}
               </div>
-            )}
-          </>
-        )
-      )}
+
+              {showSingleMediaLightbox && (
+                <div
+                  className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowSingleMediaLightbox(false);
+                    }}
+                    className="absolute top-4 right-4 text-white hover:bg-white/20 p-2 rounded-full transition z-50"
+                  >
+                    <X size={24} />
+                  </button>
+
+                  {isYoutube ? (
+                    <div
+                      className="relative w-full max-w-4xl bg-black"
+                      style={{ paddingBottom: "56.25%" }}
+                    >
+                      <iframe
+                        src={embedUrl!}
+                        title="YouTube video"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="absolute top-0 left-0 w-full h-full"
+                      />
+                    </div>
+                  ) : actualMediaType === "video" ? (
+                    <video
+                      controls
+                      autoPlay
+                      className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
+                      src={processedData.media_url!}
+                    />
+                  ) : (
+                    <img
+                      src={processedData.media_url!}
+                      alt="Post media lightbox"
+                      className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
+                    />
+                  )}
+                </div>
+              )}
+            </>
+          )
+        )}
 
       {/* Stats Row */}
       <div className="flex items-center gap-6 text-[#94a3b8] pt-2">
@@ -358,22 +395,24 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
       </div>
 
       {/* Login Prompt Overlay */}
-      {showLoginPrompt && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 cursor-default"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowLoginPrompt(false);
-          }}
-        >
+      {
+        showLoginPrompt && (
           <div
-            className="relative w-full max-w-sm"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 cursor-default"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowLoginPrompt(false);
+            }}
           >
-            <LoginPrompt />
+            <div
+              className="relative w-full max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <LoginPrompt />
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
