@@ -88,7 +88,8 @@ export default function Profile() {
 
   const postsQuery = useUserPosts(targetUid, postType, {
     enabled: !isRepostsTab && !!targetUid && !isBlocked,
-    initialData: initialPostsData
+    initialData: initialPostsData,
+    limit: activeTab === 'Media' ? 24 : 10
   });
   const repostsQuery = useUserReposts(targetUid, { enabled: isRepostsTab && !!targetUid && !isBlocked });
 
@@ -99,7 +100,8 @@ export default function Profile() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    isLoading: isPostsLoading
+    isLoading: isPostsLoading,
+    isFetching
   } = currentQuery;
 
   // Flatten posts from infinite query pages
@@ -326,12 +328,12 @@ export default function Profile() {
             <p className="font-semibold text-lg">You have blocked this user</p>
             <p className="text-sm">You cannot see their posts or interact with them.</p>
           </div>
-        ) : activeTab === 'Media' ? (
-          <ProfileMediaTab posts={posts || []} isLoading={isPostsLoading} />
-        ) : isPostsLoading ? (
+        ) : (isPostsLoading || (activeTab === 'Media' && isFetching && posts.length === 0)) ? (
           <div className="flex justify-center p-8">
             <LoadingSpinner />
           </div>
+        ) : activeTab === 'Media' ? (
+          <ProfileMediaTab posts={posts || []} />
         ) : posts && posts.length > 0 ? (
           posts.map((post) => (
             <FeedCard
@@ -368,9 +370,16 @@ export default function Profile() {
           </div>
         )}
         {/* Load more trigger */}
-        <div ref={loadMoreRef} className="h-4 w-full flex justify-center items-center mt-2">
-          {isFetchingNextPage && <LoadingSpinner />}
-        </div>
+        {hasNextPage && !(isPostsLoading || (activeTab === 'Media' && isFetching && posts.length === 0)) && (
+          <div
+            ref={loadMoreRef}
+            className={`w-full flex justify-center items-center ${activeTab === 'Media' ? 'h-px opacity-0 m-0 p-0' : 'h-4 mt-2 mb-2'}`}
+          >
+            {isFetchingNextPage && activeTab !== 'Media' && (
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-neutral-500 border-t-transparent" />
+            )}
+          </div>
+        )}
       </div>
 
       {/* EDIT PROFILE DIALOG */}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { MoreHorizontal, Heart, MessageSquare, Repeat2, Send, Bookmark, X, Edit3, Ban, Link2 } from "lucide-react";
+import { Heart, MessageSquare, Repeat2, Send, Bookmark, X, Edit3, Ban, Link2 } from "lucide-react";
 import { DropdownExtend } from "../DropdownExtend";
 import { ActionButton } from "@/components/ActionButton";
 import { useLikePost, useSavePost, useRepostPost } from "@/hooks/api/use-posts";
@@ -17,12 +17,11 @@ import { toast } from "sonner";
 
 interface PostMainPostProps {
   data: Post;
-  onViewActivity: () => void;
   onReply?: () => void;
   onEdit?: (post: Post) => void;
 }
 
-export const PostMainPost = ({ data, onViewActivity, onReply, onEdit }: PostMainPostProps) => {
+export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
   // Hàm format thời gian giả lập (hoặc dùng thư viện date-fns nếu có)
 
 

@@ -6,7 +6,6 @@ import { toast } from "sonner";
 
 interface ProfileMediaTabProps {
     posts: Post[];
-    isLoading?: boolean;
 }
 
 interface MediaItem {
@@ -15,7 +14,7 @@ interface MediaItem {
     postId: string;
 }
 
-export const ProfileMediaTab: React.FC<ProfileMediaTabProps> = ({ posts, isLoading }) => {
+export const ProfileMediaTab: React.FC<ProfileMediaTabProps> = ({ posts }) => {
     // Extract and flatten all media from posts
     const mediaItems: MediaItem[] = React.useMemo(() => {
         const items: MediaItem[] = [];
@@ -96,15 +95,7 @@ export const ProfileMediaTab: React.FC<ProfileMediaTabProps> = ({ posts, isLoadi
     }, [lightboxIndex, mediaItems.length]);
 
 
-    if (isLoading) {
-        return (
-            <div className="grid grid-cols-4 gap-1 md:gap-2">
-                {[...Array(6)].map((_, i) => (
-                    <div key={i} className="aspect-square bg-neutral-800 animate-pulse rounded-md" />
-                ))}
-            </div>
-        )
-    }
+
 
     if (mediaItems.length === 0) {
         return (
@@ -113,6 +104,8 @@ export const ProfileMediaTab: React.FC<ProfileMediaTabProps> = ({ posts, isLoadi
             </div>
         );
     }
+
+    const activeItem = lightboxIndex !== null ? mediaItems[lightboxIndex] : null;
 
     return (
         <>
@@ -160,7 +153,7 @@ export const ProfileMediaTab: React.FC<ProfileMediaTabProps> = ({ posts, isLoadi
             </div>
 
             {/* Lightbox */}
-            {lightboxIndex !== null && (
+            {activeItem && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 animate-in fade-in duration-200"
                     onClick={handleCloseLightbox}
@@ -172,10 +165,10 @@ export const ProfileMediaTab: React.FC<ProfileMediaTabProps> = ({ posts, isLoadi
                         <X size={32} />
                     </button>
 
-                    {mediaItems[lightboxIndex].type !== 'youtube' && (
+                    {activeItem.type !== 'youtube' && (
                         <button
                             className="absolute top-4 right-20 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-                            onClick={(e) => handleDownload(e, mediaItems[lightboxIndex].url)}
+                            onClick={(e) => handleDownload(e, activeItem.url)}
                             title="Download"
                         >
                             <Download size={28} />
@@ -186,25 +179,25 @@ export const ProfileMediaTab: React.FC<ProfileMediaTabProps> = ({ posts, isLoadi
                         className="w-full max-w-7xl max-h-screen p-4 flex items-center justify-center"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {mediaItems[lightboxIndex].type === 'youtube' ? (
+                        {activeItem.type === 'youtube' ? (
                             <div className="aspect-video w-full max-w-5xl bg-black rounded-lg overflow-hidden shadow-2xl">
                                 <iframe
-                                    src={getYouTubeEmbedUrl(mediaItems[lightboxIndex].url) + "?autoplay=1"}
+                                    src={getYouTubeEmbedUrl(activeItem.url) + "?autoplay=1"}
                                     className="w-full h-full"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
                                 />
                             </div>
-                        ) : mediaItems[lightboxIndex].type === 'video' ? (
+                        ) : activeItem.type === 'video' ? (
                             <video
-                                src={mediaItems[lightboxIndex].url}
+                                src={activeItem.url}
                                 controls
                                 autoPlay
                                 className="max-w-full max-h-[90vh] rounded-lg shadow-2xl"
                             />
                         ) : (
                             <img
-                                src={mediaItems[lightboxIndex].url}
+                                src={activeItem.url}
                                 alt="Full size"
                                 className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
                             />
