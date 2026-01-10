@@ -87,6 +87,29 @@ export const useCreatePost = () => {
   });
 };
 
+// ✅ EDIT POST
+export const useEditPost = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ postId, data }: { postId: string; data: FormData }) => {
+      const promise = api.posts.update(postId, data);
+      toast.promise(promise, {
+        loading: 'Updating post...',
+        success: 'Post updated successfully',
+        error: 'Failed to update post',
+      });
+      return promise;
+    },
+
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["post", data.post_id] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+  });
+};
+
 
 // Helper to update cache
 const updatePostCache = (queryClient: any, postId: string, updater: (post: any) => any) => {

@@ -8,6 +8,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthProvider";
 import ReplyCommentDialog, { type TargetPost } from "@/components/comment";
 import { usePosts } from "@/hooks/api/use-posts";
+import EditPostDialog from "@/components/EditPostDialog";
 import { MOCK_FRIENDS } from "@/MockData/data";
 
 
@@ -24,6 +25,8 @@ const Feed = () => {
 
   const [isReplyOpen, setIsReplyOpen] = useState(false);
   const [replyTarget, setReplyTarget] = useState<TargetPost | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<PostData | null>(null);
 
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -226,6 +229,10 @@ const Feed = () => {
                   }}
                   author={item.author}
                   onReply={handleReply}
+                  onEdit={(post) => {
+                    setEditingPost(post);
+                    setIsEditOpen(true);
+                  }}
                 />
               ))}
 
@@ -277,6 +284,15 @@ const Feed = () => {
           />
         )
       }
+
+      {/* Edit Dialog */}
+      {isEditOpen && editingPost && (
+        <EditPostDialog
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          post={editingPost}
+        />
+      )}
     </div >
   );
 };

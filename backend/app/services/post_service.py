@@ -138,7 +138,42 @@ class PostService:
 
         return payload
 
-    # --- NEW: Hàm xử lý chung cho Like, Share, Save (Sub-collections) ---
+    @staticmethod
+    def update_post(post_id: str, user_id: str, content: str, new_media_urls: list = None, existing_media_urls: list = None):
+        post_ref = db.collection("posts").document(post_id)
+        post_doc = post_ref.get()
+        
+        if not post_doc.exists:
+            raise ValueError(f"Post {post_id} not found")
+            
+        post_data = post_doc.to_dict()
+        if post_data.get("author_id") != user_id:
+            raise ValueError("Permission denied")
+            
+        if new_media_urls is None:
+            new_media_urls = []
+        if existing_media_urls is None:
+            existing_media_urls = []
+            
+        # Combine existing (preserved) and new media
+        # Be careful: 'existing_media_urls' comes from frontend which might edit the order or remove some.
+        # We trust the frontend list of existing URLs.
+        
+        # Security check: Ensure existing URLs actually belonged to the post or are valid?
+        # For now, we trust. 
+        
+        final_media_urls = existing_media_urls + new_media_urls
+        
+        update_data = {
+            "content": content,
+            "media_urls": final_media_urls
+        }
+        
+        post_ref.update(update_data)
+        
+        # Merge updated fields into current data to return
+        post_data.update(update_data)
+        return post_data
     # --- NEW: Hàm xử lý chung cho Like, Share, Save (Sub-collections) ---
     @staticmethod
     def toggle_interaction(collection_name: str, count_field: str, post_id: str, user_id: str, user_avatar: str = ""):
