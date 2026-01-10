@@ -5,7 +5,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter
+  DialogFooter,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -106,6 +107,9 @@ export default function CreatePostDialog({
             Cancel
           </button>
           <DialogTitle className="text-base font-bold text-foreground m-0">New Post</DialogTitle>
+          <DialogDescription className="sr-only">
+            Create a new post to share with your friends.
+          </DialogDescription>
           <div className="w-[50px]"></div>
         </DialogHeader>
 

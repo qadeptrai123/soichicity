@@ -68,12 +68,25 @@ def get_user_posts(
     user_id: str, 
     limit: int = 10, 
     cursor: Optional[str] = None, # Cursor chính là last_post_id
+    type: str = "posts", # posts, replies, media, all
     db=Depends(get_db)
 ):
     """
     API này thay thế cho việc load tất cả post trong get_user_profile
     """
-    return user_service.get_user_posts_paginated(db, user_id, limit, cursor)
+    return user_service.get_user_posts_paginated(db, user_id, limit, cursor, post_type=type)
+
+@router.get("/users/{user_id}/reposts", tags=["users"])
+def get_user_reposts(
+    user_id: str, 
+    limit: int = 10, 
+    cursor: Optional[str] = None, 
+    db=Depends(get_db)
+):
+    """
+    Get user reposts
+    """
+    return user_service.get_user_reposts_paginated(db, user_id, limit, cursor)
 
 @router.get("/users/{user_id}/following", tags=["users"])
 def get_user_following(

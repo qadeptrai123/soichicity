@@ -139,3 +139,25 @@ export const useEditProfile = () => {
     },
   });
 };
+
+// ... (previous imports)
+
+export const useUserPosts = (userId: string, type: string = "posts", options?: { enabled?: boolean }) => {
+  return useInfiniteQuery({
+    queryKey: ['user-posts', userId, type],
+    queryFn: ({ pageParam = null }) => api.users.getUserPosts(userId, 10, pageParam, type),
+    getNextPageParam: (lastPage: any) => lastPage?.next_cursor ?? undefined,
+    initialPageParam: null,
+    enabled: options?.enabled ?? !!userId,
+  });
+};
+
+export const useUserReposts = (userId: string, options?: { enabled?: boolean }) => {
+  return useInfiniteQuery({
+    queryKey: ['user-reposts', userId],
+    queryFn: ({ pageParam = null }) => api.users.getUserReposts(userId, 10, pageParam),
+    getNextPageParam: (lastPage: any) => lastPage?.next_cursor ?? undefined,
+    initialPageParam: null,
+    enabled: options?.enabled ?? !!userId,
+  });
+};

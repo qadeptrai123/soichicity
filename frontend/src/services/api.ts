@@ -15,7 +15,9 @@ export const api = {
     unfollow: (userId: string) => apiClient.post(`/api/v1/users/${userId}/unfollow`),
     getFollowing: (userId: string, limit: number = 10, cursor?: string | null) => apiClient.get<any>(`/api/v1/users/${userId}/following`, { params: { limit, cursor } }) as unknown as Promise<{ items: User[], next_cursor: string | null }>,
     getFollowers: (userId: string, limit: number = 10, cursor?: string | null) => apiClient.get<any>(`/api/v1/users/${userId}/followers`, { params: { limit, cursor } }) as unknown as Promise<{ items: User[], next_cursor: string | null }>,
-    updateProfile: (data: { full_name?: string; bio?: string; avatar_url?: string }) => 
+    getUserPosts: (userId: string, limit: number = 10, cursor?: string | null, type: string = "posts") => apiClient.get<any>(`/api/v1/users/${userId}/posts`, { params: { limit, cursor, type } }) as unknown as Promise<{ items: Post[], next_cursor: string | null }>,
+    getUserReposts: (userId: string, limit: number = 10, cursor?: string | null) => apiClient.get<any>(`/api/v1/users/${userId}/reposts`, { params: { limit, cursor } }) as unknown as Promise<{ items: Post[], next_cursor: string | null }>,
+    updateProfile: (data: { full_name?: string; bio?: string; avatar_url?: string; link?: string }) => 
       apiClient.put('/api/v1/users/me', data) as unknown as Promise<User>,
   },
   posts: {

@@ -1,5 +1,5 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { UserListItem } from "@/components/UserListItem";
 import { useFollowers, useFollowing } from "@/hooks/api/use-users";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -65,6 +65,9 @@ export function UserListDialog({ isOpen, onClose, userId, type, username }: User
             <DialogContent className="sm:max-w-[480px] p-0 gap-0 bg-secondary border-border text-white">
                 <DialogHeader className="p-4 border-b border-border">
                     <DialogTitle className="text-xl font-bold text-left">{title}</DialogTitle>
+                    <DialogDescription className="sr-only">
+                        List of {type} for {username}
+                    </DialogDescription>
                 </DialogHeader>
                 
                 <div className="h-[400px] overflow-y-auto pr-2 custom-scrollbar">
@@ -75,7 +78,7 @@ export function UserListDialog({ isOpen, onClose, userId, type, username }: User
                     ) : users.length > 0 ? (
                         <div>
                             {users.map((user: any) => (
-                                <UserListItem key={user.uid} user={user} />
+                                <UserListItem key={user.uid} user={user} onClose={onClose} />
                             ))}
                             
                             {/* Load more trigger */}

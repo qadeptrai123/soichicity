@@ -172,7 +172,6 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
                                         src={processedData.media_url!}
                                         alt="Reply media"
                                         className="media-content max-h-[250px] w-full h-auto object-contain object-left"
-                                        loading="lazy"
                                     />
                                 )}
                             </div>

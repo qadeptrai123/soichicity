@@ -266,7 +266,6 @@ export const PostMainPost = ({ data, onViewActivity, onReply }: PostMainPostProp
                   src={processedData.media_url!}
                   alt="Post media"
                   className="media-content max-h-[600px] w-full h-auto object-contain object-left"
-                  loading="lazy"
                 />
               )}
             </div>

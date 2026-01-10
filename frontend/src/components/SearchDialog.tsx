@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Search, X, TrendingUp } from 'lucide-react';
 import { searchService, type SearchUser, type SearchPost } from '@/services/searchService';
@@ -64,6 +64,8 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
             <div className="grid grid-cols-1 lg:grid-cols-4">
                 <div className="hidden lg:block"></div>
                 <DialogContent className="max-w-[600px]! p-0 bg-backgroundfeed border-border rounded-2xl [&>button]:hidden h-[600px] flex flex-col lg:col-span-2">
+                    <DialogTitle className="sr-only">Search</DialogTitle>
+                    <DialogDescription className="sr-only">Search for users and posts</DialogDescription>
                     {/* Search Header */}
                     <div className="p-4 border-b border-border">
                         <div className="flex items-center gap-3 bg-input rounded-2xl px-4 py-2">

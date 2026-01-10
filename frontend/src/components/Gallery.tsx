@@ -47,16 +47,16 @@ const sortMediaItems = (items: MediaItem[]): MediaItem[] => {
 // }
 interface GalleryProps {
     items: string[];
-    size?: "small" | "large";
+    size?: "small" | "medium" | "full";
     onDragStateChange?: (dragging: boolean) => void;
-    onOpen?: (url: string) => void; // 👈 THÊM
-  }
-  
+    onOpen?: (url: string) => void;
+    className?: string;
+}
 
-const SIZE_MAP = {
+const SIZE_MAP: Record<string, number | string> = {
     small: 250,
     medium: 500,
-    full: "100%", // Logic will handle string vs number
+    full: "100%",
 };
 
 export const Gallery: React.FC<GalleryProps> = ({
@@ -370,7 +370,6 @@ export const Gallery: React.FC<GalleryProps> = ({
                                     alt={`Gallery item ${index + 1}`}
                                     className={`${isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
                                         } object-contain`}
-                                    loading="lazy"
                                     onLoad={(e) => handleImageLoad(e, index)}
                                 />
                             )}

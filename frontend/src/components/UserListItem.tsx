@@ -18,9 +18,10 @@ interface UserListItemProps {
         is_self?: boolean;
         bio?: string;
     };
+    onClose?: () => void;
 }
 
-export const UserListItem = ({ user }: UserListItemProps) => {
+export const UserListItem = ({ user, onClose }: UserListItemProps) => {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -30,6 +31,7 @@ export const UserListItem = ({ user }: UserListItemProps) => {
     const unfollowMutation = useUnfollowUser();
 
     const handleClick = () => {
+        if (onClose) onClose();
         navigate(`/profile/${user.username}`);
     };
 
@@ -62,7 +64,7 @@ export const UserListItem = ({ user }: UserListItemProps) => {
             >
                 <div className="flex items-center gap-3 flex-1 min-w-0 mr-4">
                     <Avatar className="w-10 h-10">
-                        <AvatarImage src={user.avatar_url || DEFAULT_AVATAR_URL} />
+                        <AvatarImage src={user.avatar_url || DEFAULT_AVATAR_URL} loading="eager" />
                         <AvatarFallback>{user.username[0]?.toUpperCase()}</AvatarFallback>
                     </Avatar>
 

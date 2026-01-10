@@ -27,7 +27,9 @@ export function UnfollowDialog({ isOpen, onClose, onConfirm, username, avatarUrl
 
                     <DialogHeader className="space-y-2">
                         <DialogTitle className="text-center text-xl font-bold">Unfollow @{username}?</DialogTitle>
-
+                        <DialogDescription className="sr-only">
+                            Are you sure you want to unfollow @{username}? You will not see their posts in your home feed.
+                        </DialogDescription>
                     </DialogHeader>
                 </div>
 

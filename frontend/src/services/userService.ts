@@ -4,6 +4,7 @@ export interface UserUpdateData {
     full_name?: string;
     bio?: string;
     avatar_url?: string;
+    link?: string;
 }
 
 export const userService = {
