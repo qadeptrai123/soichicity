@@ -5,7 +5,7 @@ import React, { useState, useRef } from "react"; // Import useRef
 import { ActivityPopup } from "@/components/post/ActivityPopup";
 // import { Image as ImageIcon, Smile, AtSign } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { TargetPost } from "@/components/comment";
+import type { TargetPost } from "@/types/post";
 import ReplyCommentDialog from "@/components/comment";
 import { useAuth } from "@/contexts/AuthProvider";
 import { ReplyItem } from "@/components/post/ReplyItem";
@@ -13,6 +13,7 @@ import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import AnimateEntrance from "@/components/ui/AnimateEntrance";
 import { LoginPrompt } from "@/components/LoginPrompt";
+import EditPostDialog from "@/components/EditPostDialog";
 
 const PostDetail = () => {
     const { id } = useParams();
@@ -24,6 +25,10 @@ const PostDetail = () => {
     const [replyDialogOpen, setReplyDialogOpen] = useState(false);
     const [selectedReply, setSelectedReply] = useState<TargetPost | null>(null);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+    // Edit Post State
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editingPost, setEditingPost] = useState<any | null>(null);
 
     const handleReplyClick = (reply: any) => {
         if (!isAuthenticated) {
@@ -101,6 +106,10 @@ const PostDetail = () => {
                             data={postData}
                             onViewActivity={handleToggleActivity}
                             onReply={() => handleReplyClick(postData)}
+                            onEdit={(post) => {
+                                setEditingPost(post);
+                                setIsEditOpen(true);
+                            }}
                         />
 
                         {/* --- HEADER CHỨA NÚT VIEW ACTIVITY --- */}
@@ -190,6 +199,15 @@ const PostDetail = () => {
                 )
 
             }
+
+            {/* EDIT POST DIALOG */}
+            {isEditOpen && editingPost && (
+                <EditPostDialog
+                    open={isEditOpen}
+                    onOpenChange={setIsEditOpen}
+                    post={editingPost}
+                />
+            )}
             {/* Login Prompt Overlay */}
             {showLoginPrompt && (
                 <div

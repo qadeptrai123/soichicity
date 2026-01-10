@@ -13,11 +13,12 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import CreatePostDialog from "@/components/CreatePostDialog";
 import EditPostDialog from "@/components/EditPostDialog";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
+import { ProfileMediaTab } from "@/components/ProfileMediaTab";
+import { DropdownExtend } from "@/components/DropdownExtend";
+import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { LoginPrompt } from "@/components/LoginPrompt";
 import { UserListDialog } from "@/components/UserListDialog";
 import { UnfollowDialog } from "@/components/UnfollowDialog";
-import { DropdownExtend } from "@/components/DropdownExtend";
-import { BlockUserDialog } from "@/components/BlockUserDialog";
 
 export default function Profile() {
   const { username: paramUsername } = useParams<{ username: string }>();
@@ -65,7 +66,7 @@ export default function Profile() {
   // Fetch Posts Separately - Use activeTab to drive the query
   // We use optional chaining because profileData might be undefined initially
   const targetUid = profileData?.user?.uid ?? "";
-  
+
   // Check if blocked
   const isBlocked = profileData?.user?.is_blocked_by_me || profileData?.user?.is_blocking_me;
 
@@ -75,19 +76,20 @@ export default function Profile() {
   // Using separate hooks for different data to avoid conflicts
   // Only fetch if NOT blocked
   // Initial data is only valid for first load of Posts tab
-  const initialPostsData = (!isRepostsTab && activeTab === "Posts" && profileData?.posts) 
-    ? { 
-        pages: [{ 
-          items: profileData.posts, 
-          nextCursor: profileData.posts_cursor 
-        }], 
-        pageParams: [undefined] 
-      } 
+  const initialPostsData = (!isRepostsTab && activeTab === "Posts" && profileData?.posts)
+    ? {
+      pages: [{
+        items: profileData.posts,
+        nextCursor: profileData.posts_cursor
+      }],
+      pageParams: [undefined]
+    }
     : undefined;
 
-  const postsQuery = useUserPosts(targetUid, postType, { 
+  const postsQuery = useUserPosts(targetUid, postType, {
     enabled: !isRepostsTab && !!targetUid && !isBlocked,
-    initialData: initialPostsData
+    initialData: initialPostsData,
+    limit: activeTab === 'Media' ? 24 : 10
   });
   const repostsQuery = useUserReposts(targetUid, { enabled: isRepostsTab && !!targetUid && !isBlocked });
 
@@ -98,7 +100,8 @@ export default function Profile() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    isLoading: isPostsLoading
+    isLoading: isPostsLoading,
+    isFetching
   } = currentQuery;
 
   // Flatten posts from infinite query pages
@@ -239,45 +242,45 @@ export default function Profile() {
             Edit profile
           </Button>
         ) : user.is_blocked_by_me ? (
-           <Button
-              onClick={() => unblockMutation.mutate(user.uid)}
-              disabled={unblockMutation.isPending}
-              className="w-full bg-transparent border border-neutral-700 text-white hover:border-red-500 hover:text-red-500 hover:bg-transparent rounded-xl h-[36px] font-semibold text-[15px] transition-colors"
-            >
-              {unblockMutation.isPending ? "Unblocking..." : "Unblock"}
-            </Button>
+          <Button
+            onClick={() => unblockMutation.mutate(user.uid)}
+            disabled={unblockMutation.isPending}
+            className="w-full bg-transparent border border-neutral-700 text-white hover:border-red-500 hover:text-red-500 hover:bg-transparent rounded-xl h-[36px] font-semibold text-[15px] transition-colors"
+          >
+            {unblockMutation.isPending ? "Unblocking..." : "Unblock"}
+          </Button>
         ) : (
           <>
-          <div className="flex gap-3 flex-1">
-            <Button
-              onClick={handleFollowToggle}
-              disabled={followMutation.isPending || unfollowMutation.isPending}
-              className={`flex-1 rounded-xl h-[36px] font-semibold text-[15px] transition-colors ${isFollowing
-                ? "bg-transparent border border-neutral-700 text-white hover:border-red-500 hover:text-red-500 hover:bg-transparent"
-                : "bg-[#3b82f6] text-white hover:bg-blue-600 border-none"
-                }`}
-            >
-              {isFollowing ? "Following" : "Follow"}
-            </Button>
-            <Button
-              onClick={handleMention}
-              className="flex-1 bg-transparent border border-neutral-700 text-white hover:bg-neutral-800 rounded-xl h-[36px] font-semibold text-[15px] transition-colors"
-            >
-              Mention
-            </Button>
-          </div>
+            <div className="flex gap-3 flex-1">
+              <Button
+                onClick={handleFollowToggle}
+                disabled={followMutation.isPending || unfollowMutation.isPending}
+                className={`flex-1 rounded-xl h-[36px] font-semibold text-[15px] transition-colors ${isFollowing
+                  ? "bg-transparent border border-neutral-700 text-white hover:border-red-500 hover:text-red-500 hover:bg-transparent"
+                  : "bg-[#3b82f6] text-white hover:bg-blue-600 border-none"
+                  }`}
+              >
+                {isFollowing ? "Following" : "Follow"}
+              </Button>
+              <Button
+                onClick={handleMention}
+                className="flex-1 bg-transparent border border-neutral-700 text-white hover:bg-neutral-800 rounded-xl h-[36px] font-semibold text-[15px] transition-colors"
+              >
+                Mention
+              </Button>
+            </div>
             {/* Context Menu for Block */}
             <DropdownExtend
-                triggerType="icon"
-                actions={[
-                    {
-                        id: "block_user",
-                        label: "Block",
-                        icon: <Ban size={16} />,
-                        variant: "destructive",
-                        onClick: () => setShowBlockDialog(true)
-                    }
-                ]}
+              triggerType="icon"
+              actions={[
+                {
+                  id: "block_user",
+                  label: "Block",
+                  icon: <Ban size={16} />,
+                  variant: "destructive",
+                  onClick: () => setShowBlockDialog(true)
+                }
+              ]}
             />
           </>
         )}
@@ -321,14 +324,16 @@ export default function Profile() {
       {/* CONTENT FEED */}
       <div className="mt-4 px-4 sm:px-0">
         {user.is_blocked_by_me ? (
-            <div className="flex flex-col items-center justify-center py-10 text-neutral-500">
-                <p className="font-semibold text-lg">You have blocked this user</p>
-                <p className="text-sm">You cannot see their posts or interact with them.</p>
-            </div>
-        ) : isPostsLoading ? (
-           <div className="flex justify-center p-8">
-             <LoadingSpinner />
-           </div>
+          <div className="flex flex-col items-center justify-center py-10 text-neutral-500">
+            <p className="font-semibold text-lg">You have blocked this user</p>
+            <p className="text-sm">You cannot see their posts or interact with them.</p>
+          </div>
+        ) : (isPostsLoading || (activeTab === 'Media' && isFetching && posts.length === 0)) ? (
+          <div className="flex justify-center p-8">
+            <LoadingSpinner />
+          </div>
+        ) : activeTab === 'Media' ? (
+          <ProfileMediaTab posts={posts || []} />
         ) : posts && posts.length > 0 ? (
           posts.map((post) => (
             <FeedCard
@@ -365,9 +370,16 @@ export default function Profile() {
           </div>
         )}
         {/* Load more trigger */}
-        <div ref={loadMoreRef} className="h-4 w-full flex justify-center items-center mt-2">
-          {isFetchingNextPage && <LoadingSpinner />}
-        </div>
+        {hasNextPage && !(isPostsLoading || (activeTab === 'Media' && isFetching && posts.length === 0)) && (
+          <div
+            ref={loadMoreRef}
+            className={`w-full flex justify-center items-center ${activeTab === 'Media' ? 'h-px opacity-0 m-0 p-0' : 'h-4 mt-2 mb-2'}`}
+          >
+            {isFetchingNextPage && activeTab !== 'Media' && (
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-neutral-500 border-t-transparent" />
+            )}
+          </div>
+        )}
       </div>
 
       {/* EDIT PROFILE DIALOG */}
@@ -449,17 +461,17 @@ export default function Profile() {
         isPending={unfollowMutation.isPending}
       />
 
-       <BlockUserDialog
-          isOpen={showBlockDialog}
-          onClose={() => setShowBlockDialog(false)}
-          onConfirm={() => {
-              blockMutation.mutate(user.uid, {
-                  onSettled: () => setShowBlockDialog(false)
-              });
-          }}
-          username={user.username}
-          avatarUrl={user.avatar_url}
-          isPending={blockMutation.isPending}
+      <BlockUserDialog
+        isOpen={showBlockDialog}
+        onClose={() => setShowBlockDialog(false)}
+        onConfirm={() => {
+          blockMutation.mutate(user.uid, {
+            onSettled: () => setShowBlockDialog(false)
+          });
+        }}
+        username={user.username}
+        avatarUrl={user.avatar_url}
+        isPending={blockMutation.isPending}
       />
 
       {/* REPLY DIALOG */}

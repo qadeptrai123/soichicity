@@ -123,18 +123,18 @@ const updatePostCache = (queryClient: any, postId: string, updater: (post: any) 
         pages: oldData.pages.map((page: any) => {
           // Handle Main Feed (Array)
           if (Array.isArray(page)) {
-             return page.map((post: any) =>
-                post.post_id === postId ? updater(post) : post
-             );
+            return page.map((post: any) =>
+              post.post_id === postId ? updater(post) : post
+            );
           }
           // Handle User/Profile Feed (Object with items)
           if (page?.items && Array.isArray(page.items)) {
-             return {
-                 ...page,
-                 items: page.items.map((post: any) => 
-                    post.post_id === postId ? updater(post) : post
-                 )
-             };
+            return {
+              ...page,
+              items: page.items.map((post: any) =>
+                post.post_id === postId ? updater(post) : post
+              )
+            };
           }
           return page;
         }),
@@ -188,6 +188,7 @@ export const useLikePost = () => {
       queryClient.invalidateQueries({ queryKey: ["user-reposts"] });
       queryClient.invalidateQueries({ queryKey: ["post", postId] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["post-activity", postId] });
     },
   });
 };
@@ -254,11 +255,11 @@ export const useRepostPost = () => {
     },
 
     onSuccess: (_data, variables) => {
-         toast.success(
-            variables.wasReposted
-              ? "Removed from reposts"
-              : "Reposted"
-          );
+      toast.success(
+        variables.wasReposted
+          ? "Removed from reposts"
+          : "Reposted"
+      );
     },
 
     onSettled: (_data, _error, variables) => {
@@ -267,6 +268,7 @@ export const useRepostPost = () => {
       queryClient.invalidateQueries({ queryKey: ["user-reposts"] });
       queryClient.invalidateQueries({ queryKey: ["post", variables.postId] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["post-activity", variables.postId] });
     },
   });
 };
@@ -301,7 +303,7 @@ export const useSavePost = () => {
     onError: (err: any, variables, context) => {
       if (context?.previousPosts) queryClient.setQueryData(["posts"], context.previousPosts);
       if (context?.previousPost) queryClient.setQueryData(["post", variables.postId], context.previousPost);
-      
+
       const msg = err.response?.data?.detail || "Failed to save post";
       toast.error(msg);
     },
