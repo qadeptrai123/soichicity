@@ -5,8 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ChevronRight, Loader2 } from "lucide-react";
 import type { User } from "@/types/user";
 import BlockList from "@/components/BlockList";
-// @ts-ignore
-import { MOCK_BLOCKED_USERS } from "@/MockData/data";
+// import { MOCK_BLOCKED_USERS } from "@/MockData/data";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import AnimateEntrance from "./ui/AnimateEntrance";
 import { userService } from "@/services/userService";
@@ -319,12 +318,9 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
         </div>
       </AnimateEntrance>
 
-      {/* Block List Dialog */}
       <BlockList
         isOpen={isBlockListOpen}
         onClose={() => setIsBlockListOpen(false)}
-        // @ts-ignore
-        blockedUsers={MOCK_BLOCKED_USERS}
       />
     </div>
   );

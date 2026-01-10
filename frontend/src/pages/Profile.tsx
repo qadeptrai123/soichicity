@@ -1,9 +1,10 @@
+import { ArrowLeft, Calendar, Link as LinkIcon, Edit3, Ban } from "lucide-react";
 import { useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import EditProfile from "@/components/EditProfile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useProfile, useFollowUser, useUnfollowUser, useUserPosts, useUserReposts } from "@/hooks/api/use-users";
+import { useProfile, useFollowUser, useUnfollowUser, useUserPosts, useUserReposts, useBlockUser, useUnblockUser } from "@/hooks/api/use-users";
 import { useAuth } from "@/contexts/AuthProvider";
 import ReplyCommentDialog from "@/components/comment";
 import type { TargetPost } from "@/types/post";
@@ -14,6 +15,8 @@ import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { LoginPrompt } from "@/components/LoginPrompt";
 import { UserListDialog } from "@/components/UserListDialog";
 import { UnfollowDialog } from "@/components/UnfollowDialog";
+import { DropdownExtend } from "@/components/DropdownExtend";
+import { BlockUserDialog } from "@/components/BlockUserDialog";
 
 export default function Profile() {
   const { username: paramUsername } = useParams<{ username: string }>();
@@ -24,7 +27,9 @@ export default function Profile() {
   const [createPostContent, setCreatePostContent] = useState("");
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showUnfollowDialog, setShowUnfollowDialog] = useState(false);
-  
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
+
+
   // User List Dialog State
   const [userListDialog, setUserListDialog] = useState<{
       isOpen: boolean;
@@ -33,8 +38,6 @@ export default function Profile() {
 
   const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
   const [targetPost, setTargetPost] = useState<TargetPost | null>(null);
-
-
   // Retrieve current user from Auth Context
   const { user: me } = useAuth();
 
@@ -51,30 +54,37 @@ export default function Profile() {
   // Mutations
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
+  const blockMutation = useBlockUser();
+  const unblockMutation = useUnblockUser();
 
   // Fetch Posts Separately - Use activeTab to drive the query
   // We use optional chaining because profileData might be undefined initially
   const targetUid = profileData?.user?.uid ?? "";
   
+  // Check if blocked
+  const isBlocked = profileData?.user?.is_blocked_by_me || profileData?.user?.is_blocking_me;
+
   const isRepostsTab = activeTab === "Reposts";
   const postType = activeTab === "Posts" ? "posts" : activeTab === "Replies" ? "replies" : activeTab === "Media" ? "media" : "posts";
 
-  // OPTIMIZATION: Use embedded posts from Profile response as initial data to avoid 2nd fetch
-  const initialPostsData = (postType === "posts" && profileData?.posts) 
-    ? {
-        pages: [{
-            items: profileData.posts,
-            next_cursor: profileData.posts_cursor ?? null,
-        }],
-        pageParams: [null]
-    } 
+  // Using separate hooks for different data to avoid conflicts
+  // Only fetch if NOT blocked
+  // Initial data is only valid for first load of Posts tab
+  const initialPostsData = (!isRepostsTab && activeTab === "Posts" && profileData?.posts) 
+    ? { 
+        pages: [{ 
+          items: profileData.posts, 
+          nextCursor: profileData.posts_cursor 
+        }], 
+        pageParams: [undefined] 
+      } 
     : undefined;
 
   const postsQuery = useUserPosts(targetUid, postType, { 
-    enabled: !isRepostsTab && !!targetUid,
+    enabled: !isRepostsTab && !!targetUid && !isBlocked,
     initialData: initialPostsData
   });
-  const repostsQuery = useUserReposts(targetUid, { enabled: isRepostsTab && !!targetUid });
+  const repostsQuery = useUserReposts(targetUid, { enabled: isRepostsTab && !!targetUid && !isBlocked });
 
   const currentQuery = isRepostsTab ? repostsQuery : postsQuery;
   
@@ -214,7 +224,7 @@ export default function Profile() {
       </div>
 
       {/* ACTION BUTTONS */}
-      <div className="px-4 sm:px-0 mb-2">
+      <div className="px-4 sm:px-0 mb-2 flex items-center justify-between gap-3">
         {isOwnProfile ? (
           <Button
             onClick={() => setIsEditProfileOpen(true)}
@@ -223,8 +233,17 @@ export default function Profile() {
           >
             Edit profile
           </Button>
+        ) : user.is_blocked_by_me ? (
+           <Button
+              onClick={() => unblockMutation.mutate(user.uid)}
+              disabled={unblockMutation.isPending}
+              className="w-full bg-transparent border border-neutral-700 text-white hover:border-red-500 hover:text-red-500 hover:bg-transparent rounded-xl h-[36px] font-semibold text-[15px] transition-colors"
+            >
+              {unblockMutation.isPending ? "Unblocking..." : "Unblock"}
+            </Button>
         ) : (
-          <div className="flex gap-3">
+          <>
+          <div className="flex gap-3 flex-1">
             <Button
               onClick={handleFollowToggle}
               disabled={followMutation.isPending || unfollowMutation.isPending}
@@ -242,6 +261,20 @@ export default function Profile() {
               Mention
             </Button>
           </div>
+            {/* Context Menu for Block */}
+            <DropdownExtend
+                triggerType="icon"
+                actions={[
+                    {
+                        id: "block_user",
+                        label: "Block",
+                        icon: <Ban size={16} />,
+                        variant: "destructive",
+                        onClick: () => setShowBlockDialog(true)
+                    }
+                ]}
+            />
+          </>
         )}
       </div>
 
@@ -282,7 +315,12 @@ export default function Profile() {
 
       {/* CONTENT FEED */}
       <div className="mt-4 px-4 sm:px-0">
-        {isPostsLoading ? (
+        {user.is_blocked_by_me ? (
+            <div className="flex flex-col items-center justify-center py-10 text-neutral-500">
+                <p className="font-semibold text-lg">You have blocked this user</p>
+                <p className="text-sm">You cannot see their posts or interact with them.</p>
+            </div>
+        ) : isPostsLoading ? (
            <div className="flex justify-center p-8">
              <LoadingSpinner />
            </div>
@@ -387,6 +425,19 @@ export default function Profile() {
           username={user.username}
           avatarUrl={user.avatar_url}
           isPending={unfollowMutation.isPending}
+      />
+
+       <BlockUserDialog
+          isOpen={showBlockDialog}
+          onClose={() => setShowBlockDialog(false)}
+          onConfirm={() => {
+              blockMutation.mutate(user.uid, {
+                  onSettled: () => setShowBlockDialog(false)
+              });
+          }}
+          username={user.username}
+          avatarUrl={user.avatar_url}
+          isPending={blockMutation.isPending}
       />
 
       {/* REPLY DIALOG */}

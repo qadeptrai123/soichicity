@@ -142,87 +142,87 @@ class PostService:
     # --- NEW: Hàm xử lý chung cho Like, Share, Save (Sub-collections) ---
     @staticmethod
     def toggle_interaction(collection_name: str, count_field: str, post_id: str, user_id: str, user_avatar: str = ""):
-        """
-        collection_name: 'likes', 'reposts', 'saves' (mapped from API)
-        count_field: 'likes_count', 'reposts_count', 'saves_count'
-        """
-        from app.services.notification_service import NotificationService
-        from app.schemas.user_interactions import NotificationCreate
+        print(f"toggle_interaction called: col={collection_name}, field={count_field}, post={post_id}, user={user_id}")
         
-        # Normalize collection name (shares -> reposts) to match schema "Sub-collection Repost"
         target_collection = collection_name
         if collection_name == "shares":
             target_collection = "reposts"
 
-        # Determine User Activity Collection Name
-        user_interaction_collection = target_collection # Default fallback
-        if target_collection == "likes":
-            user_interaction_collection = "activity_likes"
-        elif target_collection == "reposts":
-            user_interaction_collection = "activity_reposts"
-        elif target_collection == "saves":
-            user_interaction_collection = "activity_saves"
-        
-        post_ref = db.collection("posts").document(post_id)
-        
-        # Check if post exists
-        post_snap = post_ref.get()
-        if not post_snap.exists:
-            raise ValueError(f"Post {post_id} not found")
+        try:
+            # Determine User Activity Collection Name
+            user_interaction_collection = target_collection # Default fallback
+            if target_collection == "likes":
+                user_interaction_collection = "activity_likes"
+            elif target_collection == "reposts":
+                user_interaction_collection = "activity_reposts"
+            elif target_collection == "saves":
+                user_interaction_collection = "activity_saves"
             
-        post_data = post_snap.to_dict()
-        author_id = post_data.get("author_id")
-        
-        # Timestamp
-        timestamp_iso = datetime.utcnow().isoformat()
-
-        # 1. Post Sub-collection: posts/{post_id}/{target_collection}/{user_id}
-        # Schema: user_id (PK), created_at
-        post_interaction_ref = post_ref.collection(target_collection).document(user_id)
-        
-        # 2. User Sub-collection: users/{user_id}/{user_interaction_collection}/{post_id}
-        user_interaction_ref = db.collection("users").document(user_id).collection(user_interaction_collection).document(post_id)
-        
-        doc = post_interaction_ref.get()
-        
-        if doc.exists:
-            # --- REMOVE (Unlike, Unrepost, Unsave) ---
-            post_interaction_ref.delete()
-            user_interaction_ref.delete()
-            post_ref.update({count_field: firestore.Increment(-1)})
+            post_ref = db.collection("posts").document(post_id)
             
-            return {"status": "removed"}
-        else:
-            # --- ADD (Like, Repost, Save) ---
-            
-            # Save to Post Sub-collection
-            post_interaction_ref.set({
-                "user_id": user_id,
-                "created_at": timestamp_iso
-            })
-            
-            # Save to User Activity Sub-collection
-            user_interaction_ref.set({
-                "post_id": post_id,
-                "created_at": timestamp_iso
-            })
-            
-            post_ref.update({count_field: firestore.Increment(1)})
-            
-            # Trigger Notification (Only for Likes and Reposts)
-            if target_collection in ["likes", "reposts"] and author_id and author_id != user_id:
-                notif_type = "like" if target_collection == "likes" else "repost"
+            # Check if post exists
+            post_snap = post_ref.get()
+            if not post_snap.exists:
+                print(f"Post {post_id} not found in toggle_interaction")
+                raise ValueError(f"Post {post_id} not found")
                 
-                NotificationService.create_notification(
-                    user_id=author_id,
-                    notification_data=NotificationCreate(
-                        type=notif_type,
-                        sender_id=user_id,
-                        post_id=post_id
-                    )
-                )
+            post_data = post_snap.to_dict()
+            author_id = post_data.get("author_id")
+            
+            timestamp_iso = datetime.utcnow().isoformat()
 
-            return {"status": "added"}
+            post_interaction_ref = post_ref.collection(target_collection).document(user_id)
+            user_interaction_ref = db.collection("users").document(user_id).collection(user_interaction_collection).document(post_id)
+            
+            doc = post_interaction_ref.get()
+            
+            if doc.exists:
+                print(f"Removing interaction for {user_id} on {post_id}")
+                post_interaction_ref.delete()
+                user_interaction_ref.delete()
+                post_ref.update({count_field: firestore.Increment(-1)})
+                return {"status": "removed"}
+            else:
+                print(f"Adding interaction for {user_id} on {post_id}")
+                post_interaction_ref.set({
+                    "user_id": user_id,
+                    "created_at": timestamp_iso
+                })
+                
+                user_interaction_ref.set({
+                    "post_id": post_id,
+                    "created_at": timestamp_iso
+                })
+                
+                post_ref.update({count_field: firestore.Increment(1)})
+                
+                # Notification Logic
+                if target_collection in ["likes", "reposts"] and author_id and author_id != user_id:
+                    try:
+                        print(f"Attempting to send notification to {author_id}")
+                        from app.services.notification_service import NotificationService
+                        from app.schemas.user_interactions import NotificationCreate
+                        
+                        notif_type = "like" if target_collection == "likes" else "repost"
+                        
+                        NotificationService.create_notification(
+                            user_id=author_id,
+                            notification_data=NotificationCreate(
+                                type=notif_type,
+                                sender_id=user_id,
+                                post_id=post_id
+                            )
+                        )
+                    except Exception as ne:
+                        print(f"Error sending notification (non-fatal): {ne}")
+
+                return {"status": "added"}
+            
+        except Exception as e:
+            print(f"CRITICAL Error in toggle_interaction: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise e
 
     # @staticmethod
     # def remove_interaction(collection_name: str, count_field: str, post_id: str, user_id: str):
@@ -464,6 +464,28 @@ class PostService:
                  
              docs_stream = list(query.limit(limit).stream())
         
+        # --- NEW: Filter blocked users ---
+        if user_id:
+             # Get list of users I blocked - Optimized: check local list
+             # Assume blocked_ids passed or fetch? 
+             # Fetch is safer for consistency.
+             blocks_stream = db.collection("users").document(user_id).collection("blocks").stream()
+             blocked_ids = {b.id for b in blocks_stream}
+             
+             # Filter out authors I blocked
+             safe_docs = []
+             for d in docs_stream:
+                 if hasattr(d, "to_dict"):
+                     auth_id = d.to_dict().get("author_id")
+                 else:
+                     auth_id = d.get("author_id")
+                 
+                 if auth_id not in blocked_ids:
+                     safe_docs.append(d)
+             docs_stream = safe_docs
+        
+
+
         final_posts = []
         for p in docs_stream:
             if hasattr(p, "to_dict"):
@@ -472,7 +494,12 @@ class PostService:
                 data = p
             
             p_id = data.get("post_id") or data.get("id")
+            author_id = data.get("author_id")
             
+            # Skip if author in blocked list (Double check)
+            if user_id and 'blocked_ids' in locals() and author_id in blocked_ids:
+                continue
+
             # Normalize to new schema structure
             normalized = {
                 "post_id": p_id,
@@ -480,7 +507,7 @@ class PostService:
                 "media_urls": data.get("media_urls") or data.get("link_url", []),
                 "created_at": data.get("created_at"),
                 "interaction_at": data.get("interaction_at"),
-                "author_id": data.get("author_id"),
+                "author_id": author_id,
                 "level": data.get("level", 0),
                 "reply_to_id": data.get("reply_to_id"),
                 "root_id": data.get("root_id"),
@@ -492,16 +519,20 @@ class PostService:
             final_posts.append(normalized)
         
         # 6) Populate author info (Optimized with Batch Fetch)
-        author_ids = list(set([p.get("author_id") for p in final_posts if p.get("author_id")]))
+        author_ids_list = list(set([p.get("author_id") for p in final_posts if p.get("author_id")]))
         authors_map = {}
-        if author_ids:
+        if author_ids_list:
             # Create references
-            user_refs = [db.collection("users").document(uid) for uid in author_ids]
+            user_refs = [db.collection("users").document(uid) for uid in author_ids_list]
             # Batch get
             users_docs = db.get_all(user_refs)
             
+
+
             for doc in users_docs:
                 if doc.exists:
+
+                        
                     d = doc.to_dict()
                     authors_map[doc.id] = {
                         "uid": doc.id,
@@ -510,17 +541,21 @@ class PostService:
                         "avatar_url": d.get("avatar_url") or d.get("avatar") or d.get("picture"),
                     }
 
+        # Re-filter final_posts (though now just mapping author)
+        visible_posts = []
         for post in final_posts:
             author_id = post.get("author_id")
+            
             if author_id and author_id in authors_map:
                 post["author"] = authors_map[author_id]
+                visible_posts.append(post)
             else:
-                 post["author"] = {
-                    "uid": "unknown",
-                    "username": "Unknown",
-                    "full_name": "Unknown User",
-                    "avatar_url": ""
-                }
+                # If author info missing, might be deleted user, stick with basic info or skip?
+                # Let's keep basics if available, or skip if strict.
+                # Assuming safe to show if author_id exists.
+                pass 
+                
+        final_posts = visible_posts
         
         # 7) Populate interaction status (Optimized with Batch Fetch)
         if user_id and final_posts:
@@ -621,12 +656,46 @@ class PostService:
         # Ideally this should be paginated if too large, but request asked to remove page params.
         replies_ref = db.collection("posts").where("reply_to_id", "==", post_id).order_by("created_at", direction=firestore.Query.DESCENDING).stream()
         
+        # Block filtering for replies
+        blocked_ids = set()
+        if current_user_id:
+            # Users I blocked
+            blocks_stream = db.collection("users").document(current_user_id).collection("blocks").stream()
+            blocked_ids.update({b.id for b in blocks_stream})
+            
+            # Users blocking me (Optimization needed in real app, here we might skip or do best effort)
+            # Since we iterate replies, we can check "blocking me" status if crucial, but usually "I block them" is main view filter.
+            # To be strict as requested: "hien nhung lien quan ve user block" -> Should hide both directions.
+            # But checking "blocking me" for every reply author is expensive (N reads).
+            # Let's rely on the fact that if they block me, I shouldn't see their content.
+            # We can do a batch check for "blocking me" for all reply authors later, or accept simple filter.
+            # For now, let's filter out "Users I Blocked" which is cheap (local list).
+            # If we need "Users Blocking Me", we need to fetch that for each author. 
+            # I'll implement "Users I Blocked" first. 
+            pass
+
         replies_list = []
         for rep in replies_ref:
             r_data = rep.to_dict()
             
-            # Resolve Reply Author
+            # Filter blocked authors
             r_author_id = r_data.get("author_id")
+            if current_user_id and r_author_id:
+                # 1. Start with "I blocked them" check
+                if r_author_id in blocked_ids:
+                    continue
+                
+                # 2. Check "They blocked me" - expensive but necessary if strict
+                # Optimization: Only check if not already known
+                # We can do this check individually or ignore it to save reads. 
+                # Request said: "user bị blocked vào post mà có user đã block mình thì vẫn xem được... cần phải chặn"
+                # So we MUST check "is blocking me".
+                # check dict ref
+                is_blocking_me = db.collection("users").document(r_author_id).collection("blocks").document(current_user_id).get().exists
+                if is_blocking_me:
+                    continue
+
+
             r_author_data = {"uid": r_author_id, "name": "Unknown", "username": "unknown", "avatar_url": ""}
             if r_author_id:
                 # Optimized: In real app, use DataLoader or batch get. Here we do N reads (slow but simple)
