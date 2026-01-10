@@ -42,6 +42,7 @@ interface FeedCardProps {
   onEdit?: (post: PostData) => void;
   className?: string;
   compact?: boolean;
+  hideBorder?: boolean;
 }
 
 
@@ -54,7 +55,7 @@ import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "./Gallery";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 // --- MAIN FEED CARD COMPONENT ---
-const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, className, compact }) => {
+const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, className, compact, hideBorder }) => {
   // Add mock author data fallback
   // const [activeMediaUrl, setActiveMediaUrl] = useState<string | null>(null);
   const mockAuthor: AuthorData = {
@@ -448,6 +449,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, clas
               items={post.gallery!}
               onDragStateChange={setIsGalleryDragging}
               size={"small"}
+              hideBorder={hideBorder}
             />
           ) : (
             hasSingleMedia && (

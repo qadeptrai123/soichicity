@@ -65,17 +65,17 @@ export default function Profile() {
   const postType = activeTab === "Posts" ? "posts" : activeTab === "Replies" ? "replies" : activeTab === "Media" ? "media" : "posts";
 
   // OPTIMIZATION: Use embedded posts from Profile response as initial data to avoid 2nd fetch
-  const initialPostsData = (postType === "posts" && profileData?.posts) 
+  const initialPostsData = (postType === "posts" && profileData?.posts)
     ? {
-        pages: [{
-            items: profileData.posts,
-            next_cursor: profileData.posts_cursor ?? null,
-        }],
-        pageParams: [null]
-    } 
+      pages: [{
+        items: profileData.posts,
+        next_cursor: profileData.posts_cursor ?? null,
+      }],
+      pageParams: [null]
+    }
     : undefined;
 
-  const postsQuery = useUserPosts(targetUid, postType, { 
+  const postsQuery = useUserPosts(targetUid, postType, {
     enabled: !isRepostsTab && !!targetUid,
     initialData: initialPostsData
   });
@@ -288,17 +288,20 @@ export default function Profile() {
       {/* CONTENT FEED */}
       <div className="mt-4 px-4 sm:px-0">
         {isPostsLoading ? (
-           <div className="flex justify-center p-8">
-             <LoadingSpinner />
-           </div>
+          <div className="flex justify-center p-8">
+            <LoadingSpinner />
+          </div>
         ) : posts && posts.length > 0 ? (
           posts.map((post) => (
             <FeedCard
               key={post.post_id || post.repost_id} // Use repost_id if available to avoid duplicates if user reposts + posts? Actually API returns unique items per feed.
               post={{
                 ...post,
-                media_url: post.media_urls?.[0] || null,
-                gallery: post.media_urls || undefined
+                // Match Feed.tsx transformation logic: only pass gallery if > 1 items
+                gallery: post.media_urls && post.media_urls.length > 1 ? post.media_urls : undefined,
+                // Ensure media structure matches what FeedCard expects for single media
+                media_url: post.media_urls && post.media_urls.length > 0 ? post.media_urls[0] : null,
+                media_type: post.media_type || (post.media_urls?.[0] && (/(?:youtube\.com|youtu\.be)/.test(post.media_urls[0]) ? "youtube" : /\.(mp4|webm|ogg)$/i.test(post.media_urls[0]) ? "video" : "image")) || null,
               }}
               author={{
                 name: post.author?.full_name || post.author?.username || "Unknown",
@@ -315,6 +318,7 @@ export default function Profile() {
                 setEditingPost(post);
                 setIsEditOpen(true);
               }}
+              hideBorder={true}
             />
           ))
         ) : (

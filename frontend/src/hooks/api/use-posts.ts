@@ -104,6 +104,7 @@ export const useEditPost = () => {
 
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-posts"] });
       queryClient.invalidateQueries({ queryKey: ["post", data.post_id] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
     },

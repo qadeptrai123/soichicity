@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Image as ImageIcon, AtSign, X, Search, AlertCircle } from "lucide-react";
+import { Image as ImageIcon, AtSign, X, Search } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -143,7 +143,7 @@ export default function EditPostDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] bg-secondary border-border p-0 shadow-2xl gap-0 overflow-visible flex flex-col [&>button]:hidden -mt-9">
+            <DialogContent className="sm:max-w-[600px] bg-secondary border-border p-0 shadow-2xl gap-0 overflow-visible flex flex-col [&>button]:hidden -mt-9 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-bottom-4">
 
                 {/* HEADER */}
                 <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b border-border space-y-0">
@@ -160,21 +160,7 @@ export default function EditPostDialog({
                     <div className="w-[40px]"></div>
                 </DialogHeader>
 
-                {/* WARNING BANNER */}
-                <div className="px-6 pt-4">
-                    <div className="bg-[#2A1C0E] border border-[#DE8D16] text-[#DE8D16] p-3 rounded-lg flex items-start gap-3 text-sm">
-                        <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                        <span>Editing will notify followers who engaged with this thread</span>
-                        <button
-                            className="ml-auto text-[#DE8D16]/70 hover:text-[#DE8D16] cursor-pointer"
-                            onClick={() => {
-                                // Ideally strictly dismiss just this banner, for now no-op or state
-                            }}
-                        >
-                            <X size={16} />
-                        </button>
-                    </div>
-                </div>
+
 
                 {/* SCROLLABLE CONTENT */}
                 <div className="p-6 flex gap-4 overflow-y-auto max-h-[60vh] min-h-[200px]">
@@ -228,14 +214,14 @@ export default function EditPostDialog({
 
                         {/* Toolbar */}
                         <div className="flex items-center gap-2 mt-auto relative">
-                            <Button onClick={() => fileInputRef.current?.click()} className="text-primary hover:bg-primary/10 transition bg-transparent border-none cursor-pointer p-2 rounded-full h-auto w-auto">
+                            <Button onClick={() => fileInputRef.current?.click()} className="text-text-secondary hover:bg-white/10 transition bg-transparent border-none cursor-pointer p-2 rounded-full h-auto w-auto">
                                 <ImageIcon size={20} />
                             </Button>
                             <input type="file" multiple accept="image/*,video/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
 
                             <DropdownMenu onOpenChange={(isOpen) => !isOpen && setTagSearch("")}>
                                 <DropdownMenuTrigger asChild>
-                                    <Button className="text-primary hover:bg-primary/10 transition bg-transparent border-none cursor-pointer p-2 rounded-full h-auto w-auto outline-none">
+                                    <Button className="text-text-secondary hover:bg-white/10 transition bg-transparent border-none cursor-pointer p-2 rounded-full h-auto w-auto outline-none">
                                         <AtSign size={20} />
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -292,7 +278,7 @@ export default function EditPostDialog({
 
                 {/* FOOTER METADATA */}
                 <div className="px-6 py-3 flex items-center justify-between text-xs text-text-secondary border-t border-border/50">
-                    <span>Last edited: Never</span>
+
                     <span>Original post: {timeAgo}</span>
                 </div>
 

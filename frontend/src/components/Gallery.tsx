@@ -51,6 +51,7 @@ interface GalleryProps {
     onDragStateChange?: (dragging: boolean) => void;
     onOpen?: (url: string) => void;
     className?: string;
+    hideBorder?: boolean;
 }
 
 const SIZE_MAP: Record<string, number | string> = {
@@ -64,6 +65,7 @@ export const Gallery: React.FC<GalleryProps> = ({
     onDragStateChange,
     className,
     size = "medium",
+    hideBorder = false,
 }) => {
     // Determine height based on size prop
     const maxContainerHeight = SIZE_MAP[size];
@@ -175,18 +177,18 @@ export const Gallery: React.FC<GalleryProps> = ({
 
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         if (showLightbox) return; // ⛔ chặn khi đang xem lightbox
-      
+
         const container = e.currentTarget;
         const scrollLeft = container.scrollLeft;
         const scrollWidth = container.scrollWidth;
         const containerWidth = container.offsetWidth;
-      
+
         const scrollProgress = scrollLeft / (scrollWidth - containerWidth);
         const newIndex = Math.round(scrollProgress * (sortedItems.length - 1));
-      
+
         setSelectedIndex(Math.max(0, Math.min(newIndex, sortedItems.length - 1)));
-      };
-      
+    };
+
 
     const handleImageLoad = (
         e: React.SyntheticEvent<HTMLImageElement>,
@@ -217,79 +219,79 @@ export const Gallery: React.FC<GalleryProps> = ({
             setSelectedIndex(index);
             setShowLightbox(true);
         }
-    }; 
+    };
 
     const handleDownloadCurrentMedia = (e?: React.MouseEvent) => {
         e?.stopPropagation();
-      
+
         if (!currentItem?.url) {
-          toast.error("No media to download");
-          return;
+            toast.error("No media to download");
+            return;
         }
-      
+
         const downloadUrl =
-          "http://localhost:8000/api/media/download?url=" +
-          encodeURIComponent(currentItem.url);
-      
+            "http://localhost:8000/api/media/download?url=" +
+            encodeURIComponent(currentItem.url);
+
         window.location.href = downloadUrl;
     };
-    
+
     // const handlePrev = (e: React.MouseEvent) => {
     // e.stopPropagation();
     // setSelectedIndex((prev) =>
     //     prev === 0 ? sortedItems.length - 1 : prev - 1
     // );
     // };
-    
+
     // const handleNext = (e: React.MouseEvent) => {
     // e.stopPropagation();
     // setSelectedIndex((prev) =>
     //     prev === sortedItems.length - 1 ? 0 : prev + 1
     // );
     // };
-    
+
     const goPrev = () => {
         setSelectedIndex((prev) =>
-          prev === 0 ? sortedItems.length - 1 : prev - 1
+            prev === 0 ? sortedItems.length - 1 : prev - 1
         );
-      };
-      
+    };
+
     const goNext = () => {
         setSelectedIndex((prev) =>
-          prev === sortedItems.length - 1 ? 0 : prev + 1
+            prev === sortedItems.length - 1 ? 0 : prev + 1
         );
-      };
+    };
 
     const handlePrev = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    goPrev();
+        e.stopPropagation();
+        goPrev();
     };
-    
+
     const handleNext = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    goNext();
+        e.stopPropagation();
+        goNext();
     };
-      
-      
+
+
     useEffect(() => {
         if (!showLightbox) return;
-      
+
         const handleKeyDown = (e: KeyboardEvent) => {
-          if (e.key === "ArrowLeft") goPrev();
-          if (e.key === "ArrowRight") goNext();
-          if (e.key === "Escape") setShowLightbox(false);
+            if (e.key === "ArrowLeft") goPrev();
+            if (e.key === "ArrowRight") goNext();
+            if (e.key === "Escape") setShowLightbox(false);
         };
-      
+
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-      }, [showLightbox, sortedItems.length]);
-      
+    }, [showLightbox, sortedItems.length]);
+
 
     return (
         <div className={className} data-gallery="true">
             {/* Carousel Layout */}
             <div
-                className={`rounded-xl overflow-hidden mt-2 w-full relative group ${isMultipleItems ? "bg-transparent" : "bg-transparent border border-border"
+                className={`rounded-xl overflow-hidden mt-2 w-full relative group ${isMultipleItems || hideBorder ? "bg-transparent border-none" : "bg-transparent border border-border"
                     }`}
             >
                 <div
@@ -316,8 +318,7 @@ export const Gallery: React.FC<GalleryProps> = ({
                             className={`
                                 shrink-0 relative rounded overflow-hidden flex items-center justify-center
                                 transition-all duration-300 ease-out
-                                ${
-                                    showLightbox
+                                ${showLightbox
                                     ? index === selectedIndex
                                         ? "opacity-100 blur-0 scale-100 z-10"
                                         : "opacity-15 blur-sm scale-95"
@@ -422,42 +423,42 @@ export const Gallery: React.FC<GalleryProps> = ({
                     >
                         <X size={24} />
                     </button>
-                     {/* Download */}
+                    {/* Download */}
                     {currentItem.type !== "youtube" && (
-                    <button
-                        onClick={handleDownloadCurrentMedia}
-                        className="absolute top-4 right-16 bg-black/70 text-white px-3 py-2 rounded-lg hover:bg-black transition z-50"
-                    >
-                        ⬇ Download
-                    </button>
+                        <button
+                            onClick={handleDownloadCurrentMedia}
+                            className="absolute top-4 right-16 bg-black/70 text-white px-3 py-2 rounded-lg hover:bg-black transition z-50"
+                        >
+                            ⬇ Download
+                        </button>
                     )}
 
                     {/* Prev */}
                     {sortedItems.length > 1 && (
-                    <button
-                        onClick={handlePrev}
-                        className="absolute left-6 top-1/2 -translate-y-1/2
+                        <button
+                            onClick={handlePrev}
+                            className="absolute left-6 top-1/2 -translate-y-1/2
                                 bg-black/60 text-white
                                 w-14 h-14 text-4xl
                                 flex items-center justify-center
                                 rounded-full hover:bg-black transition z-50"
-                    >
-                        ‹
-                    </button>
+                        >
+                            ‹
+                        </button>
                     )}
 
                     {/* Next */}
                     {sortedItems.length > 1 && (
-                    <button
-                        onClick={handleNext}
-                        className="absolute right-6 top-1/2 -translate-y-1/2
+                        <button
+                            onClick={handleNext}
+                            className="absolute right-6 top-1/2 -translate-y-1/2
                                 bg-black/60 text-white
                                 w-14 h-14 text-4xl
                                 flex items-center justify-center
-                                rounded-full hover:bg-black transition z-50"                  
-                    >
-                        ›
-                    </button>
+                                rounded-full hover:bg-black transition z-50"
+                        >
+                            ›
+                        </button>
                     )}
 
                     {currentItem.type === "youtube" ? (
