@@ -183,8 +183,10 @@ export default function Profile() {
               following
             </div>
             {user.link && (
-              <a href={user.link} target="_blank" rel="noreferrer" className="text-neutral-500 hover:text-neutral-300 truncate">
-                {user.link.replace(/^https?:\/\//, '')}
+              <a href={user.link} target="_blank" rel="noreferrer" className="text-neutral-500 hover:text-neutral-300 truncate max-w-[300px]">
+                {user.link.replace(/^https?:\/\//, '').length > 30 
+                  ? `${user.link.replace(/^https?:\/\//, '').substring(0, 30)}...` 
+                  : user.link.replace(/^https?:\/\//, '')}
               </a>
             )}
           </div>

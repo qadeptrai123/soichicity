@@ -33,6 +33,13 @@ export interface Post {
     is_reposted?: boolean;
     is_saved?: boolean;
     is_shared?: boolean;
+
+    // Repost Info
+    is_repost_item?: boolean;
+    repost_info?: {
+        reposted_by: Author | any; // Use 'any' specifically for dict returned from backend if Author doesn't match perfectly
+        reposted_at: string;
+    } | null;
 }
 
 // Alias for FeedCard compatibility if needed, or we just refactor FeedCard to use Post

@@ -97,10 +97,14 @@ def _normalize_feed_item(db, item_data, author_map, current_user_id=None):
         "comments_count": p_data.get("comments_count", 0),
         
         # --- Flags ---
-        "is_reposted": item_data["is_reposted"], # Whether this specific feed item IS a repost action
+        "is_repost_item": item_data.get("is_reposted", False), # Whether this specific feed item IS a repost action
         "is_liked": is_liked, 
         "is_saved": is_saved,
-        "is_reposted": is_reposted # Whether the current user HAS reposted this content
+        "is_reposted": is_reposted, # Whether the current user HAS reposted this content
+        "repost_info": {
+            "reposted_by": author_map.get(item_data.get("reposted_by")).to_dict() if item_data.get("reposted_by") and item_data.get("reposted_by") in author_map else None,
+            "reposted_at": item_data.get("timestamp")
+        } if item_data.get("is_reposted") else None
     }
 
 # --- Main Service Functions ---
@@ -434,6 +438,8 @@ def get_user_profile(db, username: str, current_user_id: str = None):
             p_data = item["post_doc"].to_dict()
             if p_data.get("author_id"):
                 author_ids.add(p_data.get("author_id"))
+        if item.get("reposted_by"):
+            author_ids.add(item["reposted_by"])
     
     authors_map = _get_docs_batch(db, "users", list(author_ids))
 
@@ -668,6 +674,7 @@ def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_
 
     # 4. Batch Fetch Author của các bài viết gốc đó
     author_ids = set()
+    author_ids.add(author_id) # Add the profile owner (reposter) to be fetched
     valid_items = []
 
     for r_doc in repost_docs:

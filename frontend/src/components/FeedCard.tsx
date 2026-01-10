@@ -368,9 +368,28 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
       className={`w-full max-w-2xl bg-secondary text-foreground border-border mb-4 cursor-pointer transition-all duration-200 hover:bg-secondary/80 hover:shadow-lg ${className || ""}`}
       onClick={handleCardClick}
     >
+      {/* Repost Indicator */}
+      {post.is_repost_item && post.repost_info && (
+        <div className="flex items-center gap-2 px-4 pt-1.5 pb-1 text-xs text-muted-foreground font-medium">
+          <Repeat2 size={14} />
+          <span 
+            className="hover:underline cursor-pointer" 
+            onClick={(e) => {
+                e.stopPropagation();
+                if (post.repost_info?.reposted_by?.username) {
+                  navigate(`/profile/${post.repost_info.reposted_by.username}`);
+                }
+            }}
+          >
+            {post.repost_info.reposted_by?.username || "Someone"}
+          </span>
+          <span>reposted {formatRelativeTime(post.repost_info.reposted_at)}</span>
+        </div>
+      )}
+
       {/* HEADER */}
       <CardHeader
-        className="flex flex-row items-center gap-3 px-4 -mt-3 pb-0"
+        className={`flex flex-row items-center gap-3 px-4 pb-0 ${post.is_repost_item ? "pt-0" : "-mt-3"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <Avatar 
