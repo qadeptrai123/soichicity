@@ -49,9 +49,9 @@ export const useFollowers = (userId: string, options?: { enabled?: boolean }) =>
   });
 };
 
-export const useFollowingAndFollowers = (userId: string) => {
-  const following = useFollowing(userId);
-  const followers = useFollowers(userId);
+export const useFollowingAndFollowers = (userId: string, options?: { enabled?: boolean }) => {
+  const following = useFollowing(userId, options);
+  const followers = useFollowers(userId, options);
 
   return {
     following,
@@ -142,13 +142,14 @@ export const useEditProfile = () => {
 
 // ... (previous imports)
 
-export const useUserPosts = (userId: string, type: string = "posts", options?: { enabled?: boolean }) => {
+export const useUserPosts = (userId: string, type: string = "posts", options?: { enabled?: boolean, initialData?: any }) => {
   return useInfiniteQuery({
     queryKey: ['user-posts', userId, type],
     queryFn: ({ pageParam = null }) => api.users.getUserPosts(userId, 10, pageParam, type),
     getNextPageParam: (lastPage: any) => lastPage?.next_cursor ?? undefined,
     initialPageParam: null,
     enabled: options?.enabled ?? !!userId,
+    initialData: options?.initialData,
   });
 };
 

@@ -384,16 +384,22 @@ class PostService:
             activity_ref = activity_ref.limit(limit)
             activity_docs = list(activity_ref.stream())
             
-            # Fetch original posts in batch
+            # Map post_id -> interaction_at
+            activity_map = {d.get("post_id"): d.get("created_at") for d in activity_docs}
             post_ids = [d.get("post_id") for d in activity_docs]
+            
             if post_ids:
-                # Remove duplicates
-                post_ids = list(set(post_ids))
-                for pid in post_ids:
+                # Remove duplicates while preserving order
+                seen = set()
+                ordered_post_ids = [x for x in post_ids if not (x in seen or seen.add(x))]
+                
+                for pid in ordered_post_ids:
                     p_doc = posts_ref.document(pid).get()
                     if p_doc.exists:
-                        # Mimic stream item
-                        docs_stream.append(p_doc)
+                        p_data = p_doc.to_dict()
+                        # Inject interaction_at for cursor
+                        p_data["interaction_at"] = activity_map.get(pid)
+                        docs_stream.append(p_data)
         
         elif filter_type == "liked" and user_id:
              # 2. Get Liked Posts
@@ -404,14 +410,21 @@ class PostService:
                 
             activity_ref = activity_ref.limit(limit)
             activity_docs = list(activity_ref.stream())
+            
+            activity_map = {d.get("post_id"): d.get("created_at") for d in activity_docs}
             post_ids = [d.get("post_id") for d in activity_docs]
             
             if post_ids:
-                post_ids = list(set(post_ids))
-                for pid in post_ids:
+                # Remove duplicates while preserving order
+                seen = set()
+                ordered_post_ids = [x for x in post_ids if not (x in seen or seen.add(x))]
+                
+                for pid in ordered_post_ids:
                     p_doc = posts_ref.document(pid).get()
                     if p_doc.exists:
-                        docs_stream.append(p_doc)
+                        p_data = p_doc.to_dict()
+                        p_data["interaction_at"] = activity_map.get(pid)
+                        docs_stream.append(p_data)
 
         elif filter_type == "following" and user_id:
             # 3. Get Following Posts
@@ -453,7 +466,10 @@ class PostService:
         
         final_posts = []
         for p in docs_stream:
-            data = p.to_dict()
+            if hasattr(p, "to_dict"):
+                data = p.to_dict()
+            else:
+                data = p
             
             p_id = data.get("post_id") or data.get("id")
             
@@ -463,6 +479,7 @@ class PostService:
                 "content": data.get("content"),
                 "media_urls": data.get("media_urls") or data.get("link_url", []),
                 "created_at": data.get("created_at"),
+                "interaction_at": data.get("interaction_at"),
                 "author_id": data.get("author_id"),
                 "level": data.get("level", 0),
                 "reply_to_id": data.get("reply_to_id"),

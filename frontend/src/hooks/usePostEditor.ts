@@ -9,9 +9,10 @@ export type MediaFile = { url: string; type: "image" | "video"; file?: File; };
 interface UsePostEditorProps {
     mockFriends?: User[]; // Make it optional since we'll fetch real data
     initialContent?: string;
+    enabled?: boolean;
 }
 
-export function usePostEditor({ mockFriends = [], initialContent = "" }: UsePostEditorProps) {
+export function usePostEditor({ mockFriends = [], initialContent = "", enabled = true }: UsePostEditorProps) {
     const [content, setContent] = useState<string>(initialContent);
     const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
     const [tagSearch, setTagSearch] = useState<string>("");
@@ -19,7 +20,7 @@ export function usePostEditor({ mockFriends = [], initialContent = "" }: UsePost
 
     // Get current user to fetch their following/followers
     const { user } = useAuth();
-    const { allUsers, isLoading } = useFollowingAndFollowers(user?.uid || '');
+    const { allUsers, isLoading } = useFollowingAndFollowers(user?.uid || '', { enabled: enabled && !!user?.uid });
 
     // Sync initialContent when it changes
     useEffect(() => {
