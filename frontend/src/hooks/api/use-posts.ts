@@ -74,6 +74,7 @@ export const useCreatePost = () => {
 
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-posts"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       // If it's a reply, use robust invalidation strategy to handle eventual consistency
       if (data.reply_to_id) {
@@ -89,17 +90,19 @@ export const useCreatePost = () => {
 
 // Helper to update cache
 const updatePostCache = (queryClient: any, postId: string, updater: (post: any) => any) => {
-  // 1. Update Infinite Query Cache (Feed)
-  queryClient.setQueriesData({ queryKey: ["posts"] }, (oldData: any) => {
-    if (!oldData) return oldData;
-    return {
-      ...oldData,
-      pages: oldData.pages.map((page: any) =>
-        page.map((post: any) =>
-          post.post_id === postId ? updater(post) : post
-        )
-      ),
-    };
+  // 1. Update Infinite Query Cache (Feed & User Posts & Reposts)
+  ["posts", "user-posts", "user-reposts"].forEach((key) => {
+    queryClient.setQueriesData({ queryKey: [key] }, (oldData: any) => {
+      if (!oldData) return oldData;
+      return {
+        ...oldData,
+        pages: oldData.pages.map((page: any) =>
+          page.map((post: any) =>
+            post.post_id === postId ? updater(post) : post
+          )
+        ),
+      };
+    });
   });
 
   // 2. Update Detail Query Cache
@@ -143,6 +146,8 @@ export const useLikePost = () => {
     },
     onSettled: (_data, _error, postId) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-reposts"] });
       queryClient.invalidateQueries({ queryKey: ["post", postId] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
@@ -217,6 +222,8 @@ export const useRepostPost = () => {
           : "Reposted"
       );
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-reposts"] });
       queryClient.invalidateQueries({ queryKey: ["post", variables.postId] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
@@ -263,6 +270,8 @@ export const useSavePost = () => {
           : "Post saved"
       );
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-reposts"] });
       queryClient.invalidateQueries({ queryKey: ["post", variables.postId] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
     },

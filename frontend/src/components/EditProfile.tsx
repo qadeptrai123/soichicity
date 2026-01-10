@@ -27,7 +27,6 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<"main" | "links" | "add-link">("main");
   const [tempLinkUrl, setTempLinkUrl] = useState("");
-  const [tempLinkTitle, setTempLinkTitle] = useState("");
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
   const queryClient = useQueryClient();
@@ -194,7 +193,6 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
                         className="bg-hover border border-accent rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-neutral-800"
                         onClick={() => {
                             setTempLinkUrl(editLink || "");
-                            setTempLinkTitle(""); // Reset or load title if we had it
                             setView("add-link");
                         }}
                     >
@@ -239,16 +237,6 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
                             value={tempLinkUrl}
                             onChange={(e) => setTempLinkUrl(e.target.value)}
                             placeholder="https://example.com"
-                            className="w-full bg-hover border border-accent text-white focus:outline-none focus:border-neutral-600 h-12 rounded-xl px-4 text-[15px]"
-                        />
-                    </div>
-                     <div className="space-y-2">
-                        <label className="text-[15px] font-medium text-neutral-200">Title (Optional)</label>
-                        <input
-                            type="text"
-                            value={tempLinkTitle}
-                            onChange={(e) => setTempLinkTitle(e.target.value)}
-                            placeholder="My Website"
                             className="w-full bg-hover border border-accent text-white focus:outline-none focus:border-neutral-600 h-12 rounded-xl px-4 text-[15px]"
                         />
                     </div>
