@@ -15,6 +15,7 @@ import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { LoginPrompt } from "@/components/LoginPrompt";
 import { UserListDialog } from "@/components/UserListDialog";
 import { UnfollowDialog } from "@/components/UnfollowDialog";
+import { ProfileMediaTab } from "@/components/ProfileMediaTab";
 
 export default function Profile() {
   const { username: paramUsername } = useParams<{ username: string }>();
@@ -287,7 +288,9 @@ export default function Profile() {
 
       {/* CONTENT FEED */}
       <div className="mt-4 px-4 sm:px-0">
-        {isPostsLoading ? (
+        {activeTab === 'Media' ? (
+          <ProfileMediaTab posts={posts || []} isLoading={isPostsLoading} />
+        ) : isPostsLoading ? (
           <div className="flex justify-center p-8">
             <LoadingSpinner />
           </div>
