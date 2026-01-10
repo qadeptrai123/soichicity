@@ -11,6 +11,8 @@ import CreatePostDialog from "@/components/CreatePostDialog";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { LoginPrompt } from "@/components/LoginPrompt";
 import { toast } from "sonner";
+import { UserListDialog } from "@/components/UserListDialog";
+import { UnfollowDialog } from "@/components/UnfollowDialog";
 
 export default function Profile() {
   const { username: paramUsername } = useParams<{ username: string }>();
@@ -19,6 +21,13 @@ export default function Profile() {
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [showUnfollowDialog, setShowUnfollowDialog] = useState(false);
+  
+  // User List Dialog State
+  const [userListDialog, setUserListDialog] = useState<{
+      isOpen: boolean;
+      type: "followers" | "following";
+  }>({ isOpen: false, type: "followers" });
 
 
   // Retrieve current user from Auth Context
@@ -53,10 +62,16 @@ export default function Profile() {
       return;
     }
     if (isFollowing) {
-      unfollowMutation.mutate(user.uid); // user.uid from response
+      setShowUnfollowDialog(true);
     } else {
       followMutation.mutate(user.uid);
     }
+  };
+
+  const handleConfirmUnfollow = () => {
+      unfollowMutation.mutate(user.uid, {
+          onSettled: () => setShowUnfollowDialog(false)
+      });
   };
 
   const handleMention = () => {
@@ -85,14 +100,20 @@ export default function Profile() {
             </div>
           )}
           <div className="mt-4 text-[15px] text-neutral-500 flex items-center gap-4">
-            <span className="hover:underline cursor-pointer">
+            <div 
+                className="hover:underline cursor-pointer"
+                onClick={() => setUserListDialog({ isOpen: true, type: "followers" })}
+            >
               <span className="text-white mr-1">{user.followers_count || 0}</span>
               followers
-            </span>
-            <span className="hover:underline cursor-pointer">
+            </div>
+            <div 
+                className="hover:underline cursor-pointer"
+                onClick={() => setUserListDialog({ isOpen: true, type: "following" })}
+            >
               <span className="text-white mr-1">{user.followings_count || 0}</span>
               following
-            </span>
+            </div>
             {user.link && (
               <a href={user.link} target="_blank" rel="noreferrer" className="text-neutral-500 hover:text-neutral-300 truncate">
                 {user.link.replace(/^https?:\/\//, '')}
@@ -259,6 +280,24 @@ export default function Profile() {
           </div>
         </div>
       )}
+
+      {/* USER LIST DIALOG */}
+      <UserListDialog
+          isOpen={userListDialog.isOpen}
+          onClose={() => setUserListDialog(prev => ({ ...prev, isOpen: false }))}
+          userId={user.uid}
+          type={userListDialog.type}
+          username={user.username}
+      />
+
+       <UnfollowDialog
+          isOpen={showUnfollowDialog}
+          onClose={() => setShowUnfollowDialog(false)}
+          onConfirm={handleConfirmUnfollow}
+          username={user.username}
+          avatarUrl={user.avatar_url}
+          isPending={unfollowMutation.isPending}
+      />
     </div>
   );
 }

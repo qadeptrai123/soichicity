@@ -584,7 +584,7 @@ def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_
         "has_more": len(repost_docs) == limit
     }
 
-def get_users_following(db, user_id: str):
+def get_users_following(db, user_id: str, current_user_id: str = None):
     """
     Get list of users that the specified user is following.
     Returns a list of user objects.
@@ -605,22 +605,108 @@ def get_users_following(db, user_id: str):
     # Batch fetch user details
     users_map = _get_docs_batch(db, 'users', following_ids)
     
+    # Check is_following for current_user
+    following_set = set()
+    if current_user_id:
+        current_following_refs = db.collection('users').document(current_user_id).collection('followings').stream()
+        following_set = {doc.id for doc in current_following_refs}
+
     # Build response list
     result = []
     for uid, user_doc in users_map.items():
         if user_doc.exists:
             user_data = user_doc.to_dict()
+            is_following = False
+            if current_user_id:
+               if uid == current_user_id:
+                   # Self is not "following" self in the UI sense usually, or handled by UI
+                   pass 
+               elif uid in following_set:
+                   is_following = True
+
             result.append({
                 "uid": uid,
                 "username": user_data.get("username", ""),
                 "full_name": user_data.get("full_name", ""),
                 "avatar_url": user_data.get("avatar_url"),
-                "bio": user_data.get("bio")
+                "bio": user_data.get("bio"),
+                "is_following": is_following,
+                "is_self": uid == current_user_id
             })
     
     return result
 
-def get_users_followers(db, user_id: str):
+def get_users_following_paginated(db, user_id: str, limit: int = 10, cursor: str = None, current_user_id: str = None):
+    """
+    Get list of users that the specified user is following (Paginated).
+    cursor: The ID of the last user item (from the sub-collection).
+    """
+    user_ref = db.collection('users').document(user_id)
+    
+    # Check if user exists
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Query sub-collection
+    # Remove order_by('created_at') to ensure legacy data (without created_at) is also returned.
+    # Default ordering is by Document ID.
+    query = user_ref.collection('followings')
+    
+    if cursor:
+        last_doc = user_ref.collection('followings').document(cursor).get()
+        if last_doc.exists:
+            query = query.start_after(last_doc)
+            
+    query = query.limit(limit)
+    docs = list(query.stream())
+    
+    if not docs:
+        return {"items": [], "next_cursor": None, "has_more": False}
+        
+    following_ids = [doc.id for doc in docs]
+    
+    # Batch fetch user details
+    users_map = _get_docs_batch(db, 'users', following_ids)
+    
+    # Check is_following for current_user
+    following_set = set()
+    if current_user_id:
+        current_following_refs = db.collection('users').document(current_user_id).collection('followings').stream()
+        following_set = {doc.id for doc in current_following_refs}
+
+    # Build response list
+    items = []
+    # Preserve order from docs
+    for doc in docs:
+        uid = doc.id
+        user_doc = users_map.get(uid)
+        
+        if user_doc:
+            user_data = user_doc.to_dict()
+            is_following = False
+            if current_user_id:
+               if uid == current_user_id:
+                   pass 
+               elif uid in following_set:
+                   is_following = True
+
+            items.append({
+                "uid": uid,
+                "username": user_data.get("username", ""),
+                "full_name": user_data.get("full_name", ""),
+                "avatar_url": user_data.get("avatar_url"),
+                "bio": user_data.get("bio"),
+                "is_following": is_following,
+                "is_self": uid == current_user_id
+            })
+    
+    return {
+        "items": items,
+        "next_cursor": docs[-1].id if docs else None,
+        "has_more": len(docs) == limit
+    }
+
+def get_users_followers(db, user_id: str, current_user_id: str = None):
     """
     Get list of users who are following the specified user.
     Returns a list of user objects.
@@ -641,17 +727,102 @@ def get_users_followers(db, user_id: str):
     # Batch fetch user details
     users_map = _get_docs_batch(db, 'users', follower_ids)
     
+    # Check is_following for current_user
+    following_set = set()
+    if current_user_id:
+        current_following_refs = db.collection('users').document(current_user_id).collection('followings').stream()
+        following_set = {doc.id for doc in current_following_refs}
+
     # Build response list
     result = []
     for uid, user_doc in users_map.items():
         if user_doc.exists:
             user_data = user_doc.to_dict()
+            
+            is_following = False
+            if current_user_id:
+               if uid == current_user_id:
+                   pass
+               elif uid in following_set:
+                   is_following = True
+
             result.append({
                 "uid": uid,
                 "username": user_data.get("username", ""),
                 "full_name": user_data.get("full_name", ""),
                 "avatar_url": user_data.get("avatar_url"),
-                "bio": user_data.get("bio")
+                "bio": user_data.get("bio"),
+                "is_following": is_following,
+                "is_self": uid == current_user_id
             })
     
     return result
+
+def get_users_followers_paginated(db, user_id: str, limit: int = 10, cursor: str = None, current_user_id: str = None):
+    """
+    Get list of users who are following the specified user (Paginated).
+    cursor: The ID of the last user item (from the sub-collection).
+    """
+    user_ref = db.collection('users').document(user_id)
+    
+    # Check if user exists
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Query sub-collection
+    # Remove order_by('created_at') to ensure legacy data (without created_at) is also returned.
+    query = user_ref.collection('followers')
+    
+    if cursor:
+        last_doc = user_ref.collection('followers').document(cursor).get()
+        if last_doc.exists:
+            query = query.start_after(last_doc)
+            
+    query = query.limit(limit)
+    docs = list(query.stream())
+    
+    if not docs:
+        return {"items": [], "next_cursor": None, "has_more": False}
+        
+    follower_ids = [doc.id for doc in docs]
+    
+    # Batch fetch user details
+    users_map = _get_docs_batch(db, 'users', follower_ids)
+    
+    # Check is_following for current_user
+    following_set = set()
+    if current_user_id:
+        current_following_refs = db.collection('users').document(current_user_id).collection('followings').stream()
+        following_set = {doc.id for doc in current_following_refs}
+
+    # Build response list
+    items = []
+    # Preserve order
+    for doc in docs:
+        uid = doc.id
+        user_doc = users_map.get(uid)
+        
+        if user_doc:
+            user_data = user_doc.to_dict()
+            is_following = False
+            if current_user_id:
+               if uid == current_user_id:
+                   pass 
+               elif uid in following_set:
+                   is_following = True
+
+            items.append({
+                "uid": uid,
+                "username": user_data.get("username", ""),
+                "full_name": user_data.get("full_name", ""),
+                "avatar_url": user_data.get("avatar_url"),
+                "bio": user_data.get("bio"),
+                "is_following": is_following,
+                "is_self": uid == current_user_id
+            })
+    
+    return {
+        "items": items,
+        "next_cursor": docs[-1].id if docs else None,
+        "has_more": len(docs) == limit
+    }

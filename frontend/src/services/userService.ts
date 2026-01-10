@@ -18,5 +18,21 @@ export const userService = {
     getProfile: async (username: string) => {
         const response = await apiClient.get(`/api/v1/users/profile/${username}`);
         return response.data;
+    },
+
+    getFollowers: async (userId: string, limit: number = 10, cursor?: string | null) => {
+        const params = new URLSearchParams({ limit: limit.toString() });
+        if (cursor) params.append("cursor", cursor);
+        
+        const response = await apiClient.get(`/api/v1/users/${userId}/followers?${params.toString()}`);
+        return response.data;
+    },
+
+    getFollowing: async (userId: string, limit: number = 10, cursor?: string | null) => {
+        const params = new URLSearchParams({ limit: limit.toString() });
+        if (cursor) params.append("cursor", cursor);
+
+        const response = await apiClient.get(`/api/v1/users/${userId}/following?${params.toString()}`);
+        return response.data;
     }
 };
