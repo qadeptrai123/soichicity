@@ -11,6 +11,7 @@ import type { TargetPost } from "@/types/post";
 import FeedCard from "@/components/FeedCard";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import CreatePostDialog from "@/components/CreatePostDialog";
+import EditPostDialog from "@/components/EditPostDialog";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { LoginPrompt } from "@/components/LoginPrompt";
 import { UserListDialog } from "@/components/UserListDialog";
@@ -32,14 +33,18 @@ export default function Profile() {
 
   // User List Dialog State
   const [userListDialog, setUserListDialog] = useState<{
-      isOpen: boolean;
-      type: "followers" | "following";
+    isOpen: boolean;
+    type: "followers" | "following";
   }>({ isOpen: false, type: "followers" });
 
   const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
   const [targetPost, setTargetPost] = useState<TargetPost | null>(null);
   // Retrieve current user from Auth Context
   const { user: me } = useAuth();
+
+  // Edit Post State (Copied from Feed.tsx logic)
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<any | null>(null);
 
   /* Ensure we handle both "username" and "@username" from URL params */
   const normalizedParamUsername = paramUsername?.startsWith("@")
@@ -87,11 +92,11 @@ export default function Profile() {
   const repostsQuery = useUserReposts(targetUid, { enabled: isRepostsTab && !!targetUid && !isBlocked });
 
   const currentQuery = isRepostsTab ? repostsQuery : postsQuery;
-  
-  const { 
-    data: postsData, 
-    fetchNextPage, 
-    hasNextPage, 
+
+  const {
+    data: postsData,
+    fetchNextPage,
+    hasNextPage,
     isFetchingNextPage,
     isLoading: isPostsLoading
   } = currentQuery;
@@ -102,17 +107,17 @@ export default function Profile() {
   // Infinite scroll observer
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
-      // Logic disabled if loading, but hook must run
-      if (isPostsLoading || isFetchingNextPage) return;
-      if (observerRef.current) observerRef.current.disconnect();
+    // Logic disabled if loading, but hook must run
+    if (isPostsLoading || isFetchingNextPage) return;
+    if (observerRef.current) observerRef.current.disconnect();
 
-      observerRef.current = new IntersectionObserver((entries) => {
-          if (entries[0].isIntersecting && hasNextPage) {
-              fetchNextPage();
-          }
-      });
+    observerRef.current = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasNextPage) {
+        fetchNextPage();
+      }
+    });
 
-      if (node) observerRef.current.observe(node);
+    if (node) observerRef.current.observe(node);
   }, [isPostsLoading, isFetchingNextPage, hasNextPage, fetchNextPage]);
 
   if (!username) return <div className="text-white p-4">User not specified</div>;
@@ -138,18 +143,18 @@ export default function Profile() {
   };
 
   const handleConfirmUnfollow = () => {
-      unfollowMutation.mutate(user.uid, {
-          onSettled: () => setShowUnfollowDialog(false)
-      });
+    unfollowMutation.mutate(user.uid, {
+      onSettled: () => setShowUnfollowDialog(false)
+    });
   };
 
   const handleMention = () => {
-      if (!me) {
-          setShowLoginPrompt(true);
-          return;
-      }
-      setCreatePostContent(`@${user.username} `);
-      setIsCreatePostOpen(true);
+    if (!me) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    setCreatePostContent(`@${user.username} `);
+    setIsCreatePostOpen(true);
   };
 
   const handleReply = (post: any, author: any) => {
@@ -158,19 +163,19 @@ export default function Profile() {
       return;
     }
     setTargetPost({
-        id: post.post_id,
-        user: {
-            uid: author.uid,
-            username: author.username,
-            full_name: author.name,
-            avatar_url: author.avatar_url
-        },
-        content: post.content,
-        date: post.created_at,
-        media_url: post.media_url,
-        media_type: post.media_type,
-        gallery: post.gallery,
-        level: post.level
+      id: post.post_id,
+      user: {
+        uid: author.uid,
+        username: author.username,
+        full_name: author.name,
+        avatar_url: author.avatar_url
+      },
+      content: post.content,
+      date: post.created_at,
+      media_url: post.media_url,
+      media_type: post.media_type,
+      gallery: post.gallery,
+      level: post.level
     });
     setIsReplyDialogOpen(true);
   };
@@ -192,24 +197,24 @@ export default function Profile() {
             </div>
           )}
           <div className="mt-4 text-[15px] text-neutral-500 flex items-center gap-4">
-            <div 
-                className="hover:underline cursor-pointer"
-                onClick={() => setUserListDialog({ isOpen: true, type: "followers" })}
+            <div
+              className="hover:underline cursor-pointer"
+              onClick={() => setUserListDialog({ isOpen: true, type: "followers" })}
             >
               <span className="text-white mr-1">{user.followers_count || 0}</span>
               followers
             </div>
-            <div 
-                className="hover:underline cursor-pointer"
-                onClick={() => setUserListDialog({ isOpen: true, type: "following" })}
+            <div
+              className="hover:underline cursor-pointer"
+              onClick={() => setUserListDialog({ isOpen: true, type: "following" })}
             >
               <span className="text-white mr-1">{user.followings_count || 0}</span>
               following
             </div>
             {user.link && (
               <a href={user.link} target="_blank" rel="noreferrer" className="text-neutral-500 hover:text-neutral-300 truncate max-w-[300px]">
-                {user.link.replace(/^https?:\/\//, '').length > 30 
-                  ? `${user.link.replace(/^https?:\/\//, '').substring(0, 30)}...` 
+                {user.link.replace(/^https?:\/\//, '').length > 30
+                  ? `${user.link.replace(/^https?:\/\//, '').substring(0, 30)}...`
                   : user.link.replace(/^https?:\/\//, '')}
               </a>
             )}
@@ -326,35 +331,43 @@ export default function Profile() {
            </div>
         ) : posts && posts.length > 0 ? (
           posts.map((post) => (
-              <FeedCard
-                key={post.post_id || post.repost_id} // Use repost_id if available to avoid duplicates if user reposts + posts? Actually API returns unique items per feed.
-                post={{
-                  ...post,
-                  media_url: post.media_urls?.[0] || null,
-                  gallery: post.media_urls || undefined
-                }}
-                author={{
-                  name: post.author?.full_name || post.author?.username || "Unknown",
-                  handle: `@${post.author?.username}`,
-                  avatar_url: post.author?.avatar_url || DEFAULT_AVATAR_URL,
-                  /** @deprecated */
-                  avatar: post.author?.avatar_url || DEFAULT_AVATAR_URL,
-                  id: post.author?.uid, // Legacy
-                  uid: post.author?.uid || post.author_id, // Use string ID
-                  username: post.author?.username || "Unknown"
-                }}
-                onReply={handleReply}
-              />
-            ))
+            <FeedCard
+              key={post.post_id || post.repost_id} // Use repost_id if available to avoid duplicates if user reposts + posts? Actually API returns unique items per feed.
+              post={{
+                ...post,
+                // Match Feed.tsx transformation logic: only pass gallery if > 1 items
+                gallery: post.media_urls && post.media_urls.length > 1 ? post.media_urls : undefined,
+                // Ensure media structure matches what FeedCard expects for single media
+                media_url: post.media_urls && post.media_urls.length > 0 ? post.media_urls[0] : null,
+                media_type: post.media_type || (post.media_urls?.[0] && (/(?:youtube\.com|youtu\.be)/.test(post.media_urls[0]) ? "youtube" : /\.(mp4|webm|ogg)$/i.test(post.media_urls[0]) ? "video" : "image")) || null,
+              }}
+              author={{
+                name: post.author?.full_name || post.author?.username || "Unknown",
+                handle: `@${post.author?.username}`,
+                avatar_url: post.author?.avatar_url || DEFAULT_AVATAR_URL,
+                /** @deprecated */
+                avatar: post.author?.avatar_url || DEFAULT_AVATAR_URL,
+                id: post.author?.uid, // Legacy
+                uid: post.author?.uid || post.author_id, // Use string ID
+                username: post.author?.username || "Unknown"
+              }}
+              onReply={handleReply}
+              onEdit={(post) => {
+                setEditingPost(post);
+                setIsEditOpen(true);
+              }}
+              hideBorder={true}
+            />
+          ))
         ) : (
           <div className="py-8 text-center text-neutral-500">
             No posts yet.
           </div>
         )}
-          {/* Load more trigger */}
-          <div ref={loadMoreRef} className="h-4 w-full flex justify-center items-center mt-2">
-            {isFetchingNextPage && <LoadingSpinner />}
-          </div>
+        {/* Load more trigger */}
+        <div ref={loadMoreRef} className="h-4 w-full flex justify-center items-center mt-2">
+          {isFetchingNextPage && <LoadingSpinner />}
+        </div>
       </div>
 
       {/* EDIT PROFILE DIALOG */}
@@ -394,8 +407,17 @@ export default function Profile() {
         />
       )}
 
-       {/* Login Prompt Overlay */}
-       {showLoginPrompt && (
+      {/* EDIT POST DIALOG */}
+      {isEditOpen && editingPost && (
+        <EditPostDialog
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          post={editingPost}
+        />
+      )}
+
+      {/* Login Prompt Overlay */}
+      {showLoginPrompt && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           onClick={() => setShowLoginPrompt(false)}
@@ -411,20 +433,20 @@ export default function Profile() {
 
       {/* USER LIST DIALOG */}
       <UserListDialog
-          isOpen={userListDialog.isOpen}
-          onClose={() => setUserListDialog(prev => ({ ...prev, isOpen: false }))}
-          userId={user.uid}
-          type={userListDialog.type}
-          username={user.username}
+        isOpen={userListDialog.isOpen}
+        onClose={() => setUserListDialog(prev => ({ ...prev, isOpen: false }))}
+        userId={user.uid}
+        type={userListDialog.type}
+        username={user.username}
       />
 
-       <UnfollowDialog
-          isOpen={showUnfollowDialog}
-          onClose={() => setShowUnfollowDialog(false)}
-          onConfirm={handleConfirmUnfollow}
-          username={user.username}
-          avatarUrl={user.avatar_url}
-          isPending={unfollowMutation.isPending}
+      <UnfollowDialog
+        isOpen={showUnfollowDialog}
+        onClose={() => setShowUnfollowDialog(false)}
+        onConfirm={handleConfirmUnfollow}
+        username={user.username}
+        avatarUrl={user.avatar_url}
+        isPending={unfollowMutation.isPending}
       />
 
        <BlockUserDialog

@@ -9,12 +9,13 @@ export type MediaFile = { url: string; type: "image" | "video"; file?: File; };
 interface UsePostEditorProps {
     mockFriends?: User[]; // Make it optional since we'll fetch real data
     initialContent?: string;
+    initialMedia?: MediaFile[];
     enabled?: boolean;
 }
 
-export function usePostEditor({ mockFriends = [], initialContent = "", enabled = true }: UsePostEditorProps) {
+export function usePostEditor({ mockFriends = [], initialContent = "", initialMedia = [], enabled = true }: UsePostEditorProps) {
     const [content, setContent] = useState<string>(initialContent);
-    const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
+    const [mediaFiles, setMediaFiles] = useState<MediaFile[]>(initialMedia);
     const [tagSearch, setTagSearch] = useState<string>("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -27,7 +28,10 @@ export function usePostEditor({ mockFriends = [], initialContent = "", enabled =
         if (initialContent) {
             setContent(initialContent);
         }
-    }, [initialContent]);
+        if (initialMedia.length > 0) {
+            setMediaFiles(initialMedia);
+        }
+    }, [initialContent, initialMedia]);
 
     // Use real data if available, otherwise fall back to mockFriends
     const availableUsers = allUsers.length > 0 ? allUsers : mockFriends;

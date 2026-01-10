@@ -17,7 +17,7 @@ export const api = {
     getFollowers: (userId: string, limit: number = 10, cursor?: string | null) => apiClient.get<any>(`/api/v1/users/${userId}/followers`, { params: { limit, cursor } }) as unknown as Promise<{ items: User[], next_cursor: string | null }>,
     getUserPosts: (userId: string, limit: number = 10, cursor?: string | null, type: string = "posts") => apiClient.get<any>(`/api/v1/users/${userId}/posts`, { params: { limit, cursor, type } }) as unknown as Promise<{ items: Post[], next_cursor: string | null }>,
     getUserReposts: (userId: string, limit: number = 10, cursor?: string | null) => apiClient.get<any>(`/api/v1/users/${userId}/reposts`, { params: { limit, cursor } }) as unknown as Promise<{ items: Post[], next_cursor: string | null }>,
-    updateProfile: (data: { full_name?: string; bio?: string; avatar_url?: string; link?: string }) => 
+    updateProfile: (data: { full_name?: string; bio?: string; avatar_url?: string; link?: string }) =>
       apiClient.put('/api/v1/users/me', data) as unknown as Promise<User>,
     block: (userId: string) => apiClient.post(`/api/v1/users/${userId}/block`),
     unblock: (userId: string) => apiClient.post(`/api/v1/users/${userId}/unblock`),
@@ -49,6 +49,11 @@ export const api = {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
     deleteComment: (post_id: string, comment_id: string) => apiClient.delete(`/api/v1/posts/${post_id}/comments/${comment_id}`),
+
+    // Edit Post
+    update: (post_id: string, data: FormData) => apiClient.put<Post>(`/api/v1/posts/${post_id}`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }) as unknown as Promise<Post>,
   },
   search: (params: { q: string, type: string, page?: number, limit?: number }) => apiClient.get('/api/v1/search', { params }),
 };

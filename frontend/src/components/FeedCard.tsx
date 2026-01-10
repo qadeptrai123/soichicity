@@ -41,8 +41,10 @@ interface FeedCardProps {
   post: PostData;
   author: AuthorData;
   onReply?: (post: PostData, author: AuthorData) => void;
+  onEdit?: (post: PostData) => void;
   className?: string;
   compact?: boolean;
+  hideBorder?: boolean;
 }
 
 
@@ -51,13 +53,11 @@ import { formatRelativeTime } from "@/lib/utils";
 
 // --- IMPORTED GALLERY COMPONENT ---
 // Gallery logic moved to ./Gallery.tsx
-// --- IMPORTED GALLERY COMPONENT ---
-// Gallery logic moved to ./Gallery.tsx
 import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "./Gallery";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 // --- MAIN FEED CARD COMPONENT ---
-const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, compact }) => {
+const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, onEdit, className, compact, hideBorder }) => {
   // Add mock author data fallback
   // const [activeMediaUrl, setActiveMediaUrl] = useState<string | null>(null);
   const mockAuthor: AuthorData = {
@@ -75,6 +75,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   const navigate = useNavigate();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
+
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
 
@@ -100,21 +101,21 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   useEffect(() => {
     // Nếu không đăng nhập thì reset hết về false
     if (!isAuthenticated) {
-        setActionStates({
-            liked: false,
-            bookmarked: false,
-            reposted: false
-        });
-        // Không reset counts vì guest vẫn nhìn thấy số lượng
+      setActionStates({
+        liked: false,
+        bookmarked: false,
+        reposted: false
+      });
+      // Không reset counts vì guest vẫn nhìn thấy số lượng
     } else {
-        // Nếu đã đăng nhập thì sync theo props (mới nhất từ server)
-        setActionStates({
-            liked: post.is_liked || false,
-            bookmarked: post.is_saved || false,
-            reposted: post.is_reposted || false
-        });
+      // Nếu đã đăng nhập thì sync theo props (mới nhất từ server)
+      setActionStates({
+        liked: post.is_liked || false,
+        bookmarked: post.is_saved || false,
+        reposted: post.is_reposted || false
+      });
     }
-    
+
     // Luôn sync số lượng
     setLocalCounts({
       likes: post.likes_count || 0,
@@ -207,9 +208,9 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
   // };
   const handleExternalShare = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
-  
+
     const postUrl = `${window.location.origin}/post/${post.post_id}`;
-  
+
     try {
       await navigator.clipboard.writeText(postUrl);
       toast.success("Link copied to clipboard");
@@ -217,7 +218,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
       toast.error("Failed to copy link");
     }
   };
-  
+
 
 
   // const handleBookmark = useCallback(
@@ -258,21 +259,8 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
         wasSaved,
       });
     },
-    [actionStates.bookmarked, post.post_id, saveMutation, isAuthenticated]
+    [post.post_id, saveMutation, isAuthenticated, post.is_saved]
   );
-
-  // const handleShare = useCallback(
-  //   (e?: React.MouseEvent) => {
-  //     e?.stopPropagation();
-  //     setActionStates((prev) => ({ ...prev, shared: !prev.shared }));
-  //     setLocalCounts((prev) => ({
-  //       ...prev,
-  //       shares: prev.shares + (actionStates.shared ? -1 : 1),
-  //     }));
-  //     shareMutation.mutate(post.post_id);
-  //   },
-  //   [actionStates.shared, post.post_id, shareMutation]
-  // );
 
   const handleRepost = useCallback(
     (e?: React.MouseEvent) => {
@@ -282,21 +270,14 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
         return;
       }
 
-      const wasReposted = actionStates.reposted; // 👈 TRẠNG THÁI TRƯỚC CLICK
-
-      // Optimistic UI
-      setActionStates((prev) => ({ ...prev, reposted: !prev.reposted }));
-      setLocalCounts((prev) => ({
-        ...prev,
-        reposts: prev.reposts + (wasReposted ? -1 : 1),
-      }));
+      const wasReposted = post.is_reposted; // 👈 TRẠNG THÁI TRƯỚC CLICK
 
       repostMutation.mutate({
         postId: post.post_id,
         wasReposted,
       });
     },
-    [actionStates.reposted, post.post_id, repostMutation, isAuthenticated]
+    [post.is_reposted, post.post_id, repostMutation, isAuthenticated]
   );
 
 
@@ -365,6 +346,8 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
         isVisible: isAuthenticated && !isAuthor,
         showSeparatorAfter: true,
         variant: "destructive" as const,
+      onClick: () => onEdit?.(post),
+      isVisible: me?.uid === displayAuthor?.uid && !!onEdit,
     },
     {
       id: "copy-link",
@@ -396,13 +379,13 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
       {post.is_repost_item && post.repost_info && (
         <div className="flex items-center gap-2 px-4 pt-1.5 pb-1 text-xs text-muted-foreground font-medium">
           <Repeat2 size={14} />
-          <span 
-            className="hover:underline cursor-pointer" 
+          <span
+            className="hover:underline cursor-pointer"
             onClick={(e) => {
-                e.stopPropagation();
-                if (post.repost_info?.reposted_by?.username) {
-                  navigate(`/profile/${post.repost_info.reposted_by.username}`);
-                }
+              e.stopPropagation();
+              if (post.repost_info?.reposted_by?.username) {
+                navigate(`/profile/${post.repost_info.reposted_by.username}`);
+              }
             }}
           >
             {post.repost_info.reposted_by?.username || "Someone"}
@@ -416,7 +399,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
         className={`flex flex-row items-center gap-3 px-4 pb-0 ${post.is_repost_item ? "pt-0" : "-mt-3"}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <Avatar 
+        <Avatar
           className="w-10 h-10 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={handleProfileClick}
         >
@@ -438,7 +421,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
             >
               {displayAuthor?.name || "Unknown User"}
             </span>
-            <span 
+            <span
               className="text-text-secondary text-ft hover:text-foreground cursor-pointer"
               onClick={handleProfileClick}
             >
@@ -481,7 +464,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
           }}
         >
           {post.content && (
-            <TextWithMentions 
+            <TextWithMentions
               content={post.content}
               className="text-sm leading-relaxed text-foreground whitespace-normal mb-1 wrap-break-words"
             />
@@ -492,6 +475,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
               items={post.gallery!}
               onDragStateChange={setIsGalleryDragging}
               size={"small"}
+              hideBorder={hideBorder}
             />
           ) : (
             hasSingleMedia && (
@@ -548,7 +532,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
                       <X size={24} />
                     </button>
                     <button
-                      onClick={handleDownloadMedia}
+                      onClick={handleExternalShare}
                       className="absolute top-4 right-15 bg-black/70 text-white px-4 py-2 rounded-lg hover:bg-black transition z-50"
                     >
                       ⬇ Download
@@ -661,6 +645,7 @@ const FeedCard: React.FC<FeedCardProps> = ({ post, author, onReply, className, c
           </div>
         </div>
       )}
+
     </Card>
   );
 };

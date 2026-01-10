@@ -126,6 +126,86 @@ async def create_post(
     )
     return created
 
+@router.put("/posts/{post_id}")
+async def update_post(
+    post_id: str,
+    form_data: PostCreateForm = Depends(),
+    user = Depends(get_current_user)
+):
+    # Process new files if any
+    new_media_urls = []
+    if form_data.files:
+        loop = asyncio.get_event_loop()
+        
+        for file in form_data.files:
+            if file.content_type.startswith("video/"):
+                 # 1. Compress Video (Same logic as create)
+                temp_input_path = await run_in_threadpool(
+                    save_to_temp_file, 
+                    file, 
+                    f"_{file.filename}"
+                )
+
+                try:
+                    compressed_path = await loop.run_in_executor(
+                        get_process_pool(), 
+                        compress_video_process, 
+                        temp_input_path
+                    )
+                except Exception as e:
+                    if os.path.exists(temp_input_path):
+                        os.remove(temp_input_path)
+                    raise HTTPException(status_code=500, detail="Video processing failed")
+                
+                if os.path.exists(temp_input_path):
+                    os.remove(temp_input_path)
+
+                try:
+                    url = await run_in_threadpool(upload_post_media, compressed_path, "posts")
+                finally:
+                   if os.path.exists(compressed_path):
+                       os.remove(compressed_path)
+            else:
+                def upload_params_wrapper(f_obj, f_name, f_type):
+                    return upload_file(f_obj, f_name, f_type, folder="posts")
+
+                url = await run_in_threadpool(
+                    upload_params_wrapper, 
+                    file.file, 
+                    file.filename, 
+                    file.content_type
+                )
+            
+            new_media_urls.append(url)
+
+    # Get existing media URLs from form/body if sent as 'gallery' or special field
+    # In FastAPI Form, repeated keys like 'gallery' come as list if defined in schema or handled manually
+    # But PostCreateForm definition might not include 'gallery'.
+    # We need to update PostCreateForm or handle it here. 
+    # Since PostCreateForm uses Form(...), we can use Request or update Schema.
+    # Let's check PostCreateForm in `app/schemas/post.py`. 
+    # It currently has: content, files, level, reply_to_id.
+    # We should add 'gallery' or 'kept_media' to it or a new Schema for Update.
+    
+    # For now, let's assume we update PostCreateForm or just use Request to get extra form fields 
+    # OR simpler: The user sends existing urls in 'content' if they are embedded? No, they are attachments.
+    
+    # Let's rely on Service to handle logic, but we need to pass data.
+    # We will assume client sends 'kept_media' in body? 
+    # But strict Form parsing might ignore it.
+    
+    # Let's update `PostCreateForm` in next step or assume we can get it via standard Form param in this function signature?
+    # Adding `gallery: List[str] = Form([])` to signature works for multiple values.
+    
+    return await run_in_threadpool(
+        PostService.update_post,
+        post_id=post_id,
+        user_id=user["uid"],
+        content=form_data.content,
+        new_media_urls=new_media_urls,
+        existing_media_urls=form_data.gallery
+    )
+
 @router.get("/posts", response_model=List[PostResponse])
 def get_posts(
     user = Depends(get_current_user_optional),
