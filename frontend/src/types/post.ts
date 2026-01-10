@@ -74,3 +74,20 @@ export interface PostDetail extends Post {
     activity: ActivityItem[];
     current_user_interaction: InteractionStatus;
 }
+
+// Type used in ReplyCommentDialog
+export type TargetPost = {
+  id: string | number;
+  user: {
+    uid: string;
+    username: string;
+    full_name: string | null;
+    avatar_url?: string;
+  };
+  content: string;
+  date: string;
+  media_url?: string | null;
+  media_type?: string | null;
+  gallery?: string[];
+  level?: number;
+};

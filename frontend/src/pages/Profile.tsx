@@ -5,13 +5,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useProfile, useFollowUser, useUnfollowUser, useUserPosts, useUserReposts } from "@/hooks/api/use-users";
 import { useAuth } from "@/contexts/AuthProvider";
-import ReplyCommentDialog, { type TargetPost } from "@/components/comment";
+import ReplyCommentDialog from "@/components/comment";
+import type { TargetPost } from "@/types/post";
 import FeedCard from "@/components/FeedCard";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import CreatePostDialog from "@/components/CreatePostDialog";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { LoginPrompt } from "@/components/LoginPrompt";
-import { toast } from "sonner";
 import { UserListDialog } from "@/components/UserListDialog";
 import { UnfollowDialog } from "@/components/UnfollowDialog";
 
@@ -21,6 +21,7 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState("Posts");
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const [createPostContent, setCreatePostContent] = useState("");
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showUnfollowDialog, setShowUnfollowDialog] = useState(false);
   
@@ -123,8 +124,8 @@ export default function Profile() {
           setShowLoginPrompt(true);
           return;
       }
-      // Future implementation: Open CreatePostDialog with @username pre-filled
-      toast.info("Mention feature is coming soon!");
+      setCreatePostContent(`@${user.username} `);
+      setIsCreatePostOpen(true);
   };
 
   const handleReply = (post: any, author: any) => {
@@ -248,7 +249,10 @@ export default function Profile() {
 
       {/* WHAT'S NEW INPUT (Only for own profile) */}
       {isOwnProfile && activeTab === "Posts" && (
-        <div className="px-4 sm:px-0 py-6 flex gap-3 items-center border-b border-neutral-800 cursor-pointer" onClick={() => setIsCreatePostOpen(true)}>
+        <div className="px-4 sm:px-0 py-6 flex gap-3 items-center border-b border-neutral-800 cursor-pointer" onClick={() => {
+          setCreatePostContent(""); // Clear any previous mention
+          setIsCreatePostOpen(true);
+        }}>
           <Avatar className="w-9 h-9 border border-neutral-800">
             <AvatarImage src={user.avatar_url || DEFAULT_AVATAR_URL} />
             <AvatarFallback>{user.username?.[0]}</AvatarFallback>
@@ -315,7 +319,10 @@ export default function Profile() {
       {me && (
         <CreatePostDialog
           open={isCreatePostOpen}
-          onOpenChange={setIsCreatePostOpen}
+          onOpenChange={(open) => {
+            setIsCreatePostOpen(open);
+            if (!open) setCreatePostContent("");
+          }}
           currentUser={
             {
               uid: me.uid,
@@ -325,6 +332,7 @@ export default function Profile() {
             }
           }
           mockFriends={[]} // Pass necessary props or handle inside
+          initialContent={createPostContent}
         />
       )}
 

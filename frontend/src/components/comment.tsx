@@ -24,23 +24,7 @@ import { useCreatePost } from "@/hooks/api/use-posts";
 import type { User } from "@/types/user";
 import { usePostEditor } from "@/hooks/usePostEditor";
 
-export type TargetPost = {
-  id: string | number;
-  user: {
-    uid: string;
-    username: string;
-    full_name: string | null;
-    avatar_url?: string;
-  };
-  content: string;
-  date: string;
-  media_url?: string | null;
-  media_type?: string | null;
-  gallery?: string[];
-  level?: number;
-};
-
-// Add useQueryClient import
+import type { TargetPost } from "@/types/post";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ReplyDialogProps {
