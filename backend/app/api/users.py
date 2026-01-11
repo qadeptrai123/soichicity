@@ -11,6 +11,40 @@ router = APIRouter()
 def read_users(db=Depends(get_db)):
     return user_service.get_users(db)
 
+@router.get("/users/notifications", tags=["users"])
+def get_user_notifications(
+    limit: int = 20,
+    cursor: Optional[str] = None,
+    filter: str = "all",
+    db=Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Get current user notifications
+    """
+    return user_service.get_notifications(db, current_user['uid'], limit, cursor, filter)
+
+@router.get("/users/notifications/unread-count", tags=["users"])
+def get_unread_count(
+    db=Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Get count of unread notifications
+    """
+    count = user_service.count_unread_notifications(db, current_user['uid'])
+    return {"count": count}
+
+@router.post("/users/notifications/read", tags=["users"])
+def mark_notifications_read(
+    db=Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Mark all notifications as read
+    """
+    return user_service.mark_all_notifications_read(db, current_user['uid'])
+
 @router.get("/users/{user_id}", tags=["users"])
 def read_user(user_id: str, db=Depends(get_db)):
     return user_service.get_user(db, user_id)
@@ -133,6 +167,8 @@ def unblock_user(target_user_id: str, db=Depends(get_db), current_user = Depends
     Unblock a user.
     """
     return user_service.unblock_user(db, current_user['uid'], target_user_id)
+
+
 
 @router.get("/users/me/blocks", tags=["users"])
 def get_blocked_users(db=Depends(get_db), current_user = Depends(get_current_user)):

@@ -1,5 +1,6 @@
 //Kiệt
 import React, { useState, useCallback, useEffect } from "react";
+import TextWithMentions from "./TextWithMentions";
 import { ActionButton } from "./ActionButton";
 import {
   Card,
@@ -405,7 +406,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
           }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <Avatar 
+        <Avatar
           className="w-10 h-10 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={handleProfileClick}
         >
@@ -434,7 +435,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
             >
               {displayAuthor?.name || "Unknown User"}
             </span>
-            <span 
+            <span
               className="text-text-secondary text-ft hover:underline cursor-pointer"
               onClick={handleProfileClick}
             >
@@ -478,7 +479,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
         >
           {post.content && (
             <p className="text-sm leading-relaxed text-foreground whitespace-normal mb-1 wrap-break-words">
-              {post.content}
+              <TextWithMentions content={post.content} />
             </p>
           )}
 

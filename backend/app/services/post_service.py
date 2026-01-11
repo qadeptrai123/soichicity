@@ -118,6 +118,31 @@ class PostService:
             batch = db.batch()
 
             current_parent_id = reply_to_id
+            
+            # --- Notification Logic for Reply ---
+            # Fetch direct parent to notify author
+            parent_ref = db.collection("posts").document(reply_to_id)
+            parent_doc = parent_ref.get()
+            
+            if parent_doc.exists:
+                p_data = parent_doc.to_dict()
+                p_author_id = p_data.get("author_id")
+                
+                if p_author_id and p_author_id != user_id:
+                     try:
+                        from app.services.notification_service import NotificationService
+                        from app.schemas.user_interactions import NotificationCreate
+                        
+                        NotificationService.create_notification(
+                            user_id=p_author_id,
+                            notification_data=NotificationCreate(
+                                type="reply",
+                                sender_id=user_id,
+                                post_id=post_id
+                            )
+                        )
+                     except Exception as e:
+                         print(f"Error sending reply notification: {e}")
 
             while current_parent_id:
                 parent_ref = db.collection("posts").document(current_parent_id)
@@ -134,6 +159,56 @@ class PostService:
                 current_parent_id = parent_data.get("reply_to_id")
 
             batch.commit()
+
+        # --- Notification Logic for Mentions ---
+        import re
+        mentions = re.findall(r"@(\w+)", content)
+        if mentions:
+             # Remove duplicates
+             mentions = list(set(mentions))
+             
+             # Find users with these usernames
+             # Firestore doesn't support "in" query for large lists efficiently or field matching easily without exact match
+             # But usually mentions are few (1-5). We can query per mention or use "in" if supported for 'username'
+             # 'username' is indexed? Likely.
+             # Limit to 10 mentions to prevent abuse?
+             
+             try:
+                 users_ref = db.collection("users")
+                 # Chunking if necessary, but assume < 10 mentions
+                 # Since we need to match 'username' == mention, and 'username' is a field.
+                 # "in" query supports up to 10 values actions.
+                 
+                 chunk_size = 10
+                 for i in range(0, len(mentions), chunk_size):
+                     chunk = mentions[i:i+chunk_size]
+                     # Note: This requires 'username' to be exact match
+                     q = users_ref.where(filter=firestore.FieldFilter("username", "in", chunk)).stream()
+                     
+                     from app.services.notification_service import NotificationService
+                     from app.schemas.user_interactions import NotificationCreate
+                     
+                     for u in q:
+                         target_uid = u.id
+                         
+                         # Don't notify self
+                         if target_uid == user_id:
+                             continue
+                             
+                         # Check if we already sent a 'reply' notification to this user for this same event?
+                         # (Optional optimization: if target_uid == p_author_id (from reply logic), maybe create separate 'mention' or skip?
+                         # Standard: You get a reply notif AND a mention notif if you are explicitly tagged in a reply.)
+                         
+                         NotificationService.create_notification(
+                            user_id=target_uid,
+                            notification_data=NotificationCreate(
+                                type="mention",
+                                sender_id=user_id,
+                                post_id=post_id
+                            )
+                         )
+             except Exception as e:
+                 print(f"Error processing mentions: {e}")
 
 
         return payload
