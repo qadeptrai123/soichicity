@@ -253,10 +253,24 @@ export default function Search() {
                                 )}
                                 {getPosts().map((hit: any, index) => {
                                     // Use ref on the last element of the list if this is the active tab for scrolling
-                                    // For "Top" tab, we might want to trigger load more based on posts too if it's mixed?
-                                    // Or if "Top" just shows a subset. Let's assume Top tab also scrolls posts.
                                     const isLast = index === getPosts().length - 1;
                                     const ref = ((activeTab === "posts" || activeTab === "top") && isLast) ? lastElementRef : null;
+
+                                    // Logic to match Feed.tsx for media display
+                                    const mediaList = hit.media_urls || (hit.media_url ? [hit.media_url] : []) || [];
+                                    let gallery: string[] | undefined;
+                                    let singleMediaUrl: string | null = null;
+                                    let singleMediaType: string | null = null;
+
+                                    if (mediaList.length > 1) {
+                                        gallery = mediaList;
+                                    } else if (mediaList.length === 1) {
+                                        singleMediaUrl = mediaList[0];
+                                        const url = singleMediaUrl!;
+                                        const isYoutube = /(?:youtube\.com|youtu\.be)/.test(url);
+                                        const isVideo = /\.(mp4|webm|ogg)$/i.test(url);
+                                        singleMediaType = isYoutube ? "youtube" : isVideo ? "video" : "image";
+                                    }
 
                                     return (
                                         <div key={`${hit.objectID}-${index}`} ref={ref}>
@@ -275,8 +289,10 @@ export default function Search() {
                                                         handle: hit.author?.username || hit.username ? `@${hit.author?.username || hit.username}` : "@user",
                                                         avatar: hit.author?.avatar_url || hit.avatar_url || DEFAULT_AVATAR_URL
                                                     },
-                                                    media_urls: hit.media_urls || [hit.media_url].filter(Boolean) || [],
-                                                    media_url: hit.media_url || hit.media_urls?.[0] || null,
+                                                    media_urls: mediaList,
+                                                    media_url: singleMediaUrl,
+                                                    media_type: singleMediaType as any,
+                                                    gallery: gallery,
                                                     likes_count: hit.likes_count || hit.likes || 0,
                                                     comments_count: hit.comments_count || hit.replies_count || 0,
                                                     reposts_count: hit.reposts_count || 0,
