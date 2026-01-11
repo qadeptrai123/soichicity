@@ -13,7 +13,7 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
     Card,
     CardContent,
@@ -40,8 +40,8 @@ export default function ResetPassword() {
 
     // If no oobCode is present, we should probably redirect or show an error
     if (!oobCode) {
-         // Ideally redirect to home or login with an error message
-         // For now, we can render an error state or let it fail gracefully
+        // Ideally redirect to home or login with an error message
+        // For now, we can render an error state or let it fail gracefully
     }
 
     const onSubmit = async (data: ResetPasswordValues) => {
@@ -116,15 +116,11 @@ export default function ResetPassword() {
                                                 New Password
                                             </FormLabel>
                                             <FormControl>
-                                                <div className="relative">
-                                                    <Input
-                                                        type="password"
-                                                        placeholder="Enter new password"
-                                                        className="flex items-center bg-input! border-border! text-foreground placeholder-text-text-muted text-base py-6 pr-10"
-                                                        {...field}
-                                                    />
-
-                                                </div>
+                                                <PasswordInput
+                                                    placeholder="Enter new password"
+                                                    className="flex items-center bg-input! border-border! text-foreground placeholder-text-text-muted text-base py-6 pr-10"
+                                                    {...field}
+                                                />
                                             </FormControl>
                                             <FormMessage className="text-base" />
                                         </FormItem>
@@ -141,14 +137,11 @@ export default function ResetPassword() {
                                                 Confirm Password
                                             </FormLabel>
                                             <FormControl>
-                                                <div className="relative">
-                                                    <Input
-                                                        type="password"
-                                                        placeholder="Re-enter your password"
-                                                        className="flex items-center bg-input! border-border! text-foreground placeholder-text-text-muted text-base py-6 pr-10"
-                                                        {...field}
-                                                    />
-                                                </div>
+                                                <PasswordInput
+                                                    placeholder="Re-enter your password"
+                                                    className="flex items-center bg-input! border-border! text-foreground placeholder-text-text-muted text-base py-6 pr-10"
+                                                    {...field}
+                                                />
                                             </FormControl>
                                             <FormMessage className="text-base" />
                                         </FormItem>

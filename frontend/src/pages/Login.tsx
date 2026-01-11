@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   Card,
   CardContent,
@@ -179,14 +180,11 @@ export default function LoginForm() {
                         Password
                       </FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input
-                            type="password"
-                            placeholder="Enter your password"
-                            className="flex items-center bg-input! border-border! pr-10 text-white placeholder:text-slate-400 py-6 text-base"
-                            {...field}
-                          />
-                        </div>
+                        <PasswordInput
+                          placeholder="Enter your password"
+                          className="flex items-center bg-input! border-border! pr-10 text-white placeholder:text-slate-400 py-6 text-base"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage className="text-red-400 text-base font-semibold mt-1" />
                     </FormItem>

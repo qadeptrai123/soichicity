@@ -18,6 +18,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
     Card,
     CardContent,
@@ -202,14 +203,11 @@ export default function Register() {
                                         <FormItem>
                                             <FormLabel className="text-base text-slate-300">Password</FormLabel>
                                             <FormControl>
-                                                <div className="relative">
-                                                    <Input
-                                                        type="password"
-                                                        placeholder="Create a password"
-                                                        className="flex items-center bg-input! border-border! pr-10 text-foreground placeholder-text-text-muted text-base py-6"
-                                                        {...field}
-                                                    />
-                                                </div>
+                                                <PasswordInput
+                                                    placeholder="Create a password"
+                                                    className="flex items-center bg-input! border-border! pr-10 text-foreground placeholder-text-text-muted text-base py-6"
+                                                    {...field}
+                                                />
                                             </FormControl>
                                             <FormMessage className="text-red-400 text-base font-semibold mt-1" />
                                         </FormItem>
@@ -223,14 +221,11 @@ export default function Register() {
                                         <FormItem>
                                             <FormLabel className="text-base text-slate-300">Confirm Password</FormLabel>
                                             <FormControl>
-                                                <div className="relative">
-                                                    <Input
-                                                        type="password"
-                                                        placeholder="Confirm your password"
-                                                        className="flex items-center bg-input! border-border! pr-10 text-foreground placeholder-text-text-muted text-base py-6"
-                                                        {...field}
-                                                    />
-                                                </div>
+                                                <PasswordInput
+                                                    placeholder="Confirm your password"
+                                                    className="flex items-center bg-input! border-border! pr-10 text-foreground placeholder-text-text-muted text-base py-6"
+                                                    {...field}
+                                                />
                                             </FormControl>
                                             <FormMessage className="text-red-400 text-base font-semibold mt-1" />
                                         </FormItem>
