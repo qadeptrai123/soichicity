@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/card";
 import { LoginPrompt } from "@/components/LoginPrompt";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import TextWithMentions from "./TextWithMentions";
 
 import {
   MessageSquare,
@@ -31,6 +30,7 @@ import { Ban } from "lucide-react";
 
 import type { Post as PostData, Author as AuthorData } from "@/types/post";
 
+import { downloadMedia } from "@/services/api";
 import { toast } from "sonner";
 
 interface FeedCardProps {
@@ -44,12 +44,29 @@ interface FeedCardProps {
 }
 
 // Helper Functions
-import { formatRelativeTime } from "@/lib/utils";
+const formatTime = (isoString: string): string => {
+  if (!isoString) return "";
+  try {
+    const date = new Date(isoString);
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date);
+  } catch (e) {
+    return "";
+  }
+};
 
+// --- IMPORTED GALLERY COMPONENT ---
+// Gallery logic moved to ./Gallery.tsx
 // --- IMPORTED GALLERY COMPONENT ---
 // Gallery logic moved to ./Gallery.tsx
 import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "./Gallery";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
+import { formatRelativeTime } from "@/lib/utils";
 
 // --- MAIN FEED CARD COMPONENT ---
 const FeedCard: React.FC<FeedCardProps> = ({
@@ -78,7 +95,6 @@ const FeedCard: React.FC<FeedCardProps> = ({
   const navigate = useNavigate();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
-
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
 
@@ -86,18 +102,18 @@ const FeedCard: React.FC<FeedCardProps> = ({
   const [isGalleryDragging, setIsGalleryDragging] = useState(false);
 
   // Optimistic UI State - khởi tạo từ props
-  const [localCounts, setLocalCounts] = useState(() => ({
+  const [localCounts, setLocalCounts] = useState({
     likes: post.likes_count || 0,
     replies: post.comments_count || 0,
     bookmarks: post.saves_count || 0,
     reposts: post.reposts_count || 0,
-  }));
+  });
 
-  const [actionStates, setActionStates] = useState(() => ({
+  const [actionStates, setActionStates] = useState({
     liked: post.is_liked || false,
     bookmarked: post.is_saved || false,
     reposted: post.is_reposted || false,
-  }));
+  });
 
   // Sync state với props khi data từ API thay đổi (sau khi invalidateQueries)
   useEffect(() => {
@@ -147,6 +163,13 @@ const FeedCard: React.FC<FeedCardProps> = ({
     navigate(`/post/${post.post_id}`);
   };
 
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (displayAuthor?.username) {
+      navigate(`/profile/${displayAuthor.username}`);
+    }
+  };
+
   // --- Xử lý click vào vùng content text ---
   const handleContentClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -170,14 +193,9 @@ const FeedCard: React.FC<FeedCardProps> = ({
         setShowLoginPrompt(true);
         return;
       }
-      setActionStates((prev) => ({ ...prev, liked: !prev.liked }));
-      setLocalCounts((prev) => ({
-        ...prev,
-        likes: prev.likes + (actionStates.liked ? -1 : 1),
-      }));
       likeMutation.mutate(post.post_id);
     },
-    [actionStates.liked, post.post_id, likeMutation, isAuthenticated]
+    [post.post_id, likeMutation, isAuthenticated]
   );
 
   const handleDownloadMedia = (e?: React.MouseEvent) => {
@@ -208,12 +226,11 @@ const FeedCard: React.FC<FeedCardProps> = ({
   // };
   const handleExternalShare = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
-
     const postUrl = `${window.location.origin}/post/${post.post_id}`;
 
     try {
       await navigator.clipboard.writeText(postUrl);
-      toast.success("Link copied to clipboard");
+      toast.success("Copied to clipboard");
     } catch (err) {
       toast.error("Failed to copy link");
     }
@@ -243,22 +260,28 @@ const FeedCard: React.FC<FeedCardProps> = ({
         return;
       }
 
-      const wasSaved = actionStates.bookmarked; // 👈 TRẠNG THÁI TRƯỚC CLICK
-
-      // Optimistic UI
-      setActionStates((prev) => ({ ...prev, bookmarked: !prev.bookmarked }));
-      setLocalCounts((prev) => ({
-        ...prev,
-        bookmarks: prev.bookmarks + (wasSaved ? -1 : 1),
-      }));
+      const wasSaved = post.is_saved || false;
 
       saveMutation.mutate({
         postId: post.post_id,
         wasSaved,
       });
     },
-    [post.post_id, saveMutation, isAuthenticated, post.is_saved]
+    [post.is_saved, post.post_id, saveMutation, isAuthenticated]
   );
+
+  // const handleShare = useCallback(
+  //   (e?: React.MouseEvent) => {
+  //     e?.stopPropagation();
+  //     setActionStates((prev) => ({ ...prev, shared: !prev.shared }));
+  //     setLocalCounts((prev) => ({
+  //       ...prev,
+  //       shares: prev.shares + (actionStates.shared ? -1 : 1),
+  //     }));
+  //     shareMutation.mutate(post.post_id);
+  //   },
+  //   [actionStates.shared, post.post_id, shareMutation]
+  // );
 
   const handleRepost = useCallback(
     (e?: React.MouseEvent) => {
@@ -317,25 +340,26 @@ const FeedCard: React.FC<FeedCardProps> = ({
 
   // Debug Block Visibility
   const isAuthor = Boolean(
-    me?.uid && post.author?.uid && String(me.uid) === String(post.author.uid)
+    me?.uid && displayAuthor?.uid && String(me.uid) === String(displayAuthor.uid)
   );
   // console.log("FeedCard Debug:", { meUid: me?.uid, authorUid: post.author?.uid, isAuthor, isAuthenticated });
 
   // Dropdown Actions
   const postActions = [
     {
+      id: "bookmark",
+      label: post.is_saved ? "Unsave" : "Save",
+      icon: <Bookmark size={16} fill={post.is_saved ? "currentColor" : "none"} />,
+      onClick: handleBookmark,
+      isVisible: true,
+      showSeparatorAfter: true,
+    },
+    {
       id: "edit",
       label: "Edit",
       icon: <Edit3 size={16} />,
       onClick: () => onEdit?.(post),
       isVisible: me?.uid === displayAuthor?.uid && !!onEdit,
-    },
-    {
-      id: "save",
-      label: actionStates.bookmarked ? "Unsave" : "Save",
-      icon: <Bookmark size={16} />,
-      onClick: handleBookmark,
-      isVisible: true,
     },
     {
       id: "block",
@@ -350,28 +374,23 @@ const FeedCard: React.FC<FeedCardProps> = ({
       id: "copy-link",
       label: "Copy link",
       icon: <Link2 size={16} />,
-      onClick: () => {
+      onClick: async () => {
         const postUrl = `${window.location.origin}/post/${post.post_id}`;
-        navigator.clipboard.writeText(postUrl);
-        console.log("Link copied:", postUrl);
+        try {
+          await navigator.clipboard.writeText(postUrl);
+          toast.success("Link copied to clipboard");
+        } catch (err) {
+          toast.error("Failed to copy link");
+        }
       },
       isVisible: true,
     },
   ];
 
-  // --- Navigation to Profile ---
-  const handleProfileClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (displayAuthor?.username) {
-      navigate(`/profile/${displayAuthor.username}`);
-    }
-  };
-
   return (
     <Card
-      className={`w-full max-w-2xl bg-secondary text-foreground border-border mb-4 cursor-pointer transition-all duration-200 hover:bg-secondary/80 hover:shadow-lg ${
-        className || ""
-      }`}
+      className={`w-full max-w-2xl bg-secondary text-foreground border-border mb-4 cursor-pointer transition-all duration-200 hover:bg-secondary/80 hover:shadow-lg ${className || ""
+        }`}
       onClick={handleCardClick}
     >
       {/* Repost Indicator */}
@@ -397,12 +416,11 @@ const FeedCard: React.FC<FeedCardProps> = ({
 
       {/* HEADER */}
       <CardHeader
-        className={`flex flex-row items-center gap-3 px-4 pb-0 ${
-          post.is_repost_item ? "pt-0" : "-mt-3"
-        }`}
+        className={`flex flex-row items-center gap-3 px-4 pb-0 ${post.is_repost_item ? "pt-0" : "-mt-3"
+          }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <Avatar
+        <Avatar 
           className="w-10 h-10 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={handleProfileClick}
         >
@@ -428,14 +446,14 @@ const FeedCard: React.FC<FeedCardProps> = ({
             >
               {displayAuthor?.name || "Unknown User"}
             </span>
-            <span
-              className="text-text-secondary text-ft hover:text-foreground cursor-pointer"
+            <span 
+              className="text-text-secondary text-ft hover:underline cursor-pointer"
               onClick={handleProfileClick}
             >
               {displayAuthor?.handle || ""}
             </span>
             <span className="text-text-muted text-xs">
-              {formatRelativeTime(post.created_at)}
+              {formatTime(post.created_at)}
             </span>
           </div>
         </div>
@@ -471,10 +489,9 @@ const FeedCard: React.FC<FeedCardProps> = ({
           }}
         >
           {post.content && (
-            <TextWithMentions
-              content={post.content}
-              className="text-sm leading-relaxed text-foreground whitespace-normal mb-1 wrap-break-words"
-            />
+            <p className="text-sm leading-relaxed text-foreground whitespace-normal mb-1 wrap-break-words">
+              {post.content}
+            </p>
           )}
 
           {hasGallery ? (
@@ -539,7 +556,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
                       <X size={24} />
                     </button>
                     <button
-                      onClick={handleExternalShare}
+                      onClick={handleDownloadMedia}
                       className="absolute top-4 right-15 bg-black/70 text-white px-4 py-2 rounded-lg hover:bg-black transition z-50"
                     >
                       ⬇ Download
@@ -589,37 +606,37 @@ const FeedCard: React.FC<FeedCardProps> = ({
             <ActionButton
               actionId="like"
               icon={<Heart size={24} />}
-              count={localCounts.likes}
+              count={post.likes_count || 0}
               onClick={handleLike}
-              isActive={actionStates.liked}
+              isActive={post.is_liked}
             />
             <ActionButton
               actionId="reply"
               icon={<MessageSquare size={24} />}
-              count={localCounts.replies}
+              count={post.comments_count || 0}
               onClick={handleReply}
             />
             <ActionButton
               actionId="bookmark"
               icon={<Bookmark size={24} />}
-              count={localCounts.bookmarks}
+              count={post.saves_count || 0}
               onClick={handleBookmark}
-              isActive={actionStates.bookmarked}
+              isActive={post.is_saved}
             />
             <ActionButton
               actionId="repost"
               icon={<Repeat2 size={24} />}
-              count={localCounts.reposts}
+              count={post.reposts_count || 0}
               onClick={handleRepost}
-              isActive={actionStates.reposted}
+              isActive={post.is_reposted}
             />
             <ActionButton
               actionId="share"
               icon={<Send size={24} />}
               onClick={handleExternalShare}
-              // count={localCounts.shares}
-              // onClick={handleShare}
-              // isActive={actionStates.shared}
+            // count={localCounts.shares}
+            // onClick={handleShare}
+            // isActive={actionStates.shared}
             />
           </div>
           <div className="spacer-column"></div>

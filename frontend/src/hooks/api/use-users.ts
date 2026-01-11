@@ -81,6 +81,7 @@ export const useFollowUser = () => {
       queryClient.invalidateQueries({ queryKey: ["post-activity"] });
       queryClient.invalidateQueries({ queryKey: ["followers"] });
       queryClient.invalidateQueries({ queryKey: ["following"] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] }); // Refresh feed to show new posts
     },
 
     onError: () => {
@@ -104,6 +105,7 @@ export const useUnfollowUser = () => {
       queryClient.invalidateQueries({ queryKey: ["post-activity"] });
       queryClient.invalidateQueries({ queryKey: ["followers"] });
       queryClient.invalidateQueries({ queryKey: ["following"] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] }); // Refresh feed to remove unmatched posts
     },
 
     onError: () => {
@@ -156,6 +158,8 @@ export const useBlockUser = () => {
       queryClient.invalidateQueries({ queryKey: ["following"] });
       queryClient.invalidateQueries({ queryKey: ["blocked-users"] });
       queryClient.invalidateQueries({ queryKey: ["user-posts"] }); // force refetch feed
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-reposts"] });
     },
 
     onError: (error: any) => {
