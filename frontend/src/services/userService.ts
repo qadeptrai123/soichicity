@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api-client";
+import type { User } from "@/types/user";
 
 export interface UserUpdateData {
     full_name?: string;
@@ -8,17 +9,17 @@ export interface UserUpdateData {
 }
 
 export const userService = {
-    updateProfile: async (data: UserUpdateData) => {
+    updateProfile: async (data: UserUpdateData): Promise<User> => {
         // The endpoint is /api/v1/users/me or just /users/me depending on apiClient config.
         // users.py has router @router.put("/users/me") and it's likely included in v1.
         // api.ts uses /api/v1/ prefix.
         const response = await apiClient.put("/api/v1/users/me", data);
-        return response;
+        return response as unknown as User;
     },
 
-    getMe: async () => {
+    getMe: async (): Promise<User> => {
         const response = await apiClient.get("/api/v1/users/me");
-        return response;
+        return response as unknown as User;
     },
 
     getProfile: async (username: string) => {
