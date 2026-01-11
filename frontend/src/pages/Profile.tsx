@@ -298,7 +298,13 @@ export default function Profile() {
                     label: "Block",
                     icon: <Ban size={16} />,
                     variant: "destructive",
-                    onClick: () => setShowBlockDialog(true)
+                    onClick: () => {
+                      if (!me) {
+                        setShowLoginPrompt(true);
+                        return;
+                      }
+                      setShowBlockDialog(true);
+                    }
                   }
                 ]}
               />
