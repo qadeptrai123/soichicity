@@ -11,6 +11,7 @@ import { userService } from "@/services/userService";
 import { api } from "@/services/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthProvider";
 
 
 interface EditProfileProps {
@@ -57,6 +58,7 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
   }, [avatarPreview]);
 
   const queryClient = useQueryClient();
+  const { refreshUser } = useAuth();
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
@@ -94,7 +96,7 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
         }
       }
 
-      await userService.updateProfile({
+      const updatedUser = await userService.updateProfile({
         full_name: editName,
         bio: editBio,
         link: editLink,
@@ -110,6 +112,10 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
       queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["me"] });
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-reposts"] });
+      
+      await refreshUser(updatedUser);
 
       onClose();
     } catch (error) {

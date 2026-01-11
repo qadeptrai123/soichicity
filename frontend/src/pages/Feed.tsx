@@ -12,6 +12,7 @@ import { usePosts } from "@/hooks/api/use-posts";
 import EditPostDialog from "@/components/EditPostDialog";
 import { MOCK_FRIENDS } from "@/MockData/data";
 import AnimateEntrance from "@/components/ui/AnimateEntrance";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 
 // --- BẮT ĐẦU: DỮ LIỆU MOCK MỚI VỚI YOUTUBE LINKS ---
@@ -21,7 +22,7 @@ import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { useSearchParams } from "react-router-dom";
 
 const Feed = () => {
-  const [isLoginPromptDismissed] = useState(false);
+  const [isLoginPromptDismissed, setIsLoginPromptDismissed] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const { isAuthenticated, user: currentUser } = useAuth();
 
@@ -194,6 +195,7 @@ const Feed = () => {
                 <LoginPrompt
                   title="Log in or sign up for Sợi Chỉ City"
                   subtitle={<>See what people are talking <br /> about and join the conversation.</>}
+                  onClose={() => setIsLoginPromptDismissed(true)}
                 />
               </div>
             </div>
@@ -231,11 +233,11 @@ const Feed = () => {
                         is_reposted: item.is_reposted,
                       }}
                       author={item.author}
-                      onReply={handleReply}
                       onEdit={(post) => {
                         setEditingPost(post);
                         setIsEditOpen(true);
                       }}
+                      onAuthRequired={() => setShowLoginPrompt(true)}
                     />
                   ))}
                 </AnimateEntrance>
@@ -262,21 +264,12 @@ const Feed = () => {
         )}
       </div>
 
-      {
-        showLoginPrompt && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-            onClick={() => setShowLoginPrompt(false)}
-          >
-            <div
-              className="relative w-full max-w-sm"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <LoginPrompt />
-            </div>
-          </div>
-        )
-      }
+      <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
+        <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-sm" showCloseButton={false}>
+          <DialogTitle className="sr-only">Login Required</DialogTitle>
+          <LoginPrompt onClose={() => setShowLoginPrompt(false)} />
+        </DialogContent>
+      </Dialog>
 
       {
         replyTarget && currentUser && (

@@ -8,7 +8,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import { LoginPrompt } from "@/components/LoginPrompt";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import {
@@ -40,6 +40,7 @@ interface FeedCardProps {
   className?: string;
   compact?: boolean;
   hideBorder?: boolean;
+  onAuthRequired?: () => void;
 }
 
 // Helper Functions
@@ -64,6 +65,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
   className,
   compact,
   hideBorder,
+  onAuthRequired,
 }) => {
   // Add mock author data fallback
   // const [activeMediaUrl, setActiveMediaUrl] = useState<string | null>(null);
@@ -80,7 +82,6 @@ const FeedCard: React.FC<FeedCardProps> = ({
   const displayAuthor = author || mockAuthor;
   const { isAuthenticated, user: me } = useAuth();
   const navigate = useNavigate();
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
@@ -177,7 +178,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
       if (!isAuthenticated) {
-        setShowLoginPrompt(true);
+        onAuthRequired?.();
         return;
       }
       likeMutation.mutate(post.post_id);
@@ -230,7 +231,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
       if (!isAuthenticated) {
-        setShowLoginPrompt(true);
+        onAuthRequired?.();
         return;
       }
 
@@ -261,7 +262,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
       if (!isAuthenticated) {
-        setShowLoginPrompt(true);
+        onAuthRequired?.();
         return;
       }
 
@@ -279,7 +280,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
     async (e?: React.MouseEvent) => {
       e?.stopPropagation();
       if (!isAuthenticated) {
-        setShowLoginPrompt(true);
+        onAuthRequired?.();
         return;
       }
       if (onReply) {
@@ -400,9 +401,11 @@ const FeedCard: React.FC<FeedCardProps> = ({
         >
           <AvatarImage
             src={
-              displayAuthor?.avatar_url ||
-              displayAuthor?.avatar ||
-              DEFAULT_AVATAR_URL
+              isAuthor
+                ? (me?.avatar_url || DEFAULT_AVATAR_URL)
+                : displayAuthor?.avatar_url ||
+                  displayAuthor?.avatar ||
+                  DEFAULT_AVATAR_URL
             }
             alt={displayAuthor?.name || "User"}
           />
@@ -588,23 +591,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
         isPending={blockMutation.isPending}
       />
 
-      {/* Login Prompt Overlay */}
-      {showLoginPrompt && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 cursor-default"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowLoginPrompt(false);
-          }}
-        >
-          <div
-            className="relative w-full max-w-sm"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <LoginPrompt />
-          </div>
-        </div>
-      )}
+
     </Card>
   );
 };

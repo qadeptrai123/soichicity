@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 
 
 import { cn } from "@/lib/utils";
+import { X } from "lucide-react";
 
 interface LoginPromptProps {
     title?: string;
@@ -15,6 +16,7 @@ interface LoginPromptProps {
     className?: string; // Allow custom styling
     titleClassName?: string;
     subtitleClassName?: string;
+    onClose?: () => void;
 }
 
 export const LoginPrompt = ({
@@ -23,6 +25,7 @@ export const LoginPrompt = ({
     className,
     titleClassName,
     subtitleClassName,
+    onClose,
 }: LoginPromptProps) => {
     const navigate = useNavigate();
     const { login } = useAuth();
@@ -42,9 +45,17 @@ export const LoginPrompt = ({
     };
     return (
         <div className={cn(
-            "bg-secondary backdrop-blur-xl border-2 border-border! rounded-2xl shadow-2xl shadow-black/50 p-5 w-full max-w-sm text-center sticky top-20 lg:sticky lg:top-20 mb-4 lg:mb-0 animate-in fade-in slide-in-from-bottom-8 duration-700",
+            "bg-secondary backdrop-blur-xl border-2 border-border! rounded-2xl shadow-2xl shadow-black/50 p-5 w-full max-w-sm text-center relative",
             className
         )}>
+            {onClose && (
+                <button
+                    onClick={onClose}
+                    className="absolute top-3 right-3 text-text-muted hover:text-white transition-colors"
+                >
+                    <X size={20} />
+                </button>
+            )}
             <h1 className={cn("text-base font-bold text-white mb-3", titleClassName)}>
                 {title}
             </h1>
