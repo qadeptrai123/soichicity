@@ -75,7 +75,11 @@ export default function ReplyCommentDialog({
         mediaFiles.map(item =>
           fetch(item.url)
             .then(res => res.blob())
-            .then(blob => new File([blob], "media", { type: blob.type }))
+            .then(blob => {
+              const ext = blob.type.split('/')[1] || 'bin';
+              const filename = `media.${ext}`;
+              return new File([blob], filename, { type: blob.type });
+            })
         )
       );
 

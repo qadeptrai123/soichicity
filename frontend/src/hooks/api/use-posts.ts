@@ -376,13 +376,20 @@ export const useDeletePost = () => {
   return useMutation({
     mutationFn: (postId: string) => api.posts.delete(postId),
 
-    onSuccess: (_, postId) => {
+    onSuccess: (data, postId) => {
       toast.success("Post deleted");
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["user-posts"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
-      queryClient.invalidateQueries({ queryKey: ["post-replies"] });
+      queryClient.invalidateQueries({ queryKey: ["post-replies"] }); // Generic invalidation
       queryClient.removeQueries({ queryKey: ["post", postId] });
+
+      // If it was a reply, invalidate the specific parent
+      const responseData = data?.data || data; // Handle both direct data or axios response
+      if (responseData?.reply_to_id) {
+        queryClient.invalidateQueries({ queryKey: ["post", responseData.reply_to_id] });
+        queryClient.invalidateQueries({ queryKey: ["post-replies", responseData.reply_to_id] });
+      }
     },
 
     onError: (err: any) => {

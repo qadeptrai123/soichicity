@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Trash2, Edit3 } from "lucide-react";
 import { DeletePostDialog } from "@/components/DeletePostDialog";
 import { useDeletePost } from "@/hooks/api/use-posts";
+import TextWithMentions from "../TextWithMentions";
 // import type { MediaItem } from "@/types/common";
 
 
@@ -255,7 +256,7 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false, onEdit, onAut
                     <DropdownExtend actions={replyActions} triggerType="icon" />
                 </div>
                 <div className="text-[#e2e8f0] text-[15px] leading-relaxed mb-3 font-normal whitespace-pre-wrap">
-                    {reply.content}
+                    <TextWithMentions content={reply.content} />
                 </div>
                 {hasGallery ? (
                     <div className="mb-3">

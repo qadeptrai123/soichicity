@@ -77,7 +77,7 @@ class PostService:
         return blob.public_url
 
     @staticmethod
-    def create_post(user_id: str, content: str, media_urls: list = None, level: int = 0, reply_to_id: str = None, root_id: str = None):
+    def create_post(user_id: str, content: str = None, media_urls: list = None, level: int = 0, reply_to_id: str = None, root_id: str = None):
         if media_urls is None:
             media_urls = []
         elif isinstance(media_urls, str):
@@ -103,7 +103,7 @@ class PostService:
         # Determine root_id if not provided
         payload = {
             "post_id": post_id, # DB field
-            "content": content,
+            "content": content or "",
             "media_urls": media_urls, 
             "created_at": datetime.utcnow().isoformat(),
             "author_id": user_id,
@@ -200,7 +200,7 @@ class PostService:
 
         # --- Notification Logic for Mentions ---
         import re
-        mentions = re.findall(r"@(\w+)", content)
+        mentions = re.findall(r"@(\w+)", content or "")
         if mentions:
              # Remove duplicates
              mentions = list(set(mentions))
@@ -377,7 +377,7 @@ class PostService:
             # Cleanup is expensive (need to find who liked it).
             # "Confirm yes thì xoá cứng document đó" -> Focus on Post doc.
             
-        return {"status": "deleted", "count": total_deleted_count}
+        return {"status": "deleted", "count": total_deleted_count, "reply_to_id": reply_to_id}
 
     # --- NEW: Hàm xử lý chung cho Like, Share, Save (Sub-collections) ---
     @staticmethod
