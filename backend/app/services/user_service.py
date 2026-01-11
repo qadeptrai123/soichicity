@@ -806,6 +806,12 @@ def get_user_profile(db, username: str, current_user_id: str = None):
         next_cursor = posts_page.get("next_cursor")
 
     # Validating and formatting user data with UserResponse schema
+    # Fix count mismatch if array exists (Source of Truth for small lists)
+    if user_data.get("following") and isinstance(user_data["following"], list):
+        real_count = len(user_data["following"])
+        if real_count != user_data.get("followings_count", 0):
+             user_data["followings_count"] = real_count
+
     user_obj = UserResponse.model_validate(user_data)
     final_user_data = user_obj.model_dump()
     

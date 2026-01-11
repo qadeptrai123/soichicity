@@ -1,12 +1,17 @@
 import { ActionButton } from "@/components/ActionButton";
+import { useNavigate } from "react-router-dom";
 import { formatRelativeTime } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useLikePost, useSavePost, usePostReplies } from "@/hooks/api/use-posts";
+import { useLikePost, useSavePost, usePostReplies, useRepostPost } from "@/hooks/api/use-posts";
 import { Heart, MessageSquare, Send, Bookmark, X, Repeat2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "../Gallery";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
-// import { api } from "@/services/api";
+import { useAuth } from "@/contexts/AuthProvider";
+import { useBlockUser } from "@/hooks/api/use-users";
+import { BlockUserDialog } from "@/components/BlockUserDialog";
+import { DropdownExtend } from "../DropdownExtend";
+import { Ban } from "lucide-react";
 // import type { MediaItem } from "@/types/common";
 
 
@@ -26,17 +31,24 @@ const COLORS = {
 };
 
 export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemProps) => {
-    console.log(reply)
+    // console.log(reply)
+    const navigate = useNavigate();
     // Hooks
     const likeMutation = useLikePost();
     const saveMutation = useSavePost();
-    // const repostMutation = useRepostPost(); // User said replies don't need repost
+    const repostMutation = useRepostPost();
 
     // Optimistic UI State
     const [likesCount, setLikesCount] = useState(reply.likes_count || 0);
     const [isLiked, setIsLiked] = useState(reply.is_liked || false);
+    const [repostsCount, setRepostsCount] = useState(reply.reposts_count || 0);
+    const [isReposted, setIsReposted] = useState(reply.is_reposted || false);
     const [savesCount, setSavesCount] = useState(reply.saves_count || 0);
     const [isSaved, setIsSaved] = useState(reply.is_saved || false);
+    const [showBlockDialog, setShowBlockDialog] = useState(false);
+
+    const { user: me, isAuthenticated } = useAuth();
+    const blockMutation = useBlockUser();
 
     // Media State
     const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
@@ -54,6 +66,13 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
         setShowReplies(true);
     };
 
+    const handleProfileClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (reply.author?.username) {
+            navigate(`/profile/${reply.author.username}`);
+        }
+    };
+
     const handleLike = (e?: React.MouseEvent) => {
         e?.stopPropagation();
         setIsLiked(!isLiked);
@@ -65,7 +84,14 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
         e?.stopPropagation();
         setIsSaved(!isSaved);
         setSavesCount((prev: number) => prev + (isSaved ? -1 : 1));
-        saveMutation.mutate(reply.post_id);
+        saveMutation.mutate({ postId: reply.post_id, wasSaved: isSaved });
+    };
+
+    const handleRepost = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        setIsReposted(!isReposted);
+        setRepostsCount((prev: number) => prev + (isReposted ? -1 : 1));
+        repostMutation.mutate({ postId: reply.post_id, wasReposted: isReposted });
     };
 
     // --- Preprocess Gallery Data ---
@@ -101,6 +127,27 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
         };
     }, [reply]);
 
+    const handleBlockConfirm = () => {
+        if (reply.author?.uid) {
+            blockMutation.mutate(reply.author.uid, {
+                onSuccess: () => {
+                    setShowBlockDialog(false);
+                },
+            });
+        }
+    };
+
+    const replyActions = [
+        {
+            id: "block",
+            label: "Block",
+            icon: <Ban size={16} />,
+            onClick: () => setShowBlockDialog(true),
+            isVisible: isAuthenticated && String(me?.uid) !== String(reply.author?.uid),
+            variant: "destructive" as const,
+        }
+    ];
+
     const hasGallery = processedData.gallery && processedData.gallery.length > 0;
     const hasSingleMedia = processedData.media_url && !hasGallery;
     const isYoutube = hasSingleMedia ? isYouTubeUrl(processedData.media_url!) : false;
@@ -116,7 +163,10 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
             className={`flex gap-4 group pt-3 pb-3 ${isNested ? 'px-0' : 'px-6'}`}
         >
             <div className="flex flex-col items-center shrink-0">
-                <Avatar className={`w-10 h-10 border ${COLORS.border} z-10`}>
+                <Avatar 
+                    className={`w-10 h-10 border ${COLORS.border} z-10 cursor-pointer hover:opacity-80 transition-opacity`}
+                    onClick={handleProfileClick}
+                >
                     <AvatarImage src={reply.author.avatar_url || reply.author.avatar || DEFAULT_AVATAR_URL} />
                     <AvatarFallback>{reply.author.full_name?.[0] || '?'}</AvatarFallback>
                 </Avatar>
@@ -124,10 +174,23 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
             </div>
 
             <div className="flex-1 pb-2">
-                <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold text-[15px] text-white">{reply.author.full_name}</span>
-                    <span className="text-[#64748b] text-sm">@{reply.author.username}</span>
+                <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2 mb-1">
+                    <span 
+                        className="font-bold text-[15px] text-white cursor-pointer hover:underline"
+                        onClick={handleProfileClick}
+                    >
+                        {reply.author.full_name}
+                    </span>
+                    <span 
+                        className="text-[#64748b] text-sm cursor-pointer hover:underline"
+                        onClick={handleProfileClick}
+                    >
+                        @{reply.author.username}
+                    </span>
                     <span className="text-[#64748b] text-xs">• {formatRelativeTime(reply.created_at)}</span>
+                    </div>
+                    <DropdownExtend actions={replyActions} triggerType="icon" />
                 </div>
                 <div className="text-[#e2e8f0] text-[15px] leading-relaxed mb-3 font-normal whitespace-pre-wrap">
                     {reply.content}
@@ -245,8 +308,9 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
                     <ActionButton
                         actionId="repost"
                         icon={<Repeat2 size={18} />}
-                        count={0}
-                        onClick={(e) => { e?.stopPropagation(); }}
+                        count={repostsCount}
+                        onClick={handleRepost}
+                        isActive={isReposted}
                     />
                     <ActionButton
                         actionId="share"
@@ -324,6 +388,14 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
                     </div>
                 )}
             </div>
+            <BlockUserDialog 
+                isOpen={showBlockDialog} 
+                onClose={() => setShowBlockDialog(false)}
+                onConfirm={handleBlockConfirm}
+                username={reply.author?.username || ""}
+                avatarUrl={reply.author?.avatar_url}
+                isPending={blockMutation.isPending}
+            />
         </div>
     );
 };

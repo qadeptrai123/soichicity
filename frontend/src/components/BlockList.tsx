@@ -29,7 +29,7 @@ export default function BlockList({ isOpen, onClose }: BlockListProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800">
           <div className="flex flex-col">
-            <h2 className="text-[20px] font-semibold text-red-500">Blocked Users</h2>
+            <h2 className="text-[20px] font-semibold text-red-500">Block List</h2>
             <span className="text-sm text-neutral-500">{blockedUsers?.length || 0} people blocked</span>
           </div>
           <button
@@ -41,7 +41,7 @@ export default function BlockList({ isOpen, onClose }: BlockListProps) {
         </div>
 
         {/* List */}
-        <div className="flex flex-col gap-0 p-0 max-h-[500px] overflow-y-auto">
+        <div className="flex flex-col gap-3 p-4 max-h-[500px] overflow-y-auto">
           {isLoading ? (
             <div className="flex justify-center p-8">
                 <LoadingSpinner />
@@ -50,12 +50,12 @@ export default function BlockList({ isOpen, onClose }: BlockListProps) {
             blockedUsers.map((user) => (
             <div
               key={user.uid}
-              className="flex items-center justify-between px-6 py-4 hover:bg-white/5 transition-colors border-b border-neutral-800 last:border-0"
+              className="flex items-center justify-between p-4 bg-[#1e293b]/20 border border-neutral-800 rounded-2xl hover:bg-[#1e293b]/40 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <Avatar className="w-10 h-10 border border-neutral-800">
+                <Avatar className="w-12 h-12 border border-neutral-800">
                   <AvatarImage src={user.avatar_url || DEFAULT_AVATAR_URL} />
-                  <AvatarFallback className="text-sm bg-neutral-700">
+                  <AvatarFallback className="text-sm bg-gradient-to-br from-blue-500 to-purple-500 text-white">
                     {(user.full_name || user.username)[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -66,10 +66,10 @@ export default function BlockList({ isOpen, onClose }: BlockListProps) {
               </div>
               <Button
                 onClick={() => unblockMutation.mutate(user.uid)}
-                disabled={unblockMutation.isPending}
+                disabled={unblockMutation.isPending && unblockMutation.variables === user.uid}
                 className="bg-neutral-800 hover:bg-neutral-700 text-white font-semibold h-8 px-4 rounded-lg text-[13px] border border-neutral-700"
               >
-                {unblockMutation.isPending ? "Unblocking..." : "Unblock"}
+                {unblockMutation.isPending && unblockMutation.variables === user.uid ? "Unblocking..." : "Unblock"}
               </Button>
             </div>
           ))

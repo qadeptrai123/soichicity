@@ -1,9 +1,21 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Heart, MessageSquare, Repeat2, Send, Bookmark, X, Edit3, Ban, Link2 } from "lucide-react";
-import { DropdownExtend } from "../DropdownExtend";
+import {
+  Heart,
+  MessageSquare,
+  Repeat2,
+  Send,
+  Bookmark,
+  X,
+  Edit3,
+  Ban,
+  Link2,
+} from "lucide-react";
 import { ActionButton } from "@/components/ActionButton";
 import { useLikePost, useSavePost, useRepostPost } from "@/hooks/api/use-posts";
+import { useBlockUser } from "@/hooks/api/use-users";
+import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "../Gallery";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import type { Post } from "@/types/post";
@@ -13,7 +25,7 @@ import { LoginPrompt } from "@/components/LoginPrompt";
 import TextWithMentions from "../TextWithMentions";
 // import type { MediaItem } from "@/types/common";
 import { toast } from "sonner";
-
+import { DropdownExtend } from "../DropdownExtend";
 
 interface PostMainPostProps {
   data: Post;
@@ -23,16 +35,18 @@ interface PostMainPostProps {
 
 export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
   // Hàm format thời gian giả lập (hoặc dùng thư viện date-fns nếu có)
-
+  const navigate = useNavigate();
 
   // Hooks
   const { isAuthenticated, user: me } = useAuth();
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
   const repostMutation = useRepostPost();
+  const blockMutation = useBlockUser();
 
   // State
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
   const [, setIsGalleryDragging] = useState(false);
 
@@ -59,24 +73,27 @@ export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
     });
     setActionStates({
       liked: data.is_liked || false,
-      bookmarked: data.is_saved || false,  // Note: API field is_saved or is_bookmarked? Schema says is_saved
-      reposted: data.is_reposted || false    // Schema says is_reposted, usePostDetail data might differ. Let's assume passed data alignment.
+      bookmarked: data.is_saved || false, // Note: API field is_saved or is_bookmarked? Schema says is_saved
+      reposted: data.is_reposted || false, // Schema says is_reposted, usePostDetail data might differ. Let's assume passed data alignment.
     });
   }, [data]);
 
-  const handleLike = useCallback((e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (!isAuthenticated) {
-      setShowLoginPrompt(true);
-      return;
-    }
-    setActionStates((prev) => ({ ...prev, liked: !prev.liked }));
-    setLocalCounts((prev) => ({
-      ...prev,
-      likes: prev.likes + (actionStates.liked ? -1 : 1),
-    }));
-    likeMutation.mutate(data.post_id);
-  }, [actionStates.liked, data.post_id, likeMutation, isAuthenticated]);
+  const handleLike = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      if (!isAuthenticated) {
+        setShowLoginPrompt(true);
+        return;
+      }
+      setActionStates((prev) => ({ ...prev, liked: !prev.liked }));
+      setLocalCounts((prev) => ({
+        ...prev,
+        likes: prev.likes + (actionStates.liked ? -1 : 1),
+      }));
+      likeMutation.mutate(data.post_id);
+    },
+    [actionStates.liked, data.post_id, likeMutation, isAuthenticated]
+  );
 
   const handleShare = useCallback(
     async (e?: React.MouseEvent) => {
@@ -94,51 +111,124 @@ export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
     [data.post_id]
   );
 
+  const handleBookmark = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      if (!isAuthenticated) {
+        setShowLoginPrompt(true);
+        return;
+      }
+      setActionStates((prev) => ({ ...prev, bookmarked: !prev.bookmarked }));
+      setLocalCounts((prev) => ({
+        ...prev,
+        bookmarks: prev.bookmarks + (actionStates.bookmarked ? -1 : 1),
+      }));
+      saveMutation.mutate({
+        postId: data.post_id,
+        wasSaved: actionStates.bookmarked,
+      });
+    },
+    [actionStates.bookmarked, data.post_id, saveMutation, isAuthenticated]
+  );
 
+  const handleRepost = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      if (!isAuthenticated) {
+        setShowLoginPrompt(true);
+        return;
+      }
+      setActionStates((prev) => ({ ...prev, reposted: !prev.reposted }));
+      setLocalCounts((prev) => ({
+        ...prev,
+        reposts: prev.reposts + (actionStates.reposted ? -1 : 1),
+      }));
+      repostMutation.mutate({
+        postId: data.post_id,
+        wasReposted: actionStates.reposted,
+      });
+    },
+    [actionStates.reposted, data.post_id, repostMutation, isAuthenticated]
+  );
 
-  const handleBookmark = useCallback((e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (!isAuthenticated) {
-      setShowLoginPrompt(true);
-      return;
+  const handleReply = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      if (!isAuthenticated) {
+        setShowLoginPrompt(true);
+        return;
+      }
+      onReply?.();
+    },
+    [onReply, isAuthenticated]
+  );
+
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (data.author?.username) {
+      navigate(`/profile/${data.author.username}`);
     }
-    setActionStates((prev) => ({ ...prev, bookmarked: !prev.bookmarked }));
-    setLocalCounts((prev) => ({
-      ...prev,
-      bookmarks: prev.bookmarks + (actionStates.bookmarked ? -1 : 1),
-    }));
-    saveMutation.mutate({
-      postId: data.post_id,
-      wasSaved: actionStates.bookmarked,
-    });
+  };
 
-  }, [actionStates.bookmarked, data.post_id, saveMutation, isAuthenticated]);
-
-  const handleRepost = useCallback((e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (!isAuthenticated) {
-      setShowLoginPrompt(true);
-      return;
+  const handleBlockConfirm = () => {
+    if (data.author?.uid) {
+      blockMutation.mutate(data.author.uid, {
+        onSuccess: () => {
+          setShowBlockDialog(false);
+          navigate("/"); // Navigate to home after blocking
+        },
+      });
     }
-    setActionStates((prev) => ({ ...prev, reposted: !prev.reposted }));
-    setLocalCounts((prev) => ({
-      ...prev,
-      reposts: prev.reposts + (actionStates.reposted ? -1 : 1),
-    }));
-    repostMutation.mutate({
-      postId: data.post_id,
-      wasReposted: actionStates.reposted,
-    });
-  }, [actionStates.reposted, data.post_id, repostMutation, isAuthenticated]);
+  };
 
-  const handleReply = useCallback((e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (!isAuthenticated) {
-      setShowLoginPrompt(true);
-      return;
-    }
-    onReply?.();
-  }, [onReply, isAuthenticated]);
+  // Dropdown Actions
+  const postActions = [
+    {
+      id: "bookmark",
+      label: actionStates.bookmarked ? "Unsave" : "Save",
+      icon: (
+        <Bookmark
+          size={16}
+          fill={actionStates.bookmarked ? "currentColor" : "none"}
+        />
+      ),
+      onClick: handleBookmark,
+      isVisible: true,
+      showSeparatorAfter: true,
+    },
+    {
+      id: "edit",
+      label: "Edit",
+      icon: <Edit3 size={16} />,
+      onClick: () => onEdit?.(data),
+      isVisible: me?.uid === data.author?.uid && !!onEdit,
+    },
+    {
+      id: "block",
+      label: "Block",
+      icon: <Ban size={16} />,
+      onClick: () => setShowBlockDialog(true),
+      isVisible:
+        isAuthenticated && String(me?.uid) !== String(data.author?.uid),
+      showSeparatorAfter: true,
+      variant: "destructive" as const,
+    },
+    {
+      id: "copy-link",
+      label: "Copy link",
+      icon: <Link2 size={16} />,
+      onClick: async () => {
+        const postUrl = `${window.location.origin}/post/${data.post_id}`;
+        try {
+          await navigator.clipboard.writeText(postUrl);
+          toast.success("Link copied to clipboard");
+        } catch (err) {
+          toast.error("Failed to copy link");
+        }
+      },
+      isVisible: true,
+    },
+  ];
 
   // Dropdown Actions
   const postActions = [
@@ -189,9 +279,12 @@ export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
 
     // Priority 1: data.gallery (already processed)
     if (data.gallery && data.gallery.length > 0) {
-      if (typeof data.gallery[0] === 'string') {
+      if (typeof data.gallery[0] === "string") {
         gallery = data.gallery;
-      } else if (typeof data.gallery[0] === 'object' && (data.gallery[0] as any).url) {
+      } else if (
+        typeof data.gallery[0] === "object" &&
+        (data.gallery[0] as any).url
+      ) {
         gallery = data.gallery.map((item: any) => item.url);
       }
     }
@@ -203,7 +296,8 @@ export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
     // Determine finalized props based on Feed.tsx logic
     // If > 1 item, it's a gallery. If 1 item, it's single media.
     const finalGallery = gallery && gallery.length > 1 ? gallery : undefined;
-    const finalMediaUrl = gallery && gallery.length === 1 ? gallery[0] : (data.media_url || null);
+    const finalMediaUrl =
+      gallery && gallery.length === 1 ? gallery[0] : data.media_url || null;
 
     let finalMediaType = data.media_type || null;
     if (gallery && gallery.length === 1) {
@@ -216,49 +310,64 @@ export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
     return {
       gallery: finalGallery,
       media_url: finalMediaUrl,
-      media_type: finalMediaType
+      media_type: finalMediaType,
     };
   }, [data]);
 
   // Check based on processed data
   const hasGallery = processedData.gallery && processedData.gallery.length > 0;
   const hasSingleMedia = processedData.media_url && !hasGallery;
-  const isYoutube = hasSingleMedia ? isYouTubeUrl(processedData.media_url!) : false;
-  const embedUrl = isYoutube ? getYouTubeEmbedUrl(processedData.media_url!) : null;
+  const isYoutube = hasSingleMedia
+    ? isYouTubeUrl(processedData.media_url!)
+    : false;
+  const embedUrl = isYoutube
+    ? getYouTubeEmbedUrl(processedData.media_url!)
+    : null;
   const actualMediaType = hasSingleMedia
     ? isYoutube
       ? "youtube"
       : processedData.media_type
     : null;
 
-
   return (
     <div className="p-6 pb-6 text-white">
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex gap-3 items-center">
-          <Avatar className="w-12 h-12 border border-[#374151]">
+          <Avatar
+            className="w-12 h-12 border border-[#374151] cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={handleProfileClick}
+          >
             <AvatarImage src={data.author?.avatar_url || DEFAULT_AVATAR_URL} />
-            <AvatarFallback>{data.author?.full_name?.[0] || "?"}</AvatarFallback>
+            <AvatarFallback>
+              {data.author?.full_name?.[0] || "?"}
+            </AvatarFallback>
           </Avatar>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-lg leading-tight text-white">{data.author?.full_name}</span>
-              <span className="text-[#64748b] text-base">@{data.author?.username}</span>
+              <span
+                className="font-bold text-lg leading-tight text-white cursor-pointer hover:underline"
+                onClick={handleProfileClick}
+              >
+                {data.author?.full_name}
+              </span>
+              <span
+                className="text-[#64748b] text-base cursor-pointer hover:underline"
+                onClick={handleProfileClick}
+              >
+                @{data.author?.username}
+              </span>
 
               {/* THÊM THỜI GIAN Ở ĐÂY */}
               {/* THÊM THỜI GIAN Ở ĐÂY */}
               <span className="text-[#64748b] text-sm flex items-center gap-1">
-                <span className="text-[10px]">•</span> {formatRelativeTime(data.created_at)}
+                <span className="text-[10px]">•</span>{" "}
+                {formatRelativeTime(data.created_at)}
               </span>
             </div>
           </div>
         </div>
-        <DropdownExtend
-          actions={postActions}
-          triggerType="icon"
-          align="end"
-        />
+        <DropdownExtend actions={postActions} triggerType="icon" align="end" />
       </div>
 
       {/* Content */}
@@ -398,8 +507,16 @@ export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
           onClick={handleShare}
         />
         {/* Add Bookmark for Main Post too if desired, usually it is there */}
-
       </div>
+
+      <BlockUserDialog
+        isOpen={showBlockDialog}
+        onClose={() => setShowBlockDialog(false)}
+        onConfirm={handleBlockConfirm}
+        username={data.author?.username || ""}
+        avatarUrl={data.author?.avatar_url}
+        isPending={blockMutation.isPending}
+      />
 
       {/* Login Prompt Overlay */}
       {

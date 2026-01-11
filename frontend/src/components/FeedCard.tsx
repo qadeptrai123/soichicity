@@ -163,6 +163,13 @@ const FeedCard: React.FC<FeedCardProps> = ({
     navigate(`/post/${post.post_id}`);
   };
 
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (displayAuthor?.username) {
+      navigate(`/profile/${displayAuthor.username}`);
+    }
+  };
+
   // --- Xử lý click vào vùng content text ---
   const handleContentClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -333,7 +340,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
 
   // Debug Block Visibility
   const isAuthor = Boolean(
-    me?.uid && post.author?.uid && String(me.uid) === String(post.author.uid)
+    me?.uid && displayAuthor?.uid && String(me.uid) === String(displayAuthor.uid)
   );
   // console.log("FeedCard Debug:", { meUid: me?.uid, authorUid: post.author?.uid, isAuthor, isAuthenticated });
 
@@ -413,7 +420,10 @@ const FeedCard: React.FC<FeedCardProps> = ({
           }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <Avatar className="w-10 h-10 shrink-0">
+        <Avatar 
+          className="w-10 h-10 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={handleProfileClick}
+        >
           <AvatarImage
             src={
               displayAuthor?.avatar_url ||
@@ -439,7 +449,10 @@ const FeedCard: React.FC<FeedCardProps> = ({
             >
               {displayAuthor?.name || "Unknown User"}
             </span>
-            <span className="text-text-secondary text-ft">
+            <span 
+              className="text-text-secondary text-ft hover:underline cursor-pointer"
+              onClick={handleProfileClick}
+            >
               {displayAuthor?.handle || ""}
             </span>
             <span className="text-text-muted text-xs">
