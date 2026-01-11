@@ -656,8 +656,31 @@ def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: 
 
     # 5. Normalize
     # 4. Batch Fetch Author (This part remains as it's needed for the items)
-    author_ids = {d.get("author_id") for d in filtered_docs} # Use filtered_docs here
+    author_ids = {d.get("author_id") for d in filtered_docs if d.get("author_id")} # Use filtered_docs here
     authors_map = _get_docs_batch(db, "users", list(author_ids))
+
+    # --- 4b. Batch Fetch Parent Posts (If post_type == 'replies') ---
+    parent_posts_map = {}
+    parent_authors_map = {}
+    
+    if post_type == "replies" and filtered_docs:
+        # 1. Get IDs of parent posts
+        parent_ids = {d.get("reply_to_id") for d in filtered_docs if d.get("reply_to_id")}
+        
+        # 2. Fetch parent posts
+        if parent_ids:
+            parent_posts_map = _get_docs_batch(db, "posts", list(parent_ids))
+            
+            # 3. Fetch authors of parent posts
+            parent_author_ids = set()
+            for p_doc in parent_posts_map.values():
+                if p_doc.exists:
+                    pa_id = p_doc.to_dict().get("author_id")
+                    if pa_id:
+                        parent_author_ids.add(pa_id)
+            
+            if parent_author_ids:
+                parent_authors_map = _get_docs_batch(db, "users", list(parent_author_ids))
 
     # --- 4. Populate Interaction Status (Batch Fetch) ---
     final_items = []
@@ -718,6 +741,29 @@ def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: 
                      item["author"]["uid"] = author_id 
             else:
                  item["author"] = {"uid": author_id, "username": "Unknown", "full_name": "Unknown"}
+            
+            # Inject Parent Post (replies only)
+            if post_type == "replies" and item.get("reply_to_id"):
+                parent_id = item.get("reply_to_id")
+                if parent_id in parent_posts_map:
+                    p_doc = parent_posts_map[parent_id]
+                    if p_doc.exists:
+                        p_data = p_doc.to_dict()
+                        parent_author_id = p_data.get("author_id")
+                        parent_author = None
+                        if parent_author_id and parent_author_id in parent_authors_map:
+                             pa_doc = parent_authors_map[parent_author_id]
+                             if pa_doc.exists:
+                                 parent_author = pa_doc.to_dict()
+                                 parent_author["uid"] = parent_author_id
+                        
+                        item["reply_to_post"] = {
+                            "post_id": parent_id,
+                            "content": p_data.get("content"),
+                            "author": parent_author or {"username": "Unknown"},
+                            "media_urls": p_data.get("media_urls"),
+                            "created_at": p_data.get("created_at")
+                        }
 
             final_items.append(item)
     else:
@@ -744,6 +790,29 @@ def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: 
                      item["author"]["uid"] = author_id 
             else:
                  item["author"] = {"uid": author_id, "username": "Unknown", "full_name": "Unknown"}
+            
+            # Inject Parent Post (replies only)
+            if post_type == "replies" and item.get("reply_to_id"):
+                parent_id = item.get("reply_to_id")
+                if parent_id in parent_posts_map:
+                    p_doc = parent_posts_map[parent_id]
+                    if p_doc.exists:
+                        p_data = p_doc.to_dict()
+                        parent_author_id = p_data.get("author_id")
+                        parent_author = None
+                        if parent_author_id and parent_author_id in parent_authors_map:
+                             pa_doc = parent_authors_map[parent_author_id]
+                             if pa_doc.exists:
+                                 parent_author = pa_doc.to_dict()
+                                 parent_author["uid"] = parent_author_id
+                        
+                        item["reply_to_post"] = {
+                            "post_id": parent_id,
+                            "content": p_data.get("content"),
+                            "author": parent_author or {"username": "Unknown"},
+                            "media_urls": p_data.get("media_urls"),
+                            "created_at": p_data.get("created_at")
+                        }
             
             final_items.append(item)
 
