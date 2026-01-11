@@ -77,7 +77,7 @@ class PostService:
         return blob.public_url
 
     @staticmethod
-    def create_post(user_id: str, content: str, media_urls: list = None, level: int = 0, reply_to_id: str = None, root_id: str = None):
+    def create_post(user_id: str, content: str = None, media_urls: list = None, level: int = 0, reply_to_id: str = None, root_id: str = None):
         if media_urls is None:
             media_urls = []
         elif isinstance(media_urls, str):
@@ -102,7 +102,7 @@ class PostService:
         
         payload = {
             "post_id": post_id, # DB field
-            "content": content,
+            "content": content or "",
             "media_urls": media_urls, 
             "created_at": datetime.utcnow().isoformat(),
             "author_id": user_id,

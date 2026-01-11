@@ -27,14 +27,14 @@ from fastapi import Form, File, UploadFile
 
 # --- Schemas Input ---
 class PostCreate(BaseModel):
-    content: str
-    link_url: Optional[List[str]] = [] 
+    content: Optional[str] = None
+    link_url: Optional[List[str]] = []
 
 
 class PostCreateForm:
     def __init__(
         self,
-        content: str = Form(...),
+        content: Optional[str] = Form(None),
         files: List[UploadFile] = File(default=[]),
         level: int = Form(0),
         reply_to_id: Optional[str] = Form(None),
