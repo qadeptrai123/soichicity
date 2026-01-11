@@ -233,6 +233,7 @@ const Feed = () => {
                         is_reposted: item.is_reposted,
                       }}
                       author={item.author}
+                      onReply={handleReply}
                       onEdit={(post) => {
                         setEditingPost(post);
                         setIsEditOpen(true);

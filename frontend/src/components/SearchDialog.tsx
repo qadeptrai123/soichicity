@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Search, X, TrendingUp } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { searchService, type SearchUser, type SearchPost } from '@/services/searchService';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
@@ -15,7 +15,7 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
-    const trendingTags = ['React 19', 'Next.js', 'TypeScript', 'Tailwind', 'Web Development'];
+
 
     useEffect(() => {
         const fetchSuggested = async () => {
@@ -97,22 +97,7 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
                         {/* Trending Section - Show only when no search query */}
                         {!searchQuery && (
                             <>
-                                <div className="p-4 border-b border-border">
-                                    <div className="flex items-center gap-2 mb-3 text-foreground">
-                                        <TrendingUp className="w-5 h-5" />
-                                        <h3 className="">Trending</h3>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {trendingTags.map((tag) => (
-                                            <button
-                                                key={tag}
-                                                className="px-3 py-1.5 bg-input hover:bg-border rounded-full text-sm text-text-secondary"
-                                            >
-                                                {tag}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+
                                 {suggestedUsers.length > 0 && (
                                     <div className="p-4">
                                         <div className="flex items-center gap-2 mb-3 text-foreground">
