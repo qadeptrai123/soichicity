@@ -15,8 +15,8 @@ interface UnfollowDialogProps {
 export function UnfollowDialog({ isOpen, onClose, onConfirm, username, avatarUrl, isPending }: UnfollowDialogProps) {
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent 
-                onClick={(e) => e.stopPropagation()} 
+            <DialogContent
+                onClick={(e) => e.stopPropagation()}
                 className="sm:max-w-[320px] p-0 gap-0 overflow-hidden bg-secondary border-border text-white"
             >
                 <div className="flex flex-col items-center gap-4 text-center p-8 pb-6">

@@ -14,9 +14,10 @@ interface BlockUserDialogProps {
 
 export function BlockUserDialog({ isOpen, onClose, onConfirm, username, avatarUrl, isPending }: BlockUserDialogProps) {
     return (
+        // <div onClick={(e) => e.stopPropagation()}>
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent 
-                onClick={(e) => e.stopPropagation()} 
+            <DialogContent
+                onClick={(e) => e.stopPropagation()}
                 className="sm:max-w-[320px] p-0 gap-0 overflow-hidden bg-secondary border-border text-white"
             >
                 <div className="flex flex-col items-center gap-4 text-center p-8 pb-6">
@@ -57,5 +58,6 @@ export function BlockUserDialog({ isOpen, onClose, onConfirm, username, avatarUr
                 </div>
             </DialogContent>
         </Dialog>
+        // </div>
     );
 }

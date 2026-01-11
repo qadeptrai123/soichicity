@@ -24,14 +24,17 @@ export const DeletePostDialog: React.FC<DeletePostDialogProps> = ({
 }) => {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-[#1A1F2E] border-[#374151] text-white sm:max-w-[425px]">
+            <DialogContent
+                className="bg-[#1A1F2E] border-[#374151] text-white sm:max-w-[425px]"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <DialogHeader>
                     <DialogTitle className="text-white">Delete Post?</DialogTitle>
                     <DialogDescription className="text-gray-400">
                         This can’t be undone and it will be removed from your profile, the timeline of any accounts that follow you, and from search results.
                     </DialogDescription>
                 </DialogHeader>
-                <DialogFooter className="gap-2 sm:gap-0">
+                <DialogFooter className="gap-4">
                     <Button
                         variant="ghost"
                         onClick={() => onOpenChange(false)}
