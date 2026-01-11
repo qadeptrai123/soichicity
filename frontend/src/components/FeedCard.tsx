@@ -418,9 +418,9 @@ const FeedCard: React.FC<FeedCardProps> = ({
             alt={displayAuthor?.name || "User"}
           />
           <AvatarFallback>
-            {displayAuthor?.name
-              ? displayAuthor.name.charAt(0).toUpperCase()
-              : "U"}
+            {(displayAuthor?.full_name || displayAuthor?.name || displayAuthor?.username || "?")
+              .charAt(0)
+              .toUpperCase()}
           </AvatarFallback>
         </Avatar>
         <div className="flex flex-col flex-1">
@@ -429,7 +429,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
               className="text hover:underline cursor-pointer text-foreground"
               onClick={handleProfileClick}
             >
-              {displayAuthor?.name || "Unknown User"}
+              {displayAuthor?.full_name || displayAuthor?.name || displayAuthor?.username || "Unknown User"}
             </span>
             <span
               className="text-text-secondary text-ft hover:underline cursor-pointer"
