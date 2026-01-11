@@ -40,6 +40,15 @@ export interface Post {
         reposted_by: Author | any; // Use 'any' specifically for dict returned from backend if Author doesn't match perfectly
         reposted_at: string;
     } | null;
+
+    // Parent Post (for Reply Items)
+    reply_to_post?: {
+        post_id: string;
+        content: string;
+        author: Author;
+        media_urls?: string[];
+        created_at: string;
+    } | null;
 }
 
 // Alias for FeedCard compatibility if needed, or we just refactor FeedCard to use Post
@@ -84,17 +93,17 @@ export interface PostDetail extends Post {
 
 // Type used in ReplyCommentDialog
 export type TargetPost = {
-  id: string | number;
-  user: {
-    uid: string;
-    username: string;
-    full_name: string | null;
-    avatar_url?: string;
-  };
-  content: string;
-  date: string;
-  media_url?: string | null;
-  media_type?: string | null;
-  gallery?: string[];
-  level?: number;
+    id: string | number;
+    user: {
+        uid: string;
+        username: string;
+        full_name: string | null;
+        avatar_url?: string;
+    };
+    content: string;
+    date: string;
+    media_url?: string | null;
+    media_type?: string | null;
+    gallery?: string[];
+    level?: number;
 };

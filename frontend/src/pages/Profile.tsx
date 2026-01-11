@@ -19,6 +19,7 @@ import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { LoginPrompt } from "@/components/LoginPrompt";
 import { UserListDialog } from "@/components/UserListDialog";
 import { UnfollowDialog } from "@/components/UnfollowDialog";
+import ReplyFeedCard from "@/components/ReplyFeedCard";
 import AnimateEntrance from "@/components/ui/AnimateEntrance";
 
 export default function Profile() {
@@ -338,33 +339,48 @@ export default function Profile() {
             <ProfileMediaTab posts={posts || []} />
           ) : posts && posts.length > 0 ? (
             posts.map((post) => (
-              <FeedCard
-                key={post.post_id || post.repost_id} // Use repost_id if available to avoid duplicates if user reposts + posts? Actually API returns unique items per feed.
-                post={{
-                  ...post,
-                  // Match Feed.tsx transformation logic: only pass gallery if > 1 items
-                  gallery: post.media_urls && post.media_urls.length > 1 ? post.media_urls : undefined,
-                  // Ensure media structure matches what FeedCard expects for single media
-                  media_url: post.media_urls && post.media_urls.length > 0 ? post.media_urls[0] : null,
-                  media_type: post.media_type || (post.media_urls?.[0] && (/(?:youtube\.com|youtu\.be)/.test(post.media_urls[0]) ? "youtube" : /\.(mp4|webm|ogg)$/i.test(post.media_urls[0]) ? "video" : "image")) || null,
-                }}
-                author={{
-                  name: post.author?.full_name || post.author?.username || "Unknown",
-                  handle: `@${post.author?.username}`,
-                  avatar_url: post.author?.avatar_url || DEFAULT_AVATAR_URL,
-                  /** @deprecated */
-                  avatar: post.author?.avatar_url || DEFAULT_AVATAR_URL,
-                  id: post.author?.uid, // Legacy
-                  uid: post.author?.uid || post.author_id, // Use string ID
-                  username: post.author?.username || "Unknown"
-                }}
-                onReply={handleReply}
-                onEdit={(post) => {
-                  setEditingPost(post);
-                  setIsEditOpen(true);
-                }}
-                hideBorder={true}
-              />
+              activeTab === "Replies" ? (
+                <ReplyFeedCard
+                  key={post.post_id || post.repost_id}
+                  post={{
+                    ...post,
+                    gallery: post.media_urls && post.media_urls.length > 1 ? post.media_urls : undefined,
+                    media_url: post.media_urls && post.media_urls.length > 0 ? post.media_urls[0] : null,
+                    media_type: post.media_type || (post.media_urls?.[0] && (/(?:youtube\.com|youtu\.be)/.test(post.media_urls[0]) ? "youtube" : /\.(mp4|webm|ogg)$/i.test(post.media_urls[0]) ? "video" : "image")) || null,
+                  }}
+                  onReply={handleReply}
+                  onEdit={(post) => {
+                    setEditingPost(post);
+                    setIsEditOpen(true);
+                  }}
+                />
+              ) : (
+                <FeedCard
+                  key={post.post_id || post.repost_id}
+                  post={{
+                    ...post,
+                    gallery: post.media_urls && post.media_urls.length > 1 ? post.media_urls : undefined,
+                    media_url: post.media_urls && post.media_urls.length > 0 ? post.media_urls[0] : null,
+                    media_type: post.media_type || (post.media_urls?.[0] && (/(?:youtube\.com|youtu\.be)/.test(post.media_urls[0]) ? "youtube" : /\.(mp4|webm|ogg)$/i.test(post.media_urls[0]) ? "video" : "image")) || null,
+                  }}
+                  author={{
+                    name: post.author?.full_name || post.author?.username || "Unknown",
+                    handle: `@${post.author?.username}`,
+                    avatar_url: post.author?.avatar_url || DEFAULT_AVATAR_URL,
+                    /** @deprecated */
+                    avatar: post.author?.avatar_url || DEFAULT_AVATAR_URL,
+                    id: post.author?.uid,
+                    uid: post.author?.uid || "unknown-uid",
+                    username: post.author?.username || "Unknown"
+                  }}
+                  onReply={handleReply}
+                  onEdit={(post) => {
+                    setEditingPost(post);
+                    setIsEditOpen(true);
+                  }}
+                  hideBorder={true}
+                />
+              )
             ))
           ) : (
             <div className="py-8 text-center text-neutral-500">
@@ -400,50 +416,57 @@ export default function Profile() {
             }}
           />
         )}
+
         {/* CREATE POST DIALOG */}
-        {me && (
-          <CreatePostDialog
-            open={isCreatePostOpen}
-            onOpenChange={(open) => {
-              setIsCreatePostOpen(open);
-              if (!open) setCreatePostContent("");
-            }}
-            currentUser={
-              {
-                uid: me.uid,
-                username: me.username,
-                full_name: me.full_name,
-                avatar_url: me.avatar_url
+        {
+          me && (
+            <CreatePostDialog
+              open={isCreatePostOpen}
+              onOpenChange={(open) => {
+                setIsCreatePostOpen(open);
+                if (!open) setCreatePostContent("");
+              }}
+              currentUser={
+                {
+                  uid: me.uid,
+                  username: me.username,
+                  full_name: me.full_name,
+                  avatar_url: me.avatar_url
+                }
               }
-            }
-            mockFriends={[]} // Pass necessary props or handle inside
-            initialContent={createPostContent}
-          />
-        )}
+              mockFriends={[]} // Pass necessary props or handle inside
+              initialContent={createPostContent}
+            />
+          )
+        }
 
         {/* EDIT POST DIALOG */}
-        {isEditOpen && editingPost && (
-          <EditPostDialog
-            open={isEditOpen}
-            onOpenChange={setIsEditOpen}
-            post={editingPost}
-          />
-        )}
+        {
+          isEditOpen && editingPost && (
+            <EditPostDialog
+              open={isEditOpen}
+              onOpenChange={setIsEditOpen}
+              post={editingPost}
+            />
+          )
+        }
 
         {/* Login Prompt Overlay */}
-        {showLoginPrompt && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-            onClick={() => setShowLoginPrompt(false)}
-          >
+        {
+          showLoginPrompt && (
             <div
-              className="relative w-full max-w-sm"
-              onClick={(e) => e.stopPropagation()}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+              onClick={() => setShowLoginPrompt(false)}
             >
-              <LoginPrompt />
+              <div
+                className="relative w-full max-w-sm"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <LoginPrompt />
+              </div>
             </div>
-          </div>
-        )}
+          )
+        }
 
         {/* USER LIST DIALOG */}
         <UserListDialog
@@ -477,24 +500,26 @@ export default function Profile() {
         />
 
         {/* REPLY DIALOG */}
-        {targetPost && (
-          <ReplyCommentDialog
-            open={isReplyDialogOpen}
-            onOpenChange={setIsReplyDialogOpen}
-            currentUser={{
-              uid: me?.uid || "",
-              id: me?.uid || "",
-              username: me?.username || "user",
-              name: me?.full_name || "User",
-              avatar_url: me?.avatar_url || DEFAULT_AVATAR_URL,
-              bio: ""
-            }}
-            targetPost={targetPost}
-            mockFriends={[]}
-            rootId={targetPost.id.toString()}
-          />
-        )}
-      </AnimateEntrance>
-    </div>
+        {
+          targetPost && (
+            <ReplyCommentDialog
+              open={isReplyDialogOpen}
+              onOpenChange={setIsReplyDialogOpen}
+              currentUser={{
+                uid: me?.uid || "",
+                id: me?.uid || "",
+                username: me?.username || "user",
+                name: me?.full_name || "User",
+                avatar_url: me?.avatar_url || DEFAULT_AVATAR_URL,
+                bio: ""
+              }}
+              targetPost={targetPost}
+              mockFriends={[]}
+              rootId={targetPost.id.toString()}
+            />
+          )
+        }
+      </AnimateEntrance >
+    </div >
   );
 }
