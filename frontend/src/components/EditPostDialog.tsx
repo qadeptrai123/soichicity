@@ -25,7 +25,7 @@ import type { MediaFile } from "@/hooks/usePostEditor";
 import { useEditPost } from "@/hooks/api/use-posts";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { formatRelativeTime } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
+
 
 interface EditPostDialogProps {
     open: boolean;
@@ -136,8 +136,6 @@ export default function EditPostDialog({
 
     const isDisabled = (!content.trim() && mediaFiles.length === 0) || !hasChanges;
 
-    const createdDate = new Date(post.created_at);
-    const timeAgo = formatDistanceToNow(createdDate, { addSuffix: true });
 
     const currentUser = post.author || { username: "me", full_name: "Me", uid: "me", avatar_url: DEFAULT_AVATAR_URL };
 
@@ -276,14 +274,8 @@ export default function EditPostDialog({
                     </div>
                 </div>
 
-                {/* FOOTER METADATA */}
-                <div className="px-6 py-3 flex items-center justify-between text-xs text-text-secondary border-t border-border/50">
-
-                    <span>Original post: {timeAgo}</span>
-                </div>
-
                 {/* FOOTER ACTIONS */}
-                <DialogFooter className="p-6 pt-4 flex justify-end border-t border-border mt-0">
+                <DialogFooter className="p-6 pt-4 flex justify-end mt-0">
                     <Button
                         onClick={handleSave}
                         disabled={isDisabled || editPostMutation.isPending}
