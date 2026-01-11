@@ -1355,9 +1355,10 @@ class PostService:
             
             if check_refs:
                 checks = db.get_all(check_refs)
-                for i, doc in enumerate(checks):
+                for doc in checks:
                     if doc.exists:
-                        following_map[check_uids[i]] = True
+                        # doc.id chính là uid của user đang check (vì document key là user_id)
+                        following_map[doc.id] = True
         
         # 6. Hydrate Results
         def hydrate(items):

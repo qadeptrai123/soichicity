@@ -1741,19 +1741,25 @@ def get_notification_history(db, user_id: str, days: int = 7):
     """
     from datetime import datetime, timedelta
     
-    # Notification dates are stored as Strings (ISO format) in NotificationService.
-    # So we must compare with string.
-    cutoff_dt = datetime.utcnow() - timedelta(days=days)
-    cutoff = cutoff_dt.isoformat()
+    # Adjust to UTC+7 for Vietnam Time
+    TZ_OFFSET = 7
+    now_utc = datetime.utcnow()
+    now_local = now_utc + timedelta(hours=TZ_OFFSET)
+    
+    # Cutoff in UTC (add buffer to ensure we cover local start of day)
+    # We want 'days' full days in LOCAL time.
+    cutoff_dt_utc = now_utc - timedelta(days=days + 1)
+    cutoff = cutoff_dt_utc.isoformat()
     
     notif_ref = db.collection('users').document(user_id).collection('notifications')
-    # Filter by time string
+    # Filter by time string (approximate filter, we refine in memory)
     docs = notif_ref.where(filter=firestore.FieldFilter('created_at', '>=', cutoff)).stream()
     
     history_map = {}
-    # Init last 'days' days
+    # Init buckets based on LOCAL dates
+    # We generate dates from Today backwards
     for i in range(days):
-        d = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
+        d = (now_local - timedelta(days=i)).strftime("%Y-%m-%d")
         history_map[d] = {"date": d, "like": 0, "reply": 0, "repost": 0, "mention": 0, "follow": 0, "total": 0}
         
     for doc in docs:
@@ -1761,21 +1767,30 @@ def get_notification_history(db, user_id: str, days: int = 7):
         created_at = data.get('created_at')
         if not created_at: continue
         
-        # Determine date string
-        # created_at might be datetime or string. Assuming datetime from firestore or ISO string.
-        # If firestore, it is a datetime object.
-        date_str = ""
+        # Determine date string in LOCAL time
+        dt_obj = None
         if hasattr(created_at, 'strftime'):
-             date_str = created_at.strftime("%Y-%m-%d")
+             # If it's already a datetime object (e.g. from Firestore timestamp)
+             # Firestore timestamps are usually UTC aware or naive UTC.
+             # We assume UTC if naive.
+             dt_obj = created_at
         elif isinstance(created_at, str):
-             date_str = created_at[:10]
-             
-        if date_str in history_map:
-            t = data.get('type')
-            if t == 'comment': t = 'reply'
-            if t in history_map[date_str]:
-                history_map[date_str][t] += 1
-                history_map[date_str]['total'] += 1
+             try:
+                 dt_obj = datetime.fromisoformat(created_at)
+             except:
+                 pass
+        
+        if dt_obj:
+            # Shift to Local
+            dt_local = dt_obj + timedelta(hours=TZ_OFFSET)
+            date_str = dt_local.strftime("%Y-%m-%d")
+              
+            if date_str in history_map:
+                t = data.get('type')
+                if t == 'comment': t = 'reply'
+                if t in history_map[date_str]:
+                    history_map[date_str][t] += 1
+                    history_map[date_str]['total'] += 1
                 
     # Convert to sorted list
     result = sorted(history_map.values(), key=lambda x: x['date'])
