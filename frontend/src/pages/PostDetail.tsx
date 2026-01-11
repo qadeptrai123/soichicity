@@ -104,7 +104,6 @@ const PostDetail = () => {
                         {/* Bài Post */}
                         <PostMainPost
                             data={postData}
-                            onViewActivity={handleToggleActivity}
                             onReply={() => handleReplyClick(postData)}
                             onEdit={(post) => {
                                 setEditingPost(post);

@@ -1,12 +1,13 @@
 // Trang này sẽ là trang home luôn
 import FeedCard from "@/components/FeedCard";
 import { LoginPrompt } from "@/components/LoginPrompt";
-import type { Post as PostData, Author as AuthorData } from "@/types/post";
+import type { Post as PostData, Author as AuthorData, TargetPost } from "@/types/post";
 // import type { MediaItem } from "@/types/common";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthProvider";
-import ReplyCommentDialog, { type TargetPost } from "@/components/comment";
+import ReplyCommentDialog from "@/components/comment";
+// import { type TargetPost } from "@/components/comment";
 import { usePosts } from "@/hooks/api/use-posts";
 import EditPostDialog from "@/components/EditPostDialog";
 import { MOCK_FRIENDS } from "@/MockData/data";
