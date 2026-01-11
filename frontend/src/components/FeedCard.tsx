@@ -556,12 +556,14 @@ const FeedCard: React.FC<FeedCardProps> = ({
                 </div>
 
                 {showSingleMediaLightbox && (
-                  <MediaLightbox
-                    open={showSingleMediaLightbox}
-                    onClose={() => setShowSingleMediaLightbox(false)}
-                    src={post.media_url!}
-                    type={isYoutube ? "youtube" : actualMediaType as any}
-                  />
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <MediaLightbox
+                      open={showSingleMediaLightbox}
+                      onClose={() => setShowSingleMediaLightbox(false)}
+                      src={post.media_url!}
+                      type={isYoutube ? "youtube" : actualMediaType as any}
+                    />
+                  </div>
                 )}
               </>
             )
