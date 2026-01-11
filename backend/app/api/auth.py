@@ -96,7 +96,7 @@ def login(db=Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
         claims = {
             "username": user_doc.get("username"),
             "full_name": user_doc.get("full_name"),
-            "avatar_url": user_doc.get("avatar_url"),
+            "avatar_url": user_doc.get("avatar_url") or "", # Ensure empty string if None
             "is_active": user_doc.get("is_active"),
             "provider": user_doc.get("provider"),
             # Add counts for initial state
@@ -145,19 +145,49 @@ from app.api import deps
 @router.post("/google", tags=["auth"])
 def google_auth(
     db=Depends(get_db),
-    current_user=Depends(deps.get_current_user)
+    token_str: str = Depends(deps.oauth2_scheme),
+    token_obj=Depends(deps.bearer_scheme)
 ):
     """
     Exchange Google ID Token for a Firebase ID Token with Custom Claims (username).
-    The dependency 'get_current_user' already syncs the user to Firestore if new.
+    Also syncs avatar if missing.
     """
-    uid = current_user["uid"] # current_user is a dict from get_current_user
-    
-    # 1. Prepare Custom Claims
+    # 1. Extract Token manually (since we need claims)
+    final_token = token_str or (token_obj.credentials if token_obj else None)
+    if not final_token:
+        raise HTTPException(status_code=401, detail="Missing authentication")
+
+    try:
+        # 2. Verify Token & Get Claims
+        decoded_token = auth.verify_id_token(final_token, clock_skew_seconds=10)
+        uid = decoded_token['uid']
+        picture = decoded_token.get('picture')
+        
+        # 3. Get User from DB
+        user_doc = user_service.get_user(db, uid)
+        
+        if not user_doc:
+            # New User -> Sync
+            user_doc = user_service.sync_google_user(db, decoded_token)
+        else:
+            # Existing User -> Check if Avatar needs update
+            # Only update if local avatar is missing/empty and Google has one
+            if not user_doc.get("avatar_url") and picture:
+                user_ref = db.collection('users').document(uid)
+                user_ref.update({"avatar_url": picture})
+                user_doc["avatar_url"] = picture # Update local dict for claims
+        
+        current_user = user_doc
+
+    except Exception as e:
+        print(f"Token verification failed: {e}")
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # 4. Prepare Custom Claims
     claims = {
         "username": current_user.get("username"),
         "full_name": current_user.get("full_name"),
-        "avatar_url": current_user.get("avatar_url"),
+        "avatar_url": current_user.get("avatar_url") or "", 
         "is_active": current_user.get("is_active"),
         "provider": "google",
         "followers_count": current_user.get("followers_count", 0),
@@ -165,6 +195,8 @@ def google_auth(
     }
     # Clean None values
     claims = {k: v for k, v in claims.items() if v is not None}
+    
+    uid = current_user['uid']
 
     try:
         # 2. Set Custom Claims (Persistent)

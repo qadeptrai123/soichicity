@@ -6,14 +6,18 @@ import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { formatRelativeTime } from "@/lib/utils";
 import type { Post as PostData, Author as AuthorData } from "@/types/post";
 
+import { useAuth } from "@/contexts/AuthProvider";
+
 interface ReplyFeedCardProps {
     post: PostData;
     onReply?: (post: PostData, author: AuthorData) => void;
     onEdit?: (post: PostData) => void;
+    onAuthRequired?: () => void;
 }
 
-const ReplyFeedCard: React.FC<ReplyFeedCardProps> = ({ post, onReply, onEdit }) => {
+const ReplyFeedCard: React.FC<ReplyFeedCardProps> = ({ post, onReply, onEdit, onAuthRequired }) => {
     const navigate = useNavigate();
+    const { user: me } = useAuth();
     const parentPost = post.reply_to_post;
 
     // If no parent post data (legacy or error), just render the FeedCard
@@ -24,6 +28,7 @@ const ReplyFeedCard: React.FC<ReplyFeedCardProps> = ({ post, onReply, onEdit }) 
                 author={post.author!}
                 onReply={onReply}
                 onEdit={onEdit}
+                onAuthRequired={onAuthRequired}
             />
         );
     }
@@ -40,6 +45,8 @@ const ReplyFeedCard: React.FC<ReplyFeedCardProps> = ({ post, onReply, onEdit }) 
         }
     };
 
+    const isParentAuthor = me?.uid === parentPost.author?.uid;
+
     return (
         <div className="flex flex-col border-b border-border/50">
             {/* Parent Post Context */}
@@ -49,7 +56,11 @@ const ReplyFeedCard: React.FC<ReplyFeedCardProps> = ({ post, onReply, onEdit }) 
                         className="w-10 h-10 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={handleParentAuthorClick}
                     >
-                        <AvatarImage src={parentPost.author?.avatar_url || DEFAULT_AVATAR_URL} />
+                        <AvatarImage src={
+                            isParentAuthor 
+                                ? (me?.avatar_url || DEFAULT_AVATAR_URL) 
+                                : (parentPost.author?.avatar_url || DEFAULT_AVATAR_URL)
+                        } />
                         <AvatarFallback>{parentPost.author?.username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
                     </Avatar>
                     {/* Connecting Line */}
@@ -81,6 +92,7 @@ const ReplyFeedCard: React.FC<ReplyFeedCardProps> = ({ post, onReply, onEdit }) 
                     author={post.author!}
                     onReply={onReply}
                     onEdit={onEdit}
+                    onAuthRequired={onAuthRequired}
                     hideBorder={true}
                     className="!shadow-none !bg-transparent border-0" // Override generic card styles to fit in list
                 />

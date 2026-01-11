@@ -21,6 +21,7 @@ import { UserListDialog } from "@/components/UserListDialog";
 import { UnfollowDialog } from "@/components/UnfollowDialog";
 import ReplyFeedCard from "@/components/ReplyFeedCard";
 import AnimateEntrance from "@/components/ui/AnimateEntrance";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export default function Profile() {
   const { username: paramUsername } = useParams<{ username: string }>();
@@ -368,6 +369,7 @@ export default function Profile() {
                     setEditingPost(post);
                     setIsEditOpen(true);
                   }}
+                  onAuthRequired={() => setShowLoginPrompt(true)}
                 />
               ) : (
                 <FeedCard
@@ -394,6 +396,7 @@ export default function Profile() {
                     setIsEditOpen(true);
                   }}
                   hideBorder={true}
+                  onAuthRequired={() => setShowLoginPrompt(true)}
                 />
               )
             ))
@@ -466,22 +469,13 @@ export default function Profile() {
           )
         }
 
-        {/* Login Prompt Overlay */}
-        {
-          showLoginPrompt && (
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-              onClick={() => setShowLoginPrompt(false)}
-            >
-              <div
-                className="relative w-full max-w-sm"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <LoginPrompt />
-              </div>
-            </div>
-          )
-        }
+        {/* Login Prompt Dialog */}
+        <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
+          <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-sm" showCloseButton={false}>
+            <DialogTitle className="sr-only">Login Required</DialogTitle>
+            <LoginPrompt onClose={() => setShowLoginPrompt(false)} />
+          </DialogContent>
+        </Dialog>
 
         {/* USER LIST DIALOG */}
         <UserListDialog

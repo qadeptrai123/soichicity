@@ -20,7 +20,7 @@ import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import type { Post } from "@/types/post";
 import { formatRelativeTime } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthProvider";
-import { LoginPrompt } from "@/components/LoginPrompt";
+
 import TextWithMentions from "../TextWithMentions";
 // import type { MediaItem } from "@/types/common";
 import { toast } from "sonner";
@@ -31,9 +31,10 @@ interface PostMainPostProps {
   data: Post;
   onReply?: () => void;
   onEdit?: (post: Post) => void;
+  onAuthRequired?: () => void;
 }
 
-export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
+export const PostMainPost = ({ data, onReply, onEdit, onAuthRequired }: PostMainPostProps) => {
   // Hàm format thời gian giả lập (hoặc dùng thư viện date-fns nếu có)
   const navigate = useNavigate();
 
@@ -45,7 +46,7 @@ export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
   const blockMutation = useBlockUser();
 
   // State
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  // State
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
   const [, setIsGalleryDragging] = useState(false);
@@ -82,7 +83,7 @@ export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
       if (!isAuthenticated) {
-        setShowLoginPrompt(true);
+        onAuthRequired?.();
         return;
       }
       setActionStates((prev) => ({ ...prev, liked: !prev.liked }));
@@ -115,7 +116,7 @@ export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
       if (!isAuthenticated) {
-        setShowLoginPrompt(true);
+        onAuthRequired?.();
         return;
       }
       setActionStates((prev) => ({ ...prev, bookmarked: !prev.bookmarked }));
@@ -135,7 +136,7 @@ export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
       if (!isAuthenticated) {
-        setShowLoginPrompt(true);
+        onAuthRequired?.();
         return;
       }
       setActionStates((prev) => ({ ...prev, reposted: !prev.reposted }));
@@ -155,7 +156,7 @@ export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
       if (!isAuthenticated) {
-        setShowLoginPrompt(true);
+        onAuthRequired?.();
         return;
       }
       onReply?.();
@@ -439,25 +440,7 @@ export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
         isPending={blockMutation.isPending}
       />
 
-      {/* Login Prompt Overlay */}
-      {
-        showLoginPrompt && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 cursor-default"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowLoginPrompt(false);
-            }}
-          >
-            <div
-              className="relative w-full max-w-sm"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <LoginPrompt />
-            </div>
-          </div>
-        )
-      }
+
     </div >
   );
 };

@@ -7,7 +7,6 @@ import {
   LogOut,
   X,
   LogIn,
-  icons,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -19,6 +18,7 @@ import { MOCK_FRIENDS } from "@/MockData/data";
 import { useUnreadNotifications } from "@/hooks/api/use-activities";
 import logo from "@/assets/logo.svg";
 import { LoginPrompt } from "@/components/LoginPrompt";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 
 
@@ -188,25 +188,19 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
 
       </div>
 
-      {showLoginPrompt && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-          onClick={() => setShowLoginPrompt(false)}
-        >
-          <div
-            className="relative w-full max-w-lg" // Increased width wrapper
-            onClick={(e) => e.stopPropagation()}
-          >
-            <LoginPrompt
-              title={loginPromptContent.title}
-              subtitle={loginPromptContent.subtitle}
-              className="max-w-lg" // Override internal max-w-sm
-              titleClassName="text-2xl"
-              subtitleClassName="text-lg"
-            />
-          </div>
-        </div>
-      )}
+      <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
+        <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-lg" showCloseButton={false}>
+          <DialogTitle className="sr-only">{loginPromptContent.title}</DialogTitle>
+          <LoginPrompt
+            title={loginPromptContent.title}
+            subtitle={loginPromptContent.subtitle}
+            className="max-w-lg"
+            titleClassName="text-2xl"
+            subtitleClassName="text-lg"
+            onClose={() => setShowLoginPrompt(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
     </>
   );

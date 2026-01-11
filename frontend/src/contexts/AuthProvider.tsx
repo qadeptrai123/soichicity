@@ -6,6 +6,7 @@ import { refreshAccessToken } from "@/lib/api-client";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { getAuth, signOut } from "firebase/auth";
+import { userService } from "@/services/userService";
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -44,7 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                             username: decoded.username || decoded.sub,
                             email: decoded.email || "",
                             full_name: decoded.name || decoded.full_name || "",
-                            avatar_url: decoded.avatar_url || decoded.picture || DEFAULT_AVATAR_URL,
+                            avatar_url: decoded.avatar_url ?? decoded.picture ?? DEFAULT_AVATAR_URL,
                             bio: decoded.bio || "",
                             is_active: decoded.is_active ?? true,
                             provider: decoded.provider || "password",
@@ -57,6 +58,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                             likes_count: decoded.likes_count || 0,
                             notifications_count: decoded.notifications_count || 0,
                         });
+                        
+                        // Fetch latest user data from API to ensure sync (e.g. avatar updates)
+                        // This fixes the issue where token claims are stale on page reload
+                        refreshUser();
                     }
                 } catch (error) {
                     console.error("Invalid token:", error);
@@ -83,7 +88,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 username: decoded.username || decoded.sub,
                 email: decoded.email || "",
                 full_name: decoded.name || decoded.full_name || "",
-                avatar_url: decoded.avatar_url || decoded.picture || DEFAULT_AVATAR_URL,
+                avatar_url: decoded.avatar_url ?? decoded.picture ?? DEFAULT_AVATAR_URL,
                 bio: decoded.bio || "",
                 is_active: decoded.is_active ?? true,
                 provider: decoded.provider || "password",
@@ -105,6 +110,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.error("Invalid token:", error);
             setUser(null);
             throw error;
+        }
+    };
+
+    const refreshUser = async (updatedData?: Partial<User>) => {
+        if (updatedData) {
+             setUser((prev) => {
+                 if (!prev) return null;
+                 return { ...prev, ...updatedData } as User;
+             });
+             return;
+        }
+
+        try {
+            const userData = await userService.getMe();
+             if (userData) {
+                 setUser((prev) => ({
+                     ...prev,
+                     ...userData,
+                     uid: userData.uid || userData.id || prev?.uid,
+                 } as User));
+             }
+        } catch (error) {
+           console.error("Failed to refresh user", error);
         }
     };
 
@@ -138,6 +166,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 isAuthenticated: !!user,
                 login,
                 logout,
+                refreshUser,
             }}
         >
             {children}

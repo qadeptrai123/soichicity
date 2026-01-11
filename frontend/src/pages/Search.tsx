@@ -3,9 +3,11 @@ import { useSearchParams } from "react-router-dom";
 import { Search as SearchIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import FeedCard from "@/components/FeedCard";
+import { LoginPrompt } from "@/components/LoginPrompt";
 import { UserListItem } from "@/components/UserListItem";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { api } from "@/services/api";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
@@ -16,6 +18,8 @@ export default function Search() {
     const initialQuery = searchParams.get("q") || "";
     const [query, setQuery] = useState(initialQuery);
     const [activeTab, setActiveTab] = useState<"top" | "people" | "posts">("top");
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
 
     // Sync state if URL changes externally (e.g. navigation from SearchDialog)
     useEffect(() => {
@@ -288,6 +292,7 @@ export default function Search() {
                                                     avatar: hit.author?.avatar_url || hit.avatar_url || DEFAULT_AVATAR_URL,
                                                     id: hit.author?.uid || hit.author_id || hit.objectID
                                                 }}
+                                                onAuthRequired={() => setShowLoginPrompt(true)}
                                             />
                                         </div>
                                     )
@@ -311,6 +316,30 @@ export default function Search() {
                     </div>
                 )}
             </div>
+            {/* Login Prompt Overlay */}
+            {showLoginPrompt && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 cursor-default"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setShowLoginPrompt(false);
+                    }}
+                >
+                    <div
+                        className="relative w-full max-w-sm"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <LoginPrompt onClose={() => setShowLoginPrompt(false)} />
+                    </div>
+                </div>
+            )}
+            {/* Login Prompt Overlay */}
+            <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
+                <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-sm" showCloseButton={false}>
+                    <DialogTitle className="sr-only">Login Required</DialogTitle>
+                    <LoginPrompt onClose={() => setShowLoginPrompt(false)} />
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -20,6 +20,7 @@ interface ReplyItemProps {
     reply: any;
     onReplyClick: (reply: any) => void;
     isNested?: boolean;
+    onAuthRequired?: () => void;
 }
 
 const COLORS = {
@@ -31,7 +32,7 @@ const COLORS = {
     primary: "text-[#2B7FFF]"
 };
 
-export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemProps) => {
+export const ReplyItem = ({ reply, onReplyClick, isNested = false, onAuthRequired }: ReplyItemProps) => {
     // console.log(reply)
     const navigate = useNavigate();
     // Hooks
@@ -76,6 +77,10 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
 
     const handleLike = (e?: React.MouseEvent) => {
         e?.stopPropagation();
+        if (!isAuthenticated) {
+            onAuthRequired?.();
+            return;
+        }
         setIsLiked(!isLiked);
         setLikesCount((prev: number) => prev + (isLiked ? -1 : 1));
         likeMutation.mutate(reply.post_id);
@@ -83,6 +88,10 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
 
     const handleSave = (e?: React.MouseEvent) => {
         e?.stopPropagation();
+        if (!isAuthenticated) {
+            onAuthRequired?.();
+            return;
+        }
         setIsSaved(!isSaved);
         setSavesCount((prev: number) => prev + (isSaved ? -1 : 1));
         saveMutation.mutate({ postId: reply.post_id, wasSaved: isSaved });
@@ -90,6 +99,10 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
 
     const handleRepost = (e?: React.MouseEvent) => {
         e?.stopPropagation();
+        if (!isAuthenticated) {
+            onAuthRequired?.();
+            return;
+        }
         setIsReposted(!isReposted);
         setRepostsCount((prev: number) => prev + (isReposted ? -1 : 1));
         repostMutation.mutate({ postId: reply.post_id, wasReposted: isReposted });
@@ -367,6 +380,7 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
                                                 reply={subReply}
                                                 onReplyClick={onReplyClick}
                                                 isNested={true}
+                                                onAuthRequired={onAuthRequired}
                                             />
                                         ))}
 
