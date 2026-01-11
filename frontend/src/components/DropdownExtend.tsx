@@ -53,7 +53,7 @@ export function DropdownExtend({
             // Style for Icon (... menu extend)
             triggerType === "icon" && "text-[#5C5C7B] hover:text-white",
             // Style for Text (Feed Filter)
-            triggerType === "text" && "text-white font-semibold text-[15px]"
+            triggerType === "text" && "text-white font-medium text-lg"
           )}
         >
           {triggerType === "icon" ? (
