@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { formatRelativeTime } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLikePost, useSavePost, usePostReplies, useRepostPost } from "@/hooks/api/use-posts";
-import { Heart, MessageSquare, Send, Bookmark, X, Repeat2, Link2 } from "lucide-react";
+import { Heart, MessageSquare, Send, Bookmark, X, Repeat2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "../Gallery";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
@@ -179,14 +179,7 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false, onEdit, onAut
     };
 
     const replyActions = [
-        {
-            id: "copy-link",
-            label: "Copy link",
-            icon: <Link2 size={16} />,
-            onClick: handleShare,
-            isVisible: true,
-            showSeparatorAfter: true,
-        },
+
         // Edit/Delete for Owner
         ...(String(me?.uid) === String(reply.author?.uid) ? [
             {

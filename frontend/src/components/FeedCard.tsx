@@ -345,7 +345,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
       id: "edit",
       label: "Edit",
       icon: <Edit3 size={16} />,
-      onClick: () => onEdit?.(post), // Pass post to parent's handler
+      onClick: () => onEdit?.({ ...post, author: displayAuthor }), // Pass post with author to parent's handler
       isVisible: isAuthor && !!onEdit,
     },
     {
