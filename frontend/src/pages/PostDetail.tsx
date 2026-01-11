@@ -109,22 +109,20 @@ const PostDetail = () => {
         </div>
     );
     if (!postData) return (
-        <div className={`flex flex-col items-center justify-center pt-20 ${COLORS.bgPage} min-h-screen text-center px-4`}>
-            <div className="bg-[#1A1F2E] p-8 rounded-2xl border border-[#374151] max-w-md w-full shadow-2xl">
-                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl">⚠️</span>
-                </div>
-                <h2 className="text-xl font-bold text-white mb-2">Post not found</h2>
-                <p className="text-gray-400 mb-6">
-                    This post may have been deleted, or does not exist.
-                </p>
-                <button
-                    onClick={() => window.history.back()}
-                    className="bg-[#2B7FFF] hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-full transition-all"
-                >
-                    Go Back
-                </button>
+        <div className={`flex flex-col items-center justify-center min-h-[50vh] text-center p-8 ${COLORS.bgPage} text-white`}>
+            <div className="bg-white/5 p-6 rounded-full mb-6">
+                <span className="text-4xl">⚠️</span>
             </div>
+            <h2 className="text-2xl font-bold mb-2">Post not found</h2>
+            <p className="text-[#94a3b8] max-w-md mb-8">
+                This post may have been deleted, or does not exist.
+            </p>
+            <button
+                onClick={() => window.history.back()}
+                className="bg-[#2B7FFF] hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-full transition-all"
+            >
+                Go Back
+            </button>
         </div>
     );
 

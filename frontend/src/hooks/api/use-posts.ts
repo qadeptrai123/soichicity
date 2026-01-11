@@ -317,11 +317,14 @@ export const useSavePost = () => {
     },
 
     onSettled: (_data, _err, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
-      queryClient.invalidateQueries({ queryKey: ["user-posts"] });
-      queryClient.invalidateQueries({ queryKey: ["user-reposts"] });
-      queryClient.invalidateQueries({ queryKey: ["post", variables.postId] });
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      // Add a small delay for eventual consistency
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["posts"] });
+        queryClient.invalidateQueries({ queryKey: ["user-posts"] });
+        queryClient.invalidateQueries({ queryKey: ["user-reposts"] });
+        queryClient.invalidateQueries({ queryKey: ["post", variables.postId] });
+        queryClient.invalidateQueries({ queryKey: ["profile"] });
+      }, 200);
     },
   });
 };
