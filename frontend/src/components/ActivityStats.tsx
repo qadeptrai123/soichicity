@@ -89,7 +89,7 @@ export default function ActivityStats() {
                     <TrendingUp size={20} className="text-primary" />
                     Growth Trends (14 Days)
                 </h3>
-                <div className="bg-[#1C2533] border border-[#2F3B4B] rounded-2xl p-4 md:p-6 overflow-hidden relative">
+                <div className="bg-[#1C2533] border border-[#2F3B4B] rounded-2xl p-4 md:p-6 relative">
                     {/* Legend */}
                     <div className="flex gap-4 mb-4 justify-end text-xs font-medium">
                         <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-rose-500"></div>Likes</div>
@@ -133,10 +133,14 @@ export default function ActivityStats() {
                         {/* Tooltip (Simple absolute positioning) */}
                         {hoveredPoint !== null && data[hoveredPoint] && (
                             <div
-                                className="absolute top-0 pointer-events-none bg-gray-900 border border-gray-700 p-2 rounded-lg shadow-xl text-xs z-10 w-32"
+                                className="absolute top-0 pointer-events-none bg-gray-900 border border-gray-700 p-2 rounded-lg shadow-xl text-xs z-50 w-32"
                                 style={{
                                     left: `${(hoveredPoint / Math.max(1, data.length - 1)) * 100}%`,
-                                    transform: 'translate(-50%, -100%)',
+                                    transform: hoveredPoint < 3
+                                        ? 'translate(0%, -100%)'
+                                        : hoveredPoint > data.length - 4
+                                            ? 'translate(-100%, -100%)'
+                                            : 'translate(-50%, -100%)',
                                     marginTop: '-10px'
                                 }}
                             >

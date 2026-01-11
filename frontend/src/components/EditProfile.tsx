@@ -114,7 +114,7 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["user-posts"] });
       queryClient.invalidateQueries({ queryKey: ["user-reposts"] });
-      
+
       await refreshUser(updatedUser);
 
       onClose();
@@ -373,6 +373,7 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
       <BlockList
         isOpen={isBlockListOpen}
         onClose={() => setIsBlockListOpen(false)}
+        onCloseParent={onClose}
       />
     </>
   );

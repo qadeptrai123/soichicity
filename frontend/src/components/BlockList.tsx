@@ -5,15 +5,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { useBlockedUsers, useUnblockUser } from "@/hooks/api/use-users";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useNavigate } from "react-router-dom";
 
 interface BlockListProps {
   isOpen: boolean;
   onClose: () => void;
+  onCloseParent?: () => void;
 }
 
-export default function BlockList({ isOpen, onClose }: BlockListProps) {
+export default function BlockList({ isOpen, onClose, onCloseParent }: BlockListProps) {
   const { data: blockedUsers, isLoading } = useBlockedUsers({ enabled: isOpen });
   const unblockMutation = useUnblockUser();
+  const navigate = useNavigate(); // Hook
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -28,7 +31,6 @@ export default function BlockList({ isOpen, onClose }: BlockListProps) {
             <h2 className="text-[20px] font-semibold text-red-500">Block List</h2>
             <span className="text-sm text-neutral-500">{blockedUsers?.length || 0} people blocked</span>
           </div>
-          {/* Close button is handled by DialogContent usually, but we can keep a custom one or rely on default */}
         </div>
 
         {/* List */}
@@ -41,7 +43,12 @@ export default function BlockList({ isOpen, onClose }: BlockListProps) {
             blockedUsers.map((user) => (
               <div
                 key={user.uid}
-                className="flex items-center justify-between p-4 bg-[#1e293b]/20 border border-neutral-800 rounded-2xl hover:bg-[#1e293b]/40 transition-colors"
+                onClick={() => {
+                  onClose();
+                  if (onCloseParent) onCloseParent(); // Call parent close
+                  navigate(`/profile/${user.username}`);
+                }}
+                className="flex items-center justify-between p-4 bg-[#1e293b]/20 border border-neutral-800 rounded-2xl hover:bg-[#1e293b]/40 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="w-12 h-12 border border-neutral-800">
@@ -56,7 +63,10 @@ export default function BlockList({ isOpen, onClose }: BlockListProps) {
                   </div>
                 </div>
                 <Button
-                  onClick={() => unblockMutation.mutate(user.uid)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent navigation when clicking unblock
+                    unblockMutation.mutate(user.uid);
+                  }}
                   disabled={unblockMutation.isPending && unblockMutation.variables === user.uid}
                   className="bg-neutral-800 hover:bg-neutral-700 text-white font-semibold h-8 px-4 rounded-lg text-[13px] border border-neutral-700"
                 >
