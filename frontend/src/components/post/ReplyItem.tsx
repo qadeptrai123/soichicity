@@ -3,16 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { formatRelativeTime } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLikePost, useSavePost, usePostReplies, useRepostPost } from "@/hooks/api/use-posts";
-import { Heart, MessageSquare, Bookmark, X, Repeat2 } from "lucide-react";
+import { Heart, MessageSquare, Bookmark, Repeat2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "../Gallery";
+import { MediaLightbox } from "../MediaLightbox";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useBlockUser } from "@/hooks/api/use-users";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { DropdownExtend } from "../DropdownExtend";
 import { Ban } from "lucide-react";
-import { toast } from "sonner";
+
 import { Trash2, Edit3 } from "lucide-react";
 import { DeletePostDialog } from "@/components/DeletePostDialog";
 import { useDeletePost } from "@/hooks/api/use-posts";
@@ -261,9 +262,10 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false, onEdit, onAut
                     hasSingleMedia && (
                         <>
                             <div
-                                className="rounded-lg overflow-hidden mt-1 mb-3 w-fit cursor-pointer border border-[#374151]"
+                                className="rounded-lg overflow-hidden mt-2 w-fit cursor-pointer"
                                 onClick={(e) => {
                                     e.stopPropagation();
+                                    e.nativeEvent.stopImmediatePropagation();
                                     setShowSingleMediaLightbox(true);
                                 }}
                             >
@@ -281,60 +283,33 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false, onEdit, onAut
                                 ) : actualMediaType === "video" ? (
                                     <video
                                         controls
-                                        className="media-content max-h-[250px] w-full object-cover"
+                                        className="media-content max-h-96 w-full object-cover"
                                         src={processedData.media_url!}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.nativeEvent.stopImmediatePropagation();
+                                        }}
                                     />
                                 ) : (
                                     <img
                                         src={processedData.media_url!}
                                         alt="Reply media"
-                                        className="media-content max-h-[250px] w-full h-auto object-contain object-left"
+                                        className="media-content max-h-96 w-full h-auto object-contain object-left"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.nativeEvent.stopImmediatePropagation();
+                                            setShowSingleMediaLightbox(true);
+                                        }}
                                     />
                                 )}
                             </div>
 
-                            {showSingleMediaLightbox && (
-                                <div
-                                    className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setShowSingleMediaLightbox(false);
-                                        }}
-                                        className="absolute top-4 right-4 text-white hover:bg-white/20 p-2 rounded-full transition z-50"
-                                    >
-                                        <X size={24} />
-                                    </button>
-
-                                    {isYoutube ? (
-                                        <div className="relative w-full max-w-4xl bg-black" style={{ paddingBottom: "56.25%" }}>
-                                            <iframe
-                                                src={embedUrl!}
-                                                title="YouTube video"
-                                                frameBorder="0"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowFullScreen
-                                                className="absolute top-0 left-0 w-full h-full"
-                                            />
-                                        </div>
-                                    ) : actualMediaType === "video" ? (
-                                        <video
-                                            controls
-                                            autoPlay
-                                            className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-                                            src={processedData.media_url!}
-                                        />
-                                    ) : (
-                                        <img
-                                            src={processedData.media_url!}
-                                            alt="Reply media lightbox"
-                                            className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-                                        />
-                                    )}
-                                </div>
-                            )}
+                            <MediaLightbox
+                                open={showSingleMediaLightbox}
+                                onClose={() => setShowSingleMediaLightbox(false)}
+                                src={processedData.media_url!}
+                                type={actualMediaType as "image" | "video" | "youtube"}
+                            />
                         </>
                     )
                 )}

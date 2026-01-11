@@ -53,6 +53,7 @@ interface GalleryProps {
     onOpen?: (url: string) => void;
     className?: string;
     hideBorder?: boolean;
+    variant?: "default" | "thumbnail";
 }
 
 const SIZE_MAP: Record<string, number | string> = {
@@ -67,6 +68,7 @@ export const Gallery: React.FC<GalleryProps> = ({
     className,
     size = "medium",
     hideBorder = false,
+    variant = "default",
 }) => {
     // Determine height based on size prop
     const maxContainerHeight = SIZE_MAP[size];
@@ -267,127 +269,157 @@ export const Gallery: React.FC<GalleryProps> = ({
 
     return (
         <div className={className} data-gallery="true" onClick={(e) => e.stopPropagation()}>
-            {/* Carousel Layout */}
-            <div
-                className={`rounded-xl overflow-hidden mt-2 w-full relative group ${isMultipleItems || hideBorder ? "bg-transparent border-none" : "bg-transparent border border-border"
-                    }`}
-            >
-                <div
-                    ref={scrollContainerRef}
-                    data-scroll-container="true"
-                    className={`flex overflow-x-auto scrollbar-hide user-select-none ${isMultipleItems
-                        ? "bg-transparent gap-2 px-0 cursor-grab active:cursor-grabbing"
-                        : "bg-transparent"
-                        }`}
-                    style={{
-                        scrollBehavior: "auto",
-                        WebkitOverflowScrolling: "touch",
-                        msOverflowStyle: "none",
-                        scrollbarWidth: "none",
-                        height: containerHeight,
-                        pointerEvents: "auto",
-                    }}
-                    onScroll={handleScroll}
-                    onMouseDown={handleMouseDown}
-                >
+            {variant === "thumbnail" ? (
+                <div className="flex gap-2 overflow-x-auto py-2 mt-2 no-scrollbar">
                     {sortedItems.map((item, index) => (
                         <div
                             key={index}
-                            className={`
-                                shrink-0 relative rounded overflow-hidden flex items-center justify-center
-                                transition-all duration-300 ease-out
-                                ${showLightbox
-                                    ? index === selectedIndex
-                                        ? "opacity-100 blur-0 scale-100 z-10"
-                                        : "opacity-15 blur-sm scale-95"
-                                    : "opacity-100 blur-0"
-                                }
-                                `}
-                            style={{
-                                width: isMultipleItems ? "auto" : "100%",
-                                height: "100%",
-                                minWidth: "0",
-                                pointerEvents: "auto",
-                            }}
+                            className="relative w-20 h-20 rounded-md overflow-hidden border border-border flex-shrink-0 cursor-pointer hover:opacity-80 transition"
                             onClick={(e) => handleOpenMedia(e, index)}
                         >
+                            {/* Reuse the thumbnail rendering logic */}
                             {item.type === "youtube" ? (
-                                <div
-                                    className={`flex items-center justify-center ${isMultipleItems
-                                        ? "h-full bg-transparent"
-                                        : "w-full h-full bg-transparent"
-                                        }`}
-                                >
-                                    <img
-                                        src={`https://img.youtube.com/vi/${item.url.match(
-                                            /(?:youtube\.com\/watch\?v=|youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]+)/
-                                        )?.[1]
-                                            }/mqdefault.jpg`}
-                                        alt="YouTube thumbnail"
-                                        className={`${isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
-                                            } object-contain`}
-                                        onLoad={(e) => handleImageLoad(e, index)}
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-transparent group-hover:bg-black/50 transition">
-                                        <Play size={32} className="text-white fill-white" />
-                                    </div>
+                                <div className="w-full h-full bg-black flex items-center justify-center">
+                                    <Play size={20} className="text-white fill-white" />
                                 </div>
                             ) : item.type === "video" ? (
-                                <>
-                                    <video
-                                        className={`${isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
-                                            } object-contain`}
-                                        src={item.url}
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-transparent group-hover:bg-black/50 transition">
-                                        <Play size={32} className="text-white fill-white" />
-                                    </div>
-                                </>
+                                <video
+                                    src={item.url}
+                                    className="w-full h-full object-cover"
+                                />
                             ) : (
                                 <img
                                     src={item.url}
-                                    alt={`Gallery item ${index + 1}`}
-                                    className={`${isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
-                                        } object-contain`}
-                                    onLoad={(e) => handleImageLoad(e, index)}
+                                    alt={`Gallery item ${index}`}
+                                    className="w-full h-full object-cover"
                                 />
                             )}
                         </div>
                     ))}
                 </div>
-            </div>
-
-            {/* Indicators Dots - Chỉ hiển thị khi có nhiều items VÀ có overflow */}
-            {isMultipleItems && hasOverflow && (
-                <div className="flex justify-center gap-1.5 mt-2">
-                    {sortedItems.map((_, index) => (
-                        <button
-                            key={index}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (scrollContainerRef.current) {
-                                    const container = scrollContainerRef.current;
-                                    const scrollWidth = container.scrollWidth;
-                                    const containerWidth = container.offsetWidth;
-                                    const maxScroll = scrollWidth - containerWidth;
-                                    const targetScroll =
-                                        (index / (sortedItems.length - 1)) * maxScroll;
-                                    container.scrollLeft = targetScroll;
-                                    setSelectedIndex(index);
-                                }
-                            }}
-                            className={`h-1.5 rounded-full transition-all duration-200 ${index === selectedIndex
-                                ? "bg-foreground w-6"
-                                : "bg-text-secondary hover:bg-text-muted w-1.5"
+            ) : (
+                <>
+                    {/* Carousel Layout */}
+                    <div
+                        className={`rounded-xl overflow-hidden mt-2 w-full relative group ${isMultipleItems || hideBorder ? "bg-transparent border-none" : "bg-transparent border border-border"
+                            }`}
+                    >
+                        <div
+                            ref={scrollContainerRef}
+                            data-scroll-container="true"
+                            className={`flex overflow-x-auto scrollbar-hide user-select-none ${isMultipleItems
+                                ? "bg-transparent gap-2 px-0 cursor-grab active:cursor-grabbing"
+                                : "bg-transparent"
                                 }`}
-                            aria-label={`Go to item ${index + 1}`}
-                        />
-                    ))}
-                </div>
+                            style={{
+                                scrollBehavior: "auto",
+                                WebkitOverflowScrolling: "touch",
+                                msOverflowStyle: "none",
+                                scrollbarWidth: "none",
+                                height: containerHeight,
+                                pointerEvents: "auto",
+                            }}
+                            onScroll={handleScroll}
+                            onMouseDown={handleMouseDown}
+                        >
+                            {sortedItems.map((item, index) => (
+                                <div
+                                    key={index}
+                                    className={`
+                                shrink-0 relative rounded overflow-hidden flex items-center justify-center
+                                transition-all duration-300 ease-out
+                                ${showLightbox
+                                            ? index === selectedIndex
+                                                ? "opacity-100 blur-0 scale-100 z-10"
+                                                : "opacity-15 blur-sm scale-95"
+                                            : "opacity-100 blur-0"
+                                        }
+                                `}
+                                    style={{
+                                        width: isMultipleItems ? "auto" : "100%",
+                                        height: "100%",
+                                        minWidth: "0",
+                                        pointerEvents: "auto",
+                                    }}
+                                    onClick={(e) => handleOpenMedia(e, index)}
+                                >
+                                    {item.type === "youtube" ? (
+                                        <div
+                                            className={`flex items-center justify-center ${isMultipleItems
+                                                ? "h-full bg-transparent"
+                                                : "w-full h-full bg-transparent"
+                                                }`}
+                                        >
+                                            <img
+                                                src={`https://img.youtube.com/vi/${item.url.match(
+                                                    /(?:youtube\.com\/watch\?v=|youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]+)/
+                                                )?.[1]
+                                                    }/mqdefault.jpg`}
+                                                alt="YouTube thumbnail"
+                                                className={`${isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
+                                                    } object-contain`}
+                                                onLoad={(e) => handleImageLoad(e, index)}
+                                            />
+                                            <div className="absolute inset-0 flex items-center justify-center bg-transparent group-hover:bg-black/50 transition">
+                                                <Play size={32} className="text-white fill-white" />
+                                            </div>
+                                        </div>
+                                    ) : item.type === "video" ? (
+                                        <>
+                                            <video
+                                                className={`${isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
+                                                    } object-contain`}
+                                                src={item.url}
+                                            />
+                                            <div className="absolute inset-0 flex items-center justify-center bg-transparent group-hover:bg-black/50 transition">
+                                                <Play size={32} className="text-white fill-white" />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <img
+                                            src={item.url}
+                                            alt={`Gallery item ${index + 1}`}
+                                            className={`${isMultipleItems ? "h-full w-auto" : "w-auto max-h-full"
+                                                } object-contain`}
+                                            onLoad={(e) => handleImageLoad(e, index)}
+                                        />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Indicators Dots */}
+                    {isMultipleItems && hasOverflow && (
+                        <div className="flex justify-center gap-1.5 mt-2">
+                            {sortedItems.map((_, index) => (
+                                <button
+                                    key={index}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (scrollContainerRef.current) {
+                                            const container = scrollContainerRef.current;
+                                            const scrollWidth = container.scrollWidth;
+                                            const containerWidth = container.offsetWidth;
+                                            const maxScroll = scrollWidth - containerWidth;
+                                            const targetScroll =
+                                                (index / (sortedItems.length - 1)) * maxScroll;
+                                            container.scrollLeft = targetScroll;
+                                            setSelectedIndex(index);
+                                        }
+                                    }}
+                                    className={`h-1.5 rounded-full transition-all duration-200 ${index === selectedIndex
+                                        ? "bg-foreground w-6"
+                                        : "bg-text-secondary hover:bg-text-muted w-1.5"
+                                        }`}
+                                    aria-label={`Go to item ${index + 1}`}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </>
             )}
 
-            {/* Lightbox */}
-            {/* Lightbox */}
             <MediaLightbox
                 open={showLightbox}
                 onClose={() => setShowLightbox(false)}

@@ -237,6 +237,7 @@ export default function ReplyCommentDialog({
             }}
             className="mb-0 border-none shadow-none bg-transparent hover:bg-transparent hover:shadow-none cursor-default"
             compact={true}
+            galleryVariant="thumbnail"
           />
         </div>
 

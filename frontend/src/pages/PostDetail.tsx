@@ -56,6 +56,18 @@ const PostDetail = () => {
             setShowLoginPrompt(true);
             return;
         }
+        // Normalize gallery to string[]
+        let normalizedGallery: string[] | undefined = undefined;
+        if (reply.gallery && Array.isArray(reply.gallery) && reply.gallery.length > 0) {
+            if (typeof reply.gallery[0] === 'string') {
+                normalizedGallery = reply.gallery;
+            } else if (typeof reply.gallery[0] === 'object' && reply.gallery[0]?.url) {
+                normalizedGallery = reply.gallery.map((item: any) => item.url);
+            }
+        } else if (reply.media_urls && Array.isArray(reply.media_urls) && reply.media_urls.length > 0) {
+            normalizedGallery = reply.media_urls;
+        }
+
         const target: TargetPost = {
             id: reply.post_id,
             user: {
@@ -66,8 +78,8 @@ const PostDetail = () => {
             },
             content: reply.content,
             date: reply.created_at,
-            media_url: reply.gallery?.[0] || reply.media_urls?.[0] || reply.media_url || null, // Priority: Gallery > MediaUrls > MediaUrl
-            gallery: reply.gallery || reply.media_urls || undefined,
+            media_url: normalizedGallery?.[0] || reply.media_url || null,
+            gallery: normalizedGallery,
             level: (reply.level || 0),
         };
         setSelectedReply(target);

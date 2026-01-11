@@ -54,6 +54,7 @@ interface FeedCardProps {
   compact?: boolean;
   hideBorder?: boolean;
   onAuthRequired?: () => void;
+  galleryVariant?: "default" | "thumbnail";
 }
 
 
@@ -66,6 +67,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
   compact,
   hideBorder,
   onAuthRequired,
+  galleryVariant,
 }) => {
   // Add mock author data fallback
   // const [activeMediaUrl, setActiveMediaUrl] = useState<string | null>(null);
@@ -502,6 +504,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
                 onDragStateChange={setIsGalleryDragging}
                 size={"small"}
                 hideBorder={hideBorder}
+                variant={galleryVariant}
               />
             </div>
           ) : (
