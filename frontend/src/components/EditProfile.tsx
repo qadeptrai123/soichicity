@@ -136,6 +136,8 @@ export default function EditProfile({ isOpen, onClose, currentUser }: EditProfil
           className="sm:max-w-[400px] p-0 gap-0 bg-secondary border-neutral-800 text-white overflow-hidden [&>button]:hidden"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
+          <DialogTitle className="sr-only">Edit Profile</DialogTitle>
+          <DialogDescription className="sr-only">Update your profile information and links</DialogDescription>
           {/* Header Dialog */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800">
             {view === "main" && (

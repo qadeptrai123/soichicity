@@ -22,6 +22,7 @@ import { UnfollowDialog } from "@/components/UnfollowDialog";
 import ReplyFeedCard from "@/components/ReplyFeedCard";
 import AnimateEntrance from "@/components/ui/AnimateEntrance";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { UserNotFound } from "@/components/UserNotFound";
 
 export default function Profile() {
   const { username: paramUsername } = useParams<{ username: string }>();
@@ -138,7 +139,7 @@ export default function Profile() {
   if (!username) return <div className="text-white p-4">User not specified</div>;
   if (isLoading) return <LoadingSpinner />;
 
-  if (error || !profileData) return <div className="text-white p-4">User not found</div>;
+  if (error || !profileData) return <UserNotFound />;
 
   const { user } = profileData;
 

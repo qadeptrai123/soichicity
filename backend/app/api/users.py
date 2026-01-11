@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from app.schemas.user import UserResponse, UserUpdate
 from typing import Optional
 from app.db.firebase import get_db
@@ -186,11 +186,19 @@ def get_user_followers(
     return user_service.get_users_followers_paginated(db, user_id, limit, cursor, current_user_id)
 
 @router.post("/users/{target_user_id}/block", tags=["users"])
-def block_user(target_user_id: str, db=Depends(get_db), current_user = Depends(get_current_user)):
+def block_user(
+    target_user_id: str, 
+    background_tasks: BackgroundTasks,
+    db=Depends(get_db), 
+    current_user = Depends(get_current_user)
+):
     """
     Block a user.
     """
-    return user_service.block_user(db, current_user['uid'], target_user_id)
+    res = user_service.block_user(db, current_user['uid'], target_user_id)
+    # Run cleanup in background
+    background_tasks.add_task(user_service.block_user_cleanup, db, current_user['uid'], target_user_id)
+    return res
 
 @router.post("/users/{target_user_id}/unblock", tags=["users"])
 def unblock_user(target_user_id: str, db=Depends(get_db), current_user = Depends(get_current_user)):
