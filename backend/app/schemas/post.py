@@ -49,7 +49,7 @@ class PostCreateForm:
 class CommentCreate:
     def __init__(
         self,
-        content: str = Form(...),
+        content: Optional[str] = Form(None),
         files: List[UploadFile] = File(default=[])
     ):
         self.content = content
@@ -83,7 +83,7 @@ class UserInteractionStatus(BaseModel):
 
 class PostResponse(BaseModel):
     post_id: str
-    content: str
+    content: Optional[str] = None
     media_urls: List[str] = []
     created_at: str
     author_id: str
@@ -104,7 +104,7 @@ class PostResponse(BaseModel):
     likes_count: int = 0
     reposts_count: int = 0
     saves_count: int = 0
-    saves_count: int = 0
+
     comments_count: int = 0
     
     # Cursor pagination helper for liked/saved feeds

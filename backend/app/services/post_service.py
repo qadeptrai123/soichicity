@@ -171,7 +171,7 @@ class PostService:
 
         # --- Notification Logic for Mentions ---
         import re
-        mentions = re.findall(r"@(\w+)", content)
+        mentions = re.findall(r"@(\w+)", content or "")
         if mentions:
              # Remove duplicates
              mentions = list(set(mentions))
@@ -352,7 +352,7 @@ class PostService:
             # Cleanup is expensive (need to find who liked it).
             # "Confirm yes thì xoá cứng document đó" -> Focus on Post doc.
             
-        return {"status": "deleted", "count": total_deleted_count}
+        return {"status": "deleted", "count": total_deleted_count, "reply_to_id": reply_to_id}
 
     # --- NEW: Hàm xử lý chung cho Like, Share, Save (Sub-collections) ---
     @staticmethod
