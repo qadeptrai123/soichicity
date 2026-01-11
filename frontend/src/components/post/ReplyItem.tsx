@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { formatRelativeTime } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLikePost, useSavePost, usePostReplies, useRepostPost } from "@/hooks/api/use-posts";
-import { Heart, MessageSquare, Send, Bookmark, X, Repeat2 } from "lucide-react";
+import { Heart, MessageSquare, Send, Bookmark, X, Repeat2, Link2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "../Gallery";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
@@ -12,6 +12,7 @@ import { useBlockUser } from "@/hooks/api/use-users";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { DropdownExtend } from "../DropdownExtend";
 import { Ban } from "lucide-react";
+import { toast } from "sonner";
 // import type { MediaItem } from "@/types/common";
 
 
@@ -94,6 +95,17 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
         repostMutation.mutate({ postId: reply.post_id, wasReposted: isReposted });
     };
 
+    const handleShare = async (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        const postUrl = `${window.location.origin}/post/${reply.post_id}`;
+        try {
+            await navigator.clipboard.writeText(postUrl);
+            toast.success("Link copied to clipboard");
+        } catch (err) {
+            toast.error("Failed to copy link");
+        }
+    };
+
     // --- Preprocess Gallery Data ---
     const processedData = useMemo(() => {
         let gallery: string[] | undefined;
@@ -138,6 +150,13 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
     };
 
     const replyActions = [
+        {
+            id: "copy-link",
+            label: "Copy link",
+            icon: <Link2 size={16} />,
+            onClick: handleShare,
+            isVisible: true,
+        },
         {
             id: "block",
             label: "Block",
@@ -315,7 +334,7 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false }: ReplyItemPr
                     <ActionButton
                         actionId="share"
                         icon={<Send size={18} />}
-                        onClick={(e) => { e?.stopPropagation(); }}
+                        onClick={handleShare}
                     />
 
                 </div>
