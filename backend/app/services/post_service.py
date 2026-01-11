@@ -751,6 +751,8 @@ class PostService:
                 "author": r_author_data,
                 "author_id": r_author_id, # Ensure author_id is present
                 "likes_count": r_data.get("likes_count", 0),
+                "reposts_count": r_data.get("reposts_count") or r_data.get("repostCount") or r_data.get("shareCount", 0),
+                "saves_count": r_data.get("saves_count") or r_data.get("saveCount", 0),
                 "comments_count": r_data.get("comments_count") or r_data.get("replies_count", 0), 
                 "media_urls": r_data.get("media_urls", []),
                 # Add usage for gallery in FE
@@ -767,14 +769,20 @@ class PostService:
             # Check if current user liked
                 if rep.reference.collection("likes").document(current_user_id).get().exists:
                     replies_list[-1]["is_liked"] = True
+                    print(f"DTO DEBUG: get_post_detail reply found LIKE for {r_data.get('post_id')}")
                 
                 # Check if current user reposted
                 if rep.reference.collection("reposts").document(current_user_id).get().exists:
                     replies_list[-1]["is_reposted"] = True
+                    print(f"DTO DEBUG: get_post_detail reply found REPOST for {r_data.get('post_id')}")
                 
                 # Check if current user saved
                 if rep.reference.collection("saves").document(current_user_id).get().exists:
                     replies_list[-1]["is_saved"] = True
+                    # Fix display defaulting to 0 if count is missing but interaction exists
+                    if replies_list[-1]["saves_count"] == 0:
+                         replies_list[-1]["saves_count"] = 1
+                    print(f"DTO DEBUG: get_post_detail reply found SAVE for {r_data.get('post_id')}")
         
         # 4) Fetch likes & reposts lists (user IDs) - lightweight check
         #   (Optional: Only needed if we want to show list of likers in UI, usually overkill for detail)
@@ -850,7 +858,8 @@ class PostService:
         return response
 
     @staticmethod
-    def get_replies(post_id: str):
+    def get_replies(post_id: str, current_user_id: str = None):
+        print(f"DTO DEBUG: Service get_replies called with post_id={post_id}, current_user_id={current_user_id}")
         """
         Fetch all posts that reply to the target post (level 1).
         """
@@ -882,6 +891,8 @@ class PostService:
                 "author": r_author_data,
                 "author_id": r_author_id, # Ensure author_id is present
                 "likes_count": r_data.get("likes_count", 0),
+                "reposts_count": r_data.get("reposts_count") or r_data.get("repostCount") or r_data.get("shareCount", 0),
+                "saves_count": r_data.get("saves_count") or r_data.get("saveCount", 0),
                 "comments_count": r_data.get("comments_count") or r_data.get("replies_count", 0), 
                 "media_urls": r_data.get("media_urls", []),
                 # Add usage for gallery in FE
@@ -890,8 +901,31 @@ class PostService:
                 
                 # Recursively we might want to know if *this* reply has replies, which is populated above in replies_count
                 "level": r_data.get("level", 0),
-                "reply_to_id": r_data.get("reply_to_id")
+                "reply_to_id": r_data.get("reply_to_id"),
+                "is_liked": False,
+                "is_reposted": False,
+                "is_saved": False
             })
+
+            if current_user_id:
+                # Check if current user liked
+                if rep.reference.collection("likes").document(current_user_id).get().exists:
+                    results[-1]["is_liked"] = True
+                    print(f"DTO DEBUG: Found LIKE for {r_data.get('post_id')}")
+                
+                # Check if current user reposted
+                if rep.reference.collection("reposts").document(current_user_id).get().exists:
+                    results[-1]["is_reposted"] = True
+                    if results[-1]["reposts_count"] == 0:
+                        results[-1]["reposts_count"] = 1
+                    print(f"DTO DEBUG: Found REPOST for {r_data.get('post_id')}")
+
+                # Check if current user saved
+                if rep.reference.collection("saves").document(current_user_id).get().exists:
+                    results[-1]["is_saved"] = True
+                    if results[-1]["saves_count"] == 0:
+                        results[-1]["saves_count"] = 1
+                    print(f"DTO DEBUG: Found SAVE for {r_data.get('post_id')}")
         
         return results
 

@@ -30,7 +30,6 @@ import { Ban } from "lucide-react";
 
 import type { Post as PostData, Author as AuthorData } from "@/types/post";
 
-import { downloadMedia } from "@/services/api";
 import { toast } from "sonner";
 
 interface FeedCardProps {
@@ -44,21 +43,7 @@ interface FeedCardProps {
 }
 
 // Helper Functions
-const formatTime = (isoString: string): string => {
-  if (!isoString) return "";
-  try {
-    const date = new Date(isoString);
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(date);
-  } catch (e) {
-    return "";
-  }
-};
+
 
 // --- IMPORTED GALLERY COMPONENT ---
 // Gallery logic moved to ./Gallery.tsx
@@ -102,14 +87,14 @@ const FeedCard: React.FC<FeedCardProps> = ({
   const [isGalleryDragging, setIsGalleryDragging] = useState(false);
 
   // Optimistic UI State - khởi tạo từ props
-  const [localCounts, setLocalCounts] = useState({
+  const [, setLocalCounts] = useState({
     likes: post.likes_count || 0,
     replies: post.comments_count || 0,
     bookmarks: post.saves_count || 0,
     reposts: post.reposts_count || 0,
   });
 
-  const [actionStates, setActionStates] = useState({
+  const [, setActionStates] = useState({
     liked: post.is_liked || false,
     bookmarked: post.is_saved || false,
     reposted: post.is_reposted || false,
@@ -456,7 +441,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
               {displayAuthor?.handle || ""}
             </span>
             <span className="text-text-muted text-xs">
-              {formatTime(post.created_at)}
+              {formatRelativeTime(post.created_at)}
             </span>
           </div>
         </div>

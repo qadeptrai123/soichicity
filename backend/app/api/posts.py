@@ -382,15 +382,22 @@ def get_post_detail(
         raise HTTPException(status_code=500, detail="Error fetching post details")
 
 @router.get("/posts/{post_id}/replies")
-def get_post_replies(post_id: str):
+def get_post_replies(
+    post_id: str,
+    user = Depends(get_current_user_optional)
+):
     """
     Fetch all replies to a target post (Level 1).
     """
+    current_user_id = user["uid"] if user else None
+    print(f"DTO DEBUG: get_post_replies user={user} user_id={current_user_id}")
     try:
-        replies = PostService.get_replies(post_id)
+        replies = PostService.get_replies(post_id, current_user_id)
         return replies
     except Exception as e:
         print(f"Error fetching replies: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Error fetching replies")
 
 @router.get("/posts/{post_id}/activity")
