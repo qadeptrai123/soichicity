@@ -126,9 +126,7 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false, onEdit, onAut
 
     const handleShare = async (e?: React.MouseEvent) => {
         e?.stopPropagation();
-        // Use root_id if available (for replies), otherwise fallback to post_id
-        const rootId = reply.root_id || reply.post_id;
-        const postUrl = `${window.location.origin}/post/${rootId}?commentId=${reply.post_id}`;
+        const postUrl = `${window.location.origin}/post/${reply.post_id}`;
         try {
             await navigator.clipboard.writeText(postUrl);
             toast.success("Link copied to clipboard");

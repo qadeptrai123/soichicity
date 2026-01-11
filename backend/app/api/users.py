@@ -11,6 +11,25 @@ router = APIRouter()
 def read_users(db=Depends(get_db)):
     return user_service.get_users(db)
 
+# This API is used for both regular Login and Google Login
+# Frontend sends Header: "Authorization: Bearer <Google_ID_Token>"
+@router.get("/users/me", tags=["users"])
+def read_users_me(
+    db=Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Returns information about the currently logged-in user.
+    If the user logs in with Google for the first time, the system will automatically create a profile in the DB 
+    before returning this result.
+    """
+    # Force fetch from DB to get latest data (e.g. avatar_url updates)
+    # current_user from Depends might be stale if it comes from token claims or cached
+    fresh_user = user_service.get_user(db, current_user['uid'])
+    if fresh_user:
+        return fresh_user
+    return current_user
+
 @router.get("/users/notifications", tags=["users"])
 def get_user_notifications(
     limit: int = 20,
@@ -81,16 +100,7 @@ def get_user_profile_by_username(
     """
     current_user_id = current_user['uid'] if current_user else None
     return user_service.get_user_profile(db, username, current_user_id)
-# This API is used for both regular Login and Google Login
-# Frontend sends Header: "Authorization: Bearer <Google_ID_Token>"
-@router.get("/me", tags=["users"])
-def read_users_me(current_user = Depends(get_current_user)):
-    """
-    Returns information about the currently logged-in user.
-    If the user logs in with Google for the first time, the system will automatically create a profile in the DB 
-    before returning this result.
-    """
-    return current_user
+
 
 @router.put("/users/me", tags=["users"], response_model=UserResponse)
 def update_user_me(

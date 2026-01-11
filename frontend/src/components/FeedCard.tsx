@@ -301,7 +301,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
       ? "youtube"
       : post.media_type
     : null;
-
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const blockMutation = useBlockUser();
 
@@ -510,7 +510,9 @@ const FeedCard: React.FC<FeedCardProps> = ({
                 <div
                   className="rounded-lg overflow-hidden mt-2 w-fit cursor-pointer"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
+                    e.nativeEvent.stopImmediatePropagation();
                     setShowSingleMediaLightbox(true);
                   }}
                 >
@@ -533,7 +535,10 @@ const FeedCard: React.FC<FeedCardProps> = ({
                       controls
                       className="media-content max-h-96 w-full object-cover"
                       src={post.media_url!}
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
                     />
                   ) : (
                     <img
@@ -542,6 +547,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
                       className="media-content max-h-96 w-full h-auto object-contain object-left"
                       loading="lazy"
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         setShowSingleMediaLightbox(true);
                       }}

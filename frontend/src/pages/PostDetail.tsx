@@ -22,6 +22,7 @@ const PostDetail = () => {
     const [showActivity, setShowActivity] = useState(false);
     const { user, isAuthenticated } = useAuth();
     console.log(postData)
+    console.log("PostDetail User Debug:", user);
     // Reply Dialog State
     const [replyDialogOpen, setReplyDialogOpen] = useState(false);
     const [selectedReply, setSelectedReply] = useState<TargetPost | null>(null);
@@ -190,8 +191,8 @@ const PostDetail = () => {
                     <div className={`p-4 px-6 ${COLORS.bgCard} border-t ${COLORS.border} shrink-0`}>
                         <div className="flex items-center gap-3">
                             <Avatar className={`w-9 h-9 border ${COLORS.border}`}>
-                                <AvatarImage src={user?.avatar_url || user?.avatar || DEFAULT_AVATAR_URL} />
-                                <AvatarFallback>Me</AvatarFallback>
+                                <AvatarImage src={user?.avatar_url && user.avatar_url !== DEFAULT_AVATAR_URL ? user.avatar_url : (user?.avatar || DEFAULT_AVATAR_URL)} />
+                                <AvatarFallback>{user?.username?.charAt(0).toUpperCase() || "ME"}</AvatarFallback>
                             </Avatar>
                             <div
                                 className={`flex-1 ${COLORS.bgInput} rounded-full flex items-center px-4 py-2.5 border ${COLORS.border} focus-within:border-[#64748b] transition-all cursor-pointer`}

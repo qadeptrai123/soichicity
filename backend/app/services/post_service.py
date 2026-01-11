@@ -91,6 +91,15 @@ class PostService:
         # Let's trust the caller to pass it correctly for replies. For root post, it's None or we can set it to post_id if desired.
         # Standard: Root post has level 0.
         
+        # Calculate root_id if this is a reply
+        if reply_to_id and not root_id:
+             parent_ref = db.collection("posts").document(reply_to_id)
+             parent_doc = parent_ref.get()
+             if parent_doc.exists:
+                 p_data = parent_doc.to_dict()
+                 # If parent has root_id, use it. Else parent is the root.
+                 root_id = p_data.get("root_id") or reply_to_id
+        
         payload = {
             "post_id": post_id, # DB field
             "content": content,
