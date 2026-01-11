@@ -441,8 +441,11 @@ const FeedCard: React.FC<FeedCardProps> = ({
         <div className="flex flex-col flex-1">
           <div className="flex items-center gap-2">
             <span
-              className="text hover:underline cursor-pointer text-foreground font-semibold"
-              onClick={handleProfileClick}
+              className="text hover:underline cursor-pointer text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log("Go to profile");
+              }}
             >
               {displayAuthor?.name || "Unknown User"}
             </span>

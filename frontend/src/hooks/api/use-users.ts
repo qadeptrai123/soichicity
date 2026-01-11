@@ -59,7 +59,7 @@ export const useFollowingAndFollowers = (userId: string, options?: { enabled?: b
     allUsers: [
       ...(following.data?.pages.flatMap((page: any) => page.items) || []),
       ...(followers.data?.pages.flatMap((page: any) => page.items) || [])
-    ].filter((user: any, index, self) => 
+    ].filter((user: any, index, self) =>
       // Remove duplicates based on uid
       index === self.findIndex((u) => u.uid === user.uid)
     ),
@@ -197,10 +197,10 @@ export const useBlockedUsers = (options?: { enabled?: boolean }) => {
 
 // ... (previous imports)
 
-export const useUserPosts = (userId: string, type: string = "posts", options?: { enabled?: boolean, initialData?: any }) => {
+export const useUserPosts = (userId: string, type: string = "posts", options?: { enabled?: boolean, initialData?: any, limit?: number }) => {
   return useInfiniteQuery({
-    queryKey: ['user-posts', userId, type],
-    queryFn: ({ pageParam = null }) => api.users.getUserPosts(userId, 10, pageParam, type),
+    queryKey: ['user-posts', userId, type, options?.limit ?? 10],
+    queryFn: ({ pageParam = null }) => api.users.getUserPosts(userId, options?.limit ?? 10, pageParam, type),
     getNextPageParam: (lastPage: any) => lastPage?.next_cursor ?? undefined,
     initialPageParam: null,
     enabled: options?.enabled ?? !!userId,
