@@ -365,3 +365,26 @@ export const useDeleteComment = () =>
       toast.error("Failed to delete comment");
     },
   });
+
+// ✅ DELETE POST
+export const useDeletePost = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (postId: string) => api.posts.delete(postId),
+
+    onSuccess: (_, postId) => {
+      toast.success("Post deleted");
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["post-replies"] });
+      queryClient.removeQueries({ queryKey: ["post", postId] });
+    },
+
+    onError: (err: any) => {
+      const msg = err.response?.data?.detail || "Failed to delete post";
+      toast.error(msg);
+    },
+  });
+};

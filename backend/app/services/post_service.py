@@ -231,12 +231,6 @@ class PostService:
             existing_media_urls = []
             
         # Combine existing (preserved) and new media
-        # Be careful: 'existing_media_urls' comes from frontend which might edit the order or remove some.
-        # We trust the frontend list of existing URLs.
-        
-        # Security check: Ensure existing URLs actually belonged to the post or are valid?
-        # For now, we trust. 
-        
         final_media_urls = existing_media_urls + new_media_urls
         
         update_data = {
@@ -249,6 +243,108 @@ class PostService:
         # Merge updated fields into current data to return
         post_data.update(update_data)
         return post_data
+
+    @staticmethod
+    def delete_post(post_id: str, user_id: str):
+        post_ref = db.collection("posts").document(post_id)
+        post_doc = post_ref.get()
+
+        if not post_doc.exists:
+            raise ValueError("Post not found")
+
+        data = post_doc.to_dict()
+        if data.get("author_id") != user_id:
+            raise ValueError("Permission denied")
+
+        # Set of IDs to be deleted to check boundary
+        deleted_ids = set()
+        
+        # 1. Collect all descendants first to count them
+        def collect_descendants(pid, collected):
+            collected.add(pid)
+            replies = db.collection("posts").where("reply_to_id", "==", pid).stream()
+            for r in replies:
+                collect_descendants(r.id, collected)
+
+        collect_descendants(post_id, deleted_ids)
+        
+        total_deleted_count = len(deleted_ids)
+        
+        # 2. Update ancestors counts
+        # Only if the deleted root (post_id) has a parent
+        reply_to_id = data.get("reply_to_id")
+        if reply_to_id:
+             batch = db.batch()
+             curr = reply_to_id
+             # We only update ancestors that are NOT being deleted (which is guaranteed as we start from parent of root deleted)
+             while curr:
+                 p_ref = db.collection("posts").document(curr)
+                 p_doc = p_ref.get()
+                 if not p_doc.exists:
+                     break
+                 
+                 # Decrement by total deleted count
+                 batch.update(p_ref, {"comments_count": firestore.Increment(-total_deleted_count)})
+                 
+                 curr = p_doc.to_dict().get("reply_to_id")
+             batch.commit()
+
+        # 3. Perform Deletion
+        import urllib.parse
+        
+        for pid in deleted_ids:
+            p_ref = db.collection("posts").document(pid)
+            p_snapshot = p_ref.get()
+            if not p_snapshot.exists: 
+                continue
+                
+            p_data = p_snapshot.to_dict()
+            
+            # Delete Media
+            media = p_data.get("media_urls", []) or []
+            gallery = p_data.get("gallery", []) or []
+            
+            # Helper to normalize to list
+            if isinstance(media, str): media = [media]
+            if isinstance(gallery, str): gallery = [gallery]
+            
+            all_media = set((media or []) + (gallery or []))
+            
+            for url in all_media:
+                try:
+                    # Parse blob name from Firebase Storage URL
+                    # Format: .../o/<blob_name>?...
+                    if "/o/" in url:
+                        part = url.split("/o/")[1].split("?")[0]
+                        blob_name = urllib.parse.unquote(part)
+                        blob = bucket.blob(blob_name)
+                        blob.delete()
+                        print(f"Deleted blob: {blob_name}")
+                except Exception as e:
+                    print(f"Error deleting media {url}: {e}")
+
+            # Delete Subcollections (likes, reposts, saves)
+            # Firestore requires manual deletion of subcollections
+            for col in ["likes", "reposts", "saves", "comments"]:
+                sub_ref = p_ref.collection(col)
+                # Batch delete (limit 100)
+                subs = sub_ref.limit(100).stream() 
+                for s in subs:
+                    s.reference.delete()
+
+            # Delete the document
+            p_ref.delete()
+            
+            # Delete references in users collections?
+            # E.g. users/{uid}/posts/{pid} - Wait, we don't duplicate posts in user collection?
+            # We query posts by author_id.
+            # But we interactions (likes/saves) in users/{uid}/activity_X/{pid}.
+            # These become orphans. It's okay-ish for NoSQL, but ideally clean up.
+            # Cleanup is expensive (need to find who liked it).
+            # "Confirm yes thì xoá cứng document đó" -> Focus on Post doc.
+            
+        return {"status": "deleted", "count": total_deleted_count}
+
     # --- NEW: Hàm xử lý chung cho Like, Share, Save (Sub-collections) ---
     @staticmethod
     def toggle_interaction(collection_name: str, count_field: str, post_id: str, user_id: str, user_avatar: str = ""):

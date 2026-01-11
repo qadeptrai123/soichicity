@@ -126,6 +126,24 @@ async def create_post(
     )
     return created
 
+@router.delete("/posts/{post_id}")
+async def delete_post(
+    post_id: str,
+    user = Depends(get_current_user)
+):
+    try:
+        return await run_in_threadpool(
+            PostService.delete_post,
+            post_id=post_id,
+            user_id=user["uid"]
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except Exception as e:
+        print(f"Error deleting post: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
 @router.put("/posts/{post_id}")
 async def update_post(
     post_id: str,

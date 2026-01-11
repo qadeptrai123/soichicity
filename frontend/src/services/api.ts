@@ -59,6 +59,7 @@ export const api = {
     update: (post_id: string, data: FormData) => apiClient.put<Post>(`/api/v1/posts/${post_id}`, data, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }) as unknown as Promise<Post>,
+    delete: (post_id: string) => apiClient.delete(`/api/v1/posts/${post_id}`),
   },
   search: (params: { q: string, type: string, page?: number, limit?: number }) => apiClient.get('/api/v1/search', { params }),
   media: {

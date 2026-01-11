@@ -13,6 +13,9 @@ import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { DropdownExtend } from "../DropdownExtend";
 import { Ban } from "lucide-react";
 import { toast } from "sonner";
+import { Trash2, Edit3 } from "lucide-react";
+import { DeletePostDialog } from "@/components/DeletePostDialog";
+import { useDeletePost } from "@/hooks/api/use-posts";
 // import type { MediaItem } from "@/types/common";
 
 
@@ -20,6 +23,7 @@ interface ReplyItemProps {
     reply: any;
     onReplyClick: (reply: any) => void;
     isNested?: boolean;
+    onEdit?: (post: any) => void;
     onAuthRequired?: () => void;
 }
 
@@ -32,7 +36,7 @@ const COLORS = {
     primary: "text-[#2B7FFF]"
 };
 
-export const ReplyItem = ({ reply, onReplyClick, isNested = false, onAuthRequired }: ReplyItemProps) => {
+export const ReplyItem = ({ reply, onReplyClick, isNested = false, onEdit, onAuthRequired }: ReplyItemProps) => {
     // console.log(reply)
     const navigate = useNavigate();
     // Hooks
@@ -48,6 +52,18 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false, onAuthRequire
     const [savesCount, setSavesCount] = useState(reply.saves_count || 0);
     const [isSaved, setIsSaved] = useState(reply.is_saved || false);
     const [showBlockDialog, setShowBlockDialog] = useState(false);
+
+    // Delete State
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const deleteMutation = useDeletePost();
+
+    const handleDelete = () => {
+        deleteMutation.mutate(reply.post_id, {
+            onSuccess: () => {
+                setShowDeleteDialog(false);
+            }
+        });
+    };
 
     const { user: me, isAuthenticated } = useAuth();
     const blockMutation = useBlockUser();
@@ -110,7 +126,9 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false, onAuthRequire
 
     const handleShare = async (e?: React.MouseEvent) => {
         e?.stopPropagation();
-        const postUrl = `${window.location.origin}/post/${reply.post_id}`;
+        // Use root_id if available (for replies), otherwise fallback to post_id
+        const rootId = reply.root_id || reply.post_id;
+        const postUrl = `${window.location.origin}/post/${rootId}?commentId=${reply.post_id}`;
         try {
             await navigator.clipboard.writeText(postUrl);
             toast.success("Link copied to clipboard");
@@ -169,7 +187,27 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false, onAuthRequire
             icon: <Link2 size={16} />,
             onClick: handleShare,
             isVisible: true,
+            showSeparatorAfter: true,
         },
+        // Edit/Delete for Owner
+        ...(String(me?.uid) === String(reply.author?.uid) ? [
+            {
+                id: "edit",
+                label: "Edit",
+                icon: <Edit3 size={16} />,
+                onClick: () => onEdit?.(reply),
+                isVisible: !!onEdit,
+            },
+            {
+                id: "delete",
+                label: "Delete",
+                icon: <Trash2 size={16} />,
+                onClick: () => setShowDeleteDialog(true),
+                isVisible: true,
+                variant: "destructive" as const,
+                showSeparatorAfter: true,
+            }
+        ] : []),
         {
             id: "block",
             label: "Block",
@@ -192,10 +230,11 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false, onAuthRequire
 
     return (
         <div
-            className={`flex gap-4 group pt-3 pb-3 ${isNested ? 'px-0' : 'px-6'}`}
+            id={`comment-${reply.post_id}`}
+            className={`flex gap-4 group pt-3 pb-3 ${isNested ? 'px-0' : 'px-6'} transition-colors duration-500`}
         >
             <div className="flex flex-col items-center shrink-0">
-                <Avatar 
+                <Avatar
                     className={`w-10 h-10 border ${COLORS.border} z-10 cursor-pointer hover:opacity-80 transition-opacity`}
                     onClick={handleProfileClick}
                 >
@@ -208,19 +247,19 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false, onAuthRequire
             <div className="flex-1 pb-2">
                 <div className="flex justify-between items-start">
                     <div className="flex items-center gap-2 mb-1">
-                    <span 
-                        className="font-bold text-[15px] text-white cursor-pointer hover:underline"
-                        onClick={handleProfileClick}
-                    >
-                        {reply.author.full_name}
-                    </span>
-                    <span 
-                        className="text-[#64748b] text-sm cursor-pointer hover:underline"
-                        onClick={handleProfileClick}
-                    >
-                        @{reply.author.username}
-                    </span>
-                    <span className="text-[#64748b] text-xs">• {formatRelativeTime(reply.created_at)}</span>
+                        <span
+                            className="font-bold text-[15px] text-white cursor-pointer hover:underline"
+                            onClick={handleProfileClick}
+                        >
+                            {reply.author.full_name}
+                        </span>
+                        <span
+                            className="text-[#64748b] text-sm cursor-pointer hover:underline"
+                            onClick={handleProfileClick}
+                        >
+                            @{reply.author.username}
+                        </span>
+                        <span className="text-[#64748b] text-xs">• {formatRelativeTime(reply.created_at)}</span>
                     </div>
                     <DropdownExtend actions={replyActions} triggerType="icon" />
                 </div>
@@ -380,6 +419,7 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false, onAuthRequire
                                                 reply={subReply}
                                                 onReplyClick={onReplyClick}
                                                 isNested={true}
+                                                onEdit={onEdit}
                                                 onAuthRequired={onAuthRequired}
                                             />
                                         ))}
@@ -421,13 +461,19 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false, onAuthRequire
                     </div>
                 )}
             </div>
-            <BlockUserDialog 
-                isOpen={showBlockDialog} 
+            <BlockUserDialog
+                isOpen={showBlockDialog}
                 onClose={() => setShowBlockDialog(false)}
                 onConfirm={handleBlockConfirm}
                 username={reply.author?.username || ""}
                 avatarUrl={reply.author?.avatar_url}
                 isPending={blockMutation.isPending}
+            />
+            <DeletePostDialog
+                open={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
+                onConfirm={handleDelete}
+                isDeleting={deleteMutation.isPending}
             />
         </div>
     );

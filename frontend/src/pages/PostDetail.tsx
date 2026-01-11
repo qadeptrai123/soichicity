@@ -31,6 +31,25 @@ const PostDetail = () => {
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingPost, setEditingPost] = useState<any | null>(null);
 
+    // Auto Scroll to Comment
+    React.useEffect(() => {
+        if (!isLoading && postData?.replies) {
+            const params = new URLSearchParams(window.location.search);
+            const commentId = params.get("commentId");
+            if (commentId) {
+                // Wait a bit for rendering
+                setTimeout(() => {
+                    const element = document.getElementById(`comment-${commentId}`);
+                    if (element) {
+                        element.scrollIntoView({ behavior: "smooth", block: "center" });
+                        element.classList.add("bg-white/5"); // Highlight effect
+                        setTimeout(() => element.classList.remove("bg-white/5"), 2000);
+                    }
+                }, 500);
+            }
+        }
+    }, [isLoading, postData?.replies]);
+
     const handleReplyClick = (reply: any) => {
         if (!isAuthenticated) {
             setShowLoginPrompt(true);
@@ -88,7 +107,25 @@ const PostDetail = () => {
             <LoadingSpinner />
         </div>
     );
-    if (!postData) return <div className={`text-center text-white pt-1 ${COLORS.bgPage} min-h-screen font-medium`}>Post not found</div>;
+    if (!postData) return (
+        <div className={`flex flex-col items-center justify-center pt-20 ${COLORS.bgPage} min-h-screen text-center px-4`}>
+            <div className="bg-[#1A1F2E] p-8 rounded-2xl border border-[#374151] max-w-md w-full shadow-2xl">
+                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">⚠️</span>
+                </div>
+                <h2 className="text-xl font-bold text-white mb-2">Post not found</h2>
+                <p className="text-gray-400 mb-6">
+                    This post may have been deleted, or does not exist.
+                </p>
+                <button
+                    onClick={() => window.history.back()}
+                    className="bg-[#2B7FFF] hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-full transition-all"
+                >
+                    Go Back
+                </button>
+            </div>
+        </div>
+    );
 
     return (
         <div className={`h-[calc(100vh-64px)] ${COLORS.bgPage} text-white flex justify-center`}>
@@ -135,6 +172,10 @@ const PostDetail = () => {
                                         <ReplyItem
                                             reply={reply}
                                             onReplyClick={handleReplyClick}
+                                            onEdit={(post) => {
+                                                setEditingPost(post);
+                                                setIsEditOpen(true);
+                                            }}
                                             onAuthRequired={() => setShowLoginPrompt(true)}
                                         />
                                     </React.Fragment>

@@ -22,6 +22,10 @@ import {
 } from "lucide-react";
 import { DropdownExtend } from "./DropdownExtend";
 import { useNavigate } from "react-router-dom";
+import { DeletePostDialog } from "./DeletePostDialog";
+import { useDeletePost } from "@/hooks/api/use-posts";
+import { Trash2 } from "lucide-react";
+
 import { useLikePost, useSavePost, useRepostPost } from "@/hooks/api/use-posts";
 import { useAuth } from "@/contexts/AuthProvider";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
@@ -31,6 +35,15 @@ import { Ban } from "lucide-react";
 import type { Post as PostData, Author as AuthorData } from "@/types/post";
 
 import { toast } from "sonner";
+import { LoginPrompt } from "@/components/LoginPrompt";
+// --- IMPORTED GALLERY COMPONENT ---
+// Gallery logic moved to ./Gallery.tsx
+import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "./Gallery";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
+import { formatRelativeTime } from "@/lib/utils";
+
+// --- MAIN FEED CARD COMPONENT ---
+import { MediaLightbox } from "./MediaLightbox";
 
 interface FeedCardProps {
   post: PostData;
@@ -43,19 +56,6 @@ interface FeedCardProps {
   onAuthRequired?: () => void;
 }
 
-// Helper Functions
-
-
-// --- IMPORTED GALLERY COMPONENT ---
-// Gallery logic moved to ./Gallery.tsx
-// --- IMPORTED GALLERY COMPONENT ---
-// Gallery logic moved to ./Gallery.tsx
-import { Gallery, getYouTubeEmbedUrl, isYouTubeUrl } from "./Gallery";
-import { DEFAULT_AVATAR_URL } from "@/lib/constants";
-import { formatRelativeTime } from "@/lib/utils";
-
-// --- MAIN FEED CARD COMPONENT ---
-import { MediaLightbox } from "./MediaLightbox";
 
 const FeedCard: React.FC<FeedCardProps> = ({
   post,
@@ -313,6 +313,18 @@ const FeedCard: React.FC<FeedCardProps> = ({
     });
   };
 
+  // Delete State
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const deleteMutation = useDeletePost();
+
+  const handleDelete = () => {
+    deleteMutation.mutate(post.post_id, {
+      onSuccess: () => {
+        setShowDeleteDialog(false);
+      },
+    });
+  };
+
   // Debug Block Visibility
   const isAuthor = Boolean(
     me?.uid && displayAuthor?.uid && String(me.uid) === String(displayAuthor.uid)
@@ -333,8 +345,17 @@ const FeedCard: React.FC<FeedCardProps> = ({
       id: "edit",
       label: "Edit",
       icon: <Edit3 size={16} />,
-      onClick: () => onEdit?.(post),
-      isVisible: me?.uid === displayAuthor?.uid && !!onEdit,
+      onClick: () => onEdit?.(post), // Pass post to parent's handler
+      isVisible: isAuthor && !!onEdit,
+    },
+    {
+      id: "delete",
+      label: "Delete",
+      icon: <Trash2 size={16} />,
+      onClick: () => setShowDeleteDialog(true),
+      isVisible: isAuthor,
+      variant: "destructive" as const,
+      showSeparatorAfter: true, // If we want
     },
     {
       id: "block",
@@ -370,12 +391,15 @@ const FeedCard: React.FC<FeedCardProps> = ({
     >
       {/* Repost Indicator */}
       {post.is_repost_item && post.repost_info && (
-        <div className="flex items-center gap-2 px-4 pt-1.5 pb-1 text-xs text-muted-foreground font-medium">
+        <div
+          className="flex items-center gap-2 px-4 pt-1.5 pb-1 text-xs text-muted-foreground font-medium"
+          onClick={(e) => e.stopPropagation()} // Stop propagation for the whole bar
+        >
           <Repeat2 size={14} />
           <span
             className="hover:underline cursor-pointer"
             onClick={(e) => {
-              e.stopPropagation();
+              // e.stopPropagation(); // Already handled by parent div
               if (post.repost_info?.reposted_by?.username) {
                 navigate(`/profile/${post.repost_info.reposted_by.username}`);
               }
@@ -404,8 +428,8 @@ const FeedCard: React.FC<FeedCardProps> = ({
               isAuthor
                 ? (me?.avatar_url || DEFAULT_AVATAR_URL)
                 : displayAuthor?.avatar_url ||
-                  displayAuthor?.avatar ||
-                  DEFAULT_AVATAR_URL
+                displayAuthor?.avatar ||
+                DEFAULT_AVATAR_URL
             }
             alt={displayAuthor?.name || "User"}
           />
@@ -472,12 +496,14 @@ const FeedCard: React.FC<FeedCardProps> = ({
           )}
 
           {hasGallery ? (
-            <Gallery
-              items={post.gallery!}
-              onDragStateChange={setIsGalleryDragging}
-              size={"small"}
-              hideBorder={hideBorder}
-            />
+            <div onClick={(e) => e.stopPropagation()}>
+              <Gallery
+                items={post.gallery!}
+                onDragStateChange={setIsGalleryDragging}
+                size={"small"}
+                hideBorder={hideBorder}
+              />
+            </div>
           ) : (
             hasSingleMedia && (
               <>
@@ -507,6 +533,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
                       controls
                       className="media-content max-h-96 w-full object-cover"
                       src={post.media_url!}
+                      onClick={(e) => e.stopPropagation()}
                     />
                   ) : (
                     <img
@@ -539,7 +566,10 @@ const FeedCard: React.FC<FeedCardProps> = ({
 
       {/* FOOTER */}
       {!compact && (
-        <CardFooter className="flex gap-3 px-4 -pb-3 -mb-3 -pt-10 -mt-5">
+        <CardFooter
+          className="flex gap-3 px-4 -pb-3 -mb-3 -pt-10 -mt-5"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="spacer-column"></div>
           <div className="flex-1 flex gap-4 justify-start">
             <ActionButton
@@ -573,9 +603,6 @@ const FeedCard: React.FC<FeedCardProps> = ({
               actionId="share"
               icon={<Send size={24} />}
               onClick={handleExternalShare}
-            // count={localCounts.shares}
-            // onClick={handleShare}
-            // isActive={actionStates.shared}
             />
           </div>
           <div className="spacer-column"></div>
@@ -591,7 +618,30 @@ const FeedCard: React.FC<FeedCardProps> = ({
         isPending={blockMutation.isPending}
       />
 
-
+      {/* Login Prompt Overlay */}
+      {showLoginPrompt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 cursor-default"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowLoginPrompt(false);
+          }}
+        >
+          <div
+            className="relative w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <LoginPrompt />
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Dialog */}
+      <DeletePostDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleDelete}
+        isDeleting={deleteMutation.isPending}
+      />
     </Card>
   );
 };

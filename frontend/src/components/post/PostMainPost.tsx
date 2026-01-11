@@ -21,11 +21,15 @@ import type { Post } from "@/types/post";
 import { formatRelativeTime } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthProvider";
 
+import { LoginPrompt } from "@/components/LoginPrompt";
 import TextWithMentions from "../TextWithMentions";
 // import type { MediaItem } from "@/types/common";
 import { toast } from "sonner";
 import { DropdownExtend } from "../DropdownExtend";
 import { MediaLightbox } from "../MediaLightbox";
+import { useDeletePost } from "@/hooks/api/use-posts";
+import { DeletePostDialog } from "@/components/DeletePostDialog";
+import { Trash2 } from "lucide-react";
 
 interface PostMainPostProps {
   data: Post;
@@ -47,9 +51,20 @@ export const PostMainPost = ({ data, onReply, onEdit, onAuthRequired }: PostMain
 
   // State
   // State
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showSingleMediaLightbox, setShowSingleMediaLightbox] = useState(false);
   const [, setIsGalleryDragging] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const deleteMutation = useDeletePost();
+
+  const handleDelete = () => {
+    deleteMutation.mutate(data.post_id, {
+      onSuccess: () => {
+        navigate("/");
+      }
+    });
+  };
 
   // Optimistic UI State
   const [localCounts, setLocalCounts] = useState({
@@ -203,6 +218,15 @@ export const PostMainPost = ({ data, onReply, onEdit, onAuthRequired }: PostMain
       icon: <Edit3 size={16} />,
       onClick: () => onEdit?.(data),
       isVisible: me?.uid === data.author?.uid && !!onEdit,
+    },
+    {
+      id: "delete",
+      label: "Delete",
+      icon: <Trash2 size={16} />,
+      onClick: () => setShowDeleteDialog(true),
+      isVisible: me?.uid === data.author?.uid,
+      variant: "destructive" as const,
+      showSeparatorAfter: true,
     },
     {
       id: "block",
@@ -440,7 +464,32 @@ export const PostMainPost = ({ data, onReply, onEdit, onAuthRequired }: PostMain
         isPending={blockMutation.isPending}
       />
 
+      <DeletePostDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleDelete}
+        isDeleting={deleteMutation.isPending}
+      />
 
+      {/* Login Prompt Overlay */}
+      {
+        showLoginPrompt && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 cursor-default"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowLoginPrompt(false);
+            }}
+          >
+            <div
+              className="relative w-full max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <LoginPrompt />
+            </div>
+          </div>
+        )
+      }
     </div >
   );
 };
