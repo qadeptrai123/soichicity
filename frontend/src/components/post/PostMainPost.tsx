@@ -230,48 +230,6 @@ export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
     },
   ];
 
-  // Dropdown Actions
-  const postActions = [
-    {
-      id: "bookmark",
-      label: actionStates.bookmarked ? "Unsave" : "Save",
-      icon: <Bookmark size={16} fill={actionStates.bookmarked ? "currentColor" : "none"} />,
-      onClick: handleBookmark,
-      isVisible: true,
-      showSeparatorAfter: true,
-    },
-    {
-      id: "edit",
-      label: "Edit",
-      icon: <Edit3 size={16} />,
-      onClick: () => onEdit?.(data),
-      isVisible: me?.uid === data.author?.uid && !!onEdit,
-    },
-    {
-      id: "block",
-      label: "Block",
-      icon: <Ban size={16} />,
-      onClick: () => console.log("Block post", data.post_id),
-      isVisible: isAuthenticated && me?.uid !== data.author?.uid,
-      showSeparatorAfter: true,
-      variant: "destructive" as const,
-    },
-    {
-      id: "copy-link",
-      label: "Copy link",
-      icon: <Link2 size={16} />,
-      onClick: async () => {
-        const postUrl = `${window.location.origin}/post/${data.post_id}`;
-        try {
-          await navigator.clipboard.writeText(postUrl);
-          toast.success("Link copied to clipboard");
-        } catch (err) {
-          toast.error("Failed to copy link");
-        }
-      },
-      isVisible: true,
-    },
-  ];
 
   // --- Preprocess Gallery Data (similar to Feed.tsx) ---
   const processedData = useMemo(() => {
