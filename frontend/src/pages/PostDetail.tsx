@@ -152,7 +152,7 @@ const PostDetail = () => {
                         {/* --- HEADER CHỨA NÚT VIEW ACTIVITY --- */}
                         <div
                             ref={buttonRef}
-                            className={`flex justify-between items-center px-6 py-3 border-t ${COLORS.border} bg-[#1A1F2E]/95 backdrop-blur-sm sticky top-0 z-20`}
+                            className={`flex justify-between items-center px-6 py-3 border-t ${COLORS.border} bg-[#1A1F2E]/95 backdrop-blur-sm`}
                         >
                             <span className="font-bold text-white text-base">Top</span>
                             <button
