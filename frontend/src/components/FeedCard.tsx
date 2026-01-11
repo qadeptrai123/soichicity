@@ -17,7 +17,6 @@ import {
   Repeat2,
   Heart,
   Send,
-  X,
   Edit3,
   Link2,
 } from "lucide-react";
@@ -55,6 +54,8 @@ import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { formatRelativeTime } from "@/lib/utils";
 
 // --- MAIN FEED CARD COMPONENT ---
+import { MediaLightbox } from "./MediaLightbox";
+
 const FeedCard: React.FC<FeedCardProps> = ({
   post,
   author,
@@ -184,20 +185,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
     [post.post_id, likeMutation, isAuthenticated]
   );
 
-  const handleDownloadMedia = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
 
-    if (!post.media_url) {
-      toast.error("No media to download");
-      return;
-    }
-
-    const downloadUrl =
-      "http://localhost:8000/api/media/download?url=" +
-      encodeURIComponent(post.media_url);
-
-    window.location.href = downloadUrl;
-  };
 
   // const handleExternalShare = () => {
   //   const postUrl = `${window.location.origin}/post/${post.post_id}`;
@@ -528,54 +516,12 @@ const FeedCard: React.FC<FeedCardProps> = ({
                 </div>
 
                 {showSingleMediaLightbox && (
-                  <div
-                    className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowSingleMediaLightbox(false);
-                      }}
-                      className="absolute top-4 right-4 text-white hover:bg-white/20 p-2 rounded-full transition z-50"
-                    >
-                      <X size={24} />
-                    </button>
-                    <button
-                      onClick={handleDownloadMedia}
-                      className="absolute top-4 right-15 bg-black/70 text-white px-4 py-2 rounded-lg hover:bg-black transition z-50"
-                    >
-                      ⬇ Download
-                    </button>
-                    {isYoutube ? (
-                      <div
-                        className="relative w-full max-w-4xl bg-black"
-                        style={{ paddingBottom: "56.25%" }}
-                      >
-                        <iframe
-                          src={embedUrl!}
-                          title="YouTube video"
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="absolute top-0 left-0 w-full h-full"
-                        />
-                      </div>
-                    ) : actualMediaType === "video" ? (
-                      <video
-                        controls
-                        autoPlay
-                        className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-                        src={post.media_url!}
-                      />
-                    ) : (
-                      <img
-                        src={post.media_url!}
-                        alt="Post media lightbox"
-                        className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-                      />
-                    )}
-                  </div>
+                  <MediaLightbox
+                    open={showSingleMediaLightbox}
+                    onClose={() => setShowSingleMediaLightbox(false)}
+                    src={post.media_url!}
+                    type={isYoutube ? "youtube" : actualMediaType as any}
+                  />
                 )}
               </>
             )

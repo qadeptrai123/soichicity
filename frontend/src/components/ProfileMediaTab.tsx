@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Play, X, Download } from "lucide-react";
-import { getYouTubeEmbedUrl, isYouTubeUrl } from './Gallery';
+import { Play } from "lucide-react";
+import { isYouTubeUrl } from './Gallery';
 import type { Post } from '@/types/post';
-import { toast } from "sonner";
+import { MediaLightbox } from "./MediaLightbox";
 
 interface ProfileMediaTabProps {
     posts: Post[];
@@ -40,59 +40,12 @@ export const ProfileMediaTab: React.FC<ProfileMediaTabProps> = ({ posts }) => {
 
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-    const handleOpenLightbox = (index: number) => {
+    const handleOpenLightbox = (e: React.MouseEvent, index: number) => {
+        e.stopPropagation();
         setLightboxIndex(index);
     };
 
-    const handleCloseLightbox = () => {
-        setLightboxIndex(null);
-    };
 
-    const handleNext = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (lightboxIndex !== null) {
-            setLightboxIndex((prev) => (prev !== null && prev < mediaItems.length - 1 ? prev + 1 : 0));
-        }
-    };
-
-    const handlePrev = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (lightboxIndex !== null) {
-            setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : mediaItems.length - 1));
-        }
-    };
-
-    const handleDownload = (e: React.MouseEvent, url: string) => {
-        e.stopPropagation();
-        if (!url) {
-            toast.error("No media to download");
-            return;
-        }
-
-        const downloadUrl =
-            import.meta.env.VITE_API_URL + "/media/download?url=" +
-            encodeURIComponent(url);
-
-        window.location.href = downloadUrl;
-    };
-
-    // Keyboard navigation for lightbox
-    React.useEffect(() => {
-        if (lightboxIndex === null) return;
-
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "ArrowRight") {
-                setLightboxIndex((prev) => (prev !== null && prev < mediaItems.length - 1 ? prev + 1 : 0));
-            } else if (e.key === "ArrowLeft") {
-                setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : mediaItems.length - 1));
-            } else if (e.key === "Escape") {
-                setLightboxIndex(null);
-            }
-        };
-
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [lightboxIndex, mediaItems.length]);
 
 
 
@@ -114,7 +67,7 @@ export const ProfileMediaTab: React.FC<ProfileMediaTabProps> = ({ posts }) => {
                     <div
                         key={`${item.postId}-${index}`}
                         className="aspect-square relative group cursor-pointer overflow-hidden bg-neutral-900"
-                        onClick={() => handleOpenLightbox(index)}
+                        onClick={(e) => handleOpenLightbox(e, index)}
                     >
                         {item.type === 'youtube' ? (
                             <div className="w-full h-full flex items-center justify-center relative">
@@ -153,78 +106,17 @@ export const ProfileMediaTab: React.FC<ProfileMediaTabProps> = ({ posts }) => {
             </div>
 
             {/* Lightbox */}
+            {/* Lightbox */}
             {activeItem && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 animate-in fade-in duration-200"
-                    onClick={handleCloseLightbox}
-                >
-                    <button
-                        className="absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-                        onClick={handleCloseLightbox}
-                    >
-                        <X size={32} />
-                    </button>
-
-                    {activeItem.type !== 'youtube' && (
-                        <button
-                            className="absolute top-4 right-20 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-                            onClick={(e) => handleDownload(e, activeItem.url)}
-                            title="Download"
-                        >
-                            <Download size={28} />
-                        </button>
-                    )}
-
-                    <div
-                        className="w-full max-w-7xl max-h-screen p-4 flex items-center justify-center"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {activeItem.type === 'youtube' ? (
-                            <div className="aspect-video w-full max-w-5xl bg-black rounded-lg overflow-hidden shadow-2xl">
-                                <iframe
-                                    src={getYouTubeEmbedUrl(activeItem.url) + "?autoplay=1"}
-                                    className="w-full h-full"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                />
-                            </div>
-                        ) : activeItem.type === 'video' ? (
-                            <video
-                                src={activeItem.url}
-                                controls
-                                autoPlay
-                                className="max-w-full max-h-[90vh] rounded-lg shadow-2xl"
-                            />
-                        ) : (
-                            <img
-                                src={activeItem.url}
-                                alt="Full size"
-                                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
-                            />
-                        )}
-                    </div>
-
-                    {mediaItems.length > 1 && (
-                        <>
-                            <button
-                                className="absolute left-4 top-1/2 -translate-y-1/2 p-4 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-                                onClick={handlePrev}
-                            >
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M15 18l-6-6 6-6" />
-                                </svg>
-                            </button>
-                            <button
-                                className="absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-                                onClick={handleNext}
-                            >
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M9 18l6-6-6-6" />
-                                </svg>
-                            </button>
-                        </>
-                    )}
-                </div>
+                <MediaLightbox
+                    open={lightboxIndex !== null}
+                    onClose={() => setLightboxIndex(null)}
+                    src={activeItem.url}
+                    type={activeItem.type}
+                    onPrev={() => setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : mediaItems.length - 1))}
+                    onNext={() => setLightboxIndex((prev) => (prev !== null && prev < mediaItems.length - 1 ? prev + 1 : 0))}
+                    hasNavigation={mediaItems.length > 1}
+                />
             )}
         </>
     );

@@ -31,3 +31,19 @@ export const useMarkNotificationsRead = () => {
         },
     });
 };
+
+export const useActivityStats = () => {
+    return useQuery({
+        queryKey: ["activity-stats"],
+        queryFn: api.users.getStats,
+        staleTime: 60 * 1000, // 1 minute
+    });
+};
+
+export const useActivityHistory = (days: number = 30) => {
+    return useQuery({
+        queryKey: ["activity-history", days],
+        queryFn: () => api.users.getHistory(days),
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+};

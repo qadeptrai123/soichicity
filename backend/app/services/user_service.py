@@ -1333,3 +1333,82 @@ def mark_all_notifications_read(db, user_id: str):
         batch.commit()
     
     return True
+
+def get_notification_stats(db, user_id: str):
+    """
+    Get statistics of user notifications.
+    """
+    notif_ref = db.collection('users').document(user_id).collection('notifications')
+    
+    # Total
+    total = notif_ref.count().get()[0][0].value
+    
+    # By Type
+    stats = {}
+    types = ['like', 'reply', 'repost', 'mention', 'follow']
+    
+    # Optimized: if total is 0, return early
+    if total == 0:
+        return { "total": 0, "breakdown": {t: 0 for t in types} }
+
+    # We could do this in parallel but simple loop is fine for <10 types
+    for t in types:
+        # Note: 'reply' logic in get_notifications handles 'comment' type mapping IF passing filter. 
+        # But here we count what's in DB.
+        # If DB has 'comment', we might miss it if we only count 'reply'.
+        # Let's count 'reply' and 'comment' and merge into 'reply'
+        
+        count = notif_ref.where(filter=firestore.FieldFilter('type', '==', t)).count().get()[0][0].value
+        stats[t] = count
+        
+    # Check for legacy 'comment' type
+    comment_count = notif_ref.where(filter=firestore.FieldFilter('type', '==', 'comment')).count().get()[0][0].value
+    stats['reply'] += comment_count
+        
+    return { "total": total, "breakdown": stats }
+
+def get_notification_history(db, user_id: str, days: int = 7):
+    """
+    Get daily notification history for charts.
+    """
+    from datetime import datetime, timedelta
+    
+    # Notification dates are stored as Strings (ISO format) in NotificationService.
+    # So we must compare with string.
+    cutoff_dt = datetime.utcnow() - timedelta(days=days)
+    cutoff = cutoff_dt.isoformat()
+    
+    notif_ref = db.collection('users').document(user_id).collection('notifications')
+    # Filter by time string
+    docs = notif_ref.where(filter=firestore.FieldFilter('created_at', '>=', cutoff)).stream()
+    
+    history_map = {}
+    # Init last 'days' days
+    for i in range(days):
+        d = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
+        history_map[d] = {"date": d, "like": 0, "reply": 0, "repost": 0, "mention": 0, "follow": 0, "total": 0}
+        
+    for doc in docs:
+        data = doc.to_dict()
+        created_at = data.get('created_at')
+        if not created_at: continue
+        
+        # Determine date string
+        # created_at might be datetime or string. Assuming datetime from firestore or ISO string.
+        # If firestore, it is a datetime object.
+        date_str = ""
+        if hasattr(created_at, 'strftime'):
+             date_str = created_at.strftime("%Y-%m-%d")
+        elif isinstance(created_at, str):
+             date_str = created_at[:10]
+             
+        if date_str in history_map:
+            t = data.get('type')
+            if t == 'comment': t = 'reply'
+            if t in history_map[date_str]:
+                history_map[date_str][t] += 1
+                history_map[date_str]['total'] += 1
+                
+    # Convert to sorted list
+    result = sorted(history_map.values(), key=lambda x: x['date'])
+    return result

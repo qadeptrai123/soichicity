@@ -24,6 +24,8 @@ export const api = {
     getBlockedUsers: () => apiClient.get<User[]>('/api/v1/users/me/blocks') as unknown as Promise<User[]>,
     getNotifications: (limit: number = 20, cursor?: string | null, filter: string = "all") => apiClient.get<any>('/api/v1/users/notifications', { params: { limit, cursor, filter } }) as unknown as Promise<{ items: any[], next_cursor: string | null }>,
     getUnreadCount: () => apiClient.get<{ count: number }>('/api/v1/users/notifications/unread-count') as unknown as Promise<{ count: number }>,
+    getStats: () => apiClient.get<{ total: number, breakdown: Record<string, number> }>('/api/v1/users/notifications/stats') as unknown as Promise<{ total: number, breakdown: Record<string, number> }>,
+    getHistory: (days: number = 30) => apiClient.get<any[]>('/api/v1/users/notifications/history', { params: { days } }) as unknown as Promise<any[]>,
     markAsRead: () => apiClient.post('/api/v1/users/notifications/read'),
   },
   posts: {
@@ -59,6 +61,15 @@ export const api = {
     }) as unknown as Promise<Post>,
   },
   search: (params: { q: string, type: string, page?: number, limit?: number }) => apiClient.get('/api/v1/search', { params }),
+  media: {
+    uploadMedia: (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return apiClient.post<{ url: string }>('/api/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      }) as unknown as Promise<{ url: string }>;
+    }
+  }
 };
 
 export const getPostDetail = async (postId: string) => {

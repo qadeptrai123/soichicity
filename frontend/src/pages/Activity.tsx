@@ -1,11 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import ActivityItem from "@/components/ActivityItem";
+import ActivityStats from "@/components/ActivityStats";
 import AnimateEntrance from "@/components/ui/AnimateEntrance";
 import { useAuth } from "@/contexts/AuthProvider";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useActivities, useMarkNotificationsRead } from "@/hooks/api/use-activities";
 
-const TABS = ["All", "Likes", "Replies", "Mentions", "Reposts", "Follows"];
+const TABS = ["All", "Likes", "Replies", "Mentions", "Reposts", "Follows", "Stats"];
 
 const TAB_TO_FILTER_MAP: Record<string, string> = {
     "All": "all",
@@ -13,7 +14,8 @@ const TAB_TO_FILTER_MAP: Record<string, string> = {
     "Replies": "reply",
     "Mentions": "mention",
     "Reposts": "repost",
-    "Follows": "follow"
+    "Follows": "follow",
+    "Stats": "stats"
 };
 
 export default function Activity() {
@@ -22,6 +24,7 @@ export default function Activity() {
 
     // Map activeTab to API filter value
     const filter = TAB_TO_FILTER_MAP[activeTab] || "all";
+    const isStatsTab = activeTab === "Stats";
 
     const {
         data,
@@ -29,7 +32,7 @@ export default function Activity() {
         hasNextPage,
         isLoading,
         isFetchingNextPage
-    } = useActivities(filter);
+    } = useActivities(isStatsTab ? "all" : filter);
 
     const markReadMutation = useMarkNotificationsRead();
 
@@ -50,15 +53,14 @@ export default function Activity() {
         if (!node) return;
         const observer = new IntersectionObserver(handleObserver, { threshold: 0.1 });
         observer.observe(node);
-        // cleanup handled by React ref logic usually, or we store observer instance
     }, [handleObserver]);
 
 
     if (!isAuthenticated) {
-        return <div className="text-white text-center pt-20">Please log in to view activities.</div>;
+        return <div className="p-8 text-center text-gray-500">Please log in to view activity.</div>;
     }
 
-    const activities = data?.pages?.flatMap((page: any) => (page && page.items) ? page.items : []) || [];
+    const activities = data?.pages.flatMap((page: any) => page?.items || []) || [];
 
     return (
         <div className="w-full max-w-2xl mx-auto pb-20 mt-4">
@@ -69,7 +71,7 @@ export default function Activity() {
 
                     {/* Filter Tabs (Sticky Header) */}
                     <div className="sticky top-0 z-20 bg-secondary/95 backdrop-blur-sm border-b border-[#374151] py-3">
-                        <div className="flex justify-start gap-2 px-4 overflow-x-auto no-scrollbar">
+                        <div className="flex justify-center gap-2 px-4 overflow-x-auto no-scrollbar">
                             {TABS.map((tab) => (
                                 <button
                                     key={tab}
@@ -86,27 +88,33 @@ export default function Activity() {
                     </div>
 
                     <div className="flex flex-col">
-                        {isLoading ? (
-                            <div className="py-10"><LoadingSpinner /></div>
-                        ) : activities.length > 0 ? (
-                            activities.map((activity: any, index: number) => (
-                                <ActivityItem
-                                    key={activity.id}
-                                    item={activity}
-                                    isLast={index === activities.length - 1}
-                                />
-                            ))
+                        {isStatsTab ? (
+                            <ActivityStats />
                         ) : (
-                            <div className="py-20 text-center text-neutral-500">
-                                No notifications yet.
-                            </div>
-                        )}
+                            <>
+                                {isLoading ? (
+                                    <div className="py-10 flex justify-center"><LoadingSpinner /></div>
+                                ) : activities.length > 0 ? (
+                                    activities.map((activity: any, index: number) => (
+                                        <ActivityItem
+                                            key={activity.id}
+                                            item={activity}
+                                            isLast={index === activities.length - 1}
+                                        />
+                                    ))
+                                ) : (
+                                    <div className="py-20 text-center text-neutral-500">
+                                        No notifications yet.
+                                    </div>
+                                )}
 
-                        {/* Loading trigger */}
-                        {hasNextPage && (
-                            <div ref={observerRef} className="py-4 flex justify-center">
-                                {isFetchingNextPage && <LoadingSpinner />}
-                            </div>
+                                {/* Loading trigger */}
+                                {hasNextPage && (
+                                    <div ref={observerRef} className="py-4 flex justify-center">
+                                        {isFetchingNextPage && <LoadingSpinner />}
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

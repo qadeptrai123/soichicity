@@ -150,7 +150,7 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
                     } ${item.icon === PlusSquare ? "mt-32" : ""}`}
                 >
                   <Icon size={24} />
-                  {item.icon === Heart && unreadData?.count > 0 && (
+                  {item.icon === Heart && (unreadData?.count ?? 0) > 0 && (
                     <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-backgroundfeed" />
                   )}
                 </button>

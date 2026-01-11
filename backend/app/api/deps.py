@@ -39,7 +39,8 @@ async def get_current_user(
 
     # 3. VERIFY TOKEN WITH FIREBASE
     try:
-        decoded_token = auth.verify_id_token(final_token)
+        # Add tolerance for clock skew (10 seconds)
+        decoded_token = auth.verify_id_token(final_token, clock_skew_seconds=10)
         uid = decoded_token['uid']
     except Exception as e:
         print(f"Firebase Token Error: {e}")
@@ -73,7 +74,7 @@ async def get_current_user_optional(
         return None
 
     try:
-        decoded_token = auth.verify_id_token(final_token)
+        decoded_token = auth.verify_id_token(final_token, clock_skew_seconds=10)
         uid = decoded_token['uid']
         user = user_service.get_user(db, user_id=uid)
         return user

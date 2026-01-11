@@ -7,6 +7,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function formatNumber(num: number): string {
+  return new Intl.NumberFormat('en-US', {
+    notation: "compact",
+    maximumFractionDigits: 1
+  }).format(num);
+}
+
 export const formatRelativeTime = (dateInput: string | Date | undefined): string => {
   if (!dateInput) return "";
   try {
@@ -78,14 +85,14 @@ export const parseTextWithMentions = (content: string): Array<{
   username?: string;
 }> => {
   if (!content) return [];
-  
+
   // Regex to match @username (alphanumeric and underscore)
   const mentionRegex = /@(\w+)/g;
   const segments: Array<{ type: 'text' | 'mention'; content: string; username?: string }> = [];
-  
+
   let lastIndex = 0;
   let match;
-  
+
   while ((match = mentionRegex.exec(content)) !== null) {
     // Add text before mention
     if (match.index > lastIndex) {
@@ -94,17 +101,17 @@ export const parseTextWithMentions = (content: string): Array<{
         content: content.substring(lastIndex, match.index)
       });
     }
-    
+
     // Add mention
     segments.push({
       type: 'mention',
       content: match[0], // @username
       username: match[1] // username without @
     });
-    
+
     lastIndex = match.index + match[0].length;
   }
-  
+
   // Add remaining text
   if (lastIndex < content.length) {
     segments.push({
@@ -112,6 +119,6 @@ export const parseTextWithMentions = (content: string): Array<{
       content: content.substring(lastIndex)
     });
   }
-  
+
   return segments;
 };

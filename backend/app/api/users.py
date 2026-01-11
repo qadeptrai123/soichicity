@@ -45,6 +45,27 @@ def mark_notifications_read(
     """
     return user_service.mark_all_notifications_read(db, current_user['uid'])
 
+@router.get("/users/notifications/stats", tags=["users"])
+def get_notification_statistics(
+    db=Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Get notification statistics
+    """
+    return user_service.get_notification_stats(db, current_user['uid'])
+
+@router.get("/users/notifications/history", tags=["users"])
+def get_notification_history_data(
+    days: int = 30,
+    db=Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Get notification history chart data
+    """
+    return user_service.get_notification_history(db, current_user['uid'], days)
+
 @router.get("/users/{user_id}", tags=["users"])
 def read_user(user_id: str, db=Depends(get_db)):
     return user_service.get_user(db, user_id)

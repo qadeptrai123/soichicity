@@ -1,8 +1,9 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
-import { Play, X } from "lucide-react";
+import { Play } from "lucide-react";
 
 import type { MediaItem } from "@/types/common";
-import { toast } from "sonner";
+// import { toast } from "sonner";
+import { MediaLightbox } from "./MediaLightbox";
 
 // Helper Functions
 export const getYouTubeEmbedUrl = (url: string): string | null => {
@@ -101,8 +102,6 @@ export const Gallery: React.FC<GalleryProps> = ({
 
     const sortedItems = sortMediaItems(processedItems);
     const currentItem = sortedItems[selectedIndex];
-    const embedUrl =
-        currentItem.type === "youtube" ? getYouTubeEmbedUrl(currentItem.url) : null;
     const isMultipleItems = processedItems.length > 1;
 
     // Use prop maxContainerHeight if provided, otherwise calculate
@@ -221,20 +220,7 @@ export const Gallery: React.FC<GalleryProps> = ({
         }
     };
 
-    const handleDownloadCurrentMedia = (e?: React.MouseEvent) => {
-        e?.stopPropagation();
 
-        if (!currentItem?.url) {
-            toast.error("No media to download");
-            return;
-        }
-
-        const downloadUrl =
-            "http://localhost:8000/api/media/download?url=" +
-            encodeURIComponent(currentItem.url);
-
-        window.location.href = downloadUrl;
-    };
 
     // const handlePrev = (e: React.MouseEvent) => {
     // e.stopPropagation();
@@ -262,15 +248,7 @@ export const Gallery: React.FC<GalleryProps> = ({
         );
     };
 
-    const handlePrev = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        goPrev();
-    };
 
-    const handleNext = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        goNext();
-    };
 
 
     useEffect(() => {
@@ -288,7 +266,7 @@ export const Gallery: React.FC<GalleryProps> = ({
 
 
     return (
-        <div className={className} data-gallery="true">
+        <div className={className} data-gallery="true" onClick={(e) => e.stopPropagation()}>
             {/* Carousel Layout */}
             <div
                 className={`rounded-xl overflow-hidden mt-2 w-full relative group ${isMultipleItems || hideBorder ? "bg-transparent border-none" : "bg-transparent border border-border"
@@ -409,88 +387,16 @@ export const Gallery: React.FC<GalleryProps> = ({
             )}
 
             {/* Lightbox */}
-            {showLightbox && (
-                <div
-                    className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
-                    onClick={(e) => e.stopPropagation()} // Chặn click xuyên qua lightbox
-                >
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setShowLightbox(false);
-                        }}
-                        className="absolute top-4 right-4 text-white hover:bg-white/20 p-2 rounded-full transition z-50"
-                    >
-                        <X size={24} />
-                    </button>
-                    {/* Download */}
-                    {currentItem.type !== "youtube" && (
-                        <button
-                            onClick={handleDownloadCurrentMedia}
-                            className="absolute top-4 right-16 bg-black/70 text-white px-3 py-2 rounded-lg hover:bg-black transition z-50"
-                        >
-                            ⬇ Download
-                        </button>
-                    )}
-
-                    {/* Prev */}
-                    {sortedItems.length > 1 && (
-                        <button
-                            onClick={handlePrev}
-                            className="absolute left-6 top-1/2 -translate-y-1/2
-                                bg-black/60 text-white
-                                w-14 h-14 text-4xl
-                                flex items-center justify-center
-                                rounded-full hover:bg-black transition z-50"
-                        >
-                            ‹
-                        </button>
-                    )}
-
-                    {/* Next */}
-                    {sortedItems.length > 1 && (
-                        <button
-                            onClick={handleNext}
-                            className="absolute right-6 top-1/2 -translate-y-1/2
-                                bg-black/60 text-white
-                                w-14 h-14 text-4xl
-                                flex items-center justify-center
-                                rounded-full hover:bg-black transition z-50"
-                        >
-                            ›
-                        </button>
-                    )}
-
-                    {currentItem.type === "youtube" ? (
-                        <div
-                            className="relative w-full max-w-4xl bg-black"
-                            style={{ paddingBottom: "56.25%" }}
-                        >
-                            <iframe
-                                src={embedUrl!}
-                                title={`YouTube video ${selectedIndex + 1}`}
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                className="absolute top-0 left-0 w-full h-full"
-                            />
-                        </div>
-                    ) : currentItem.type === "image" ? (
-                        <img
-                            src={currentItem.url}
-                            alt={`Lightbox ${selectedIndex + 1}`}
-                            className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-                        />
-                    ) : (
-                        <video
-                            controls
-                            autoPlay
-                            className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-                            src={currentItem.url}
-                        />
-                    )}
-                </div>
-            )}
+            {/* Lightbox */}
+            <MediaLightbox
+                open={showLightbox}
+                onClose={() => setShowLightbox(false)}
+                src={currentItem.url}
+                type={currentItem.type as "image" | "video" | "youtube"}
+                onPrev={sortedItems.length > 1 ? goPrev : undefined}
+                onNext={sortedItems.length > 1 ? goNext : undefined}
+                hasNavigation={sortedItems.length > 1}
+            />
         </div>
     );
 };

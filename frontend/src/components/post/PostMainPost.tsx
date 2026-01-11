@@ -7,7 +7,6 @@ import {
   Repeat2,
   Send,
   Bookmark,
-  X,
   Edit3,
   Ban,
   Link2,
@@ -26,6 +25,7 @@ import TextWithMentions from "../TextWithMentions";
 // import type { MediaItem } from "@/types/common";
 import { toast } from "sonner";
 import { DropdownExtend } from "../DropdownExtend";
+import { MediaLightbox } from "../MediaLightbox";
 
 interface PostMainPostProps {
   data: Post;
@@ -382,49 +382,12 @@ export const PostMainPost = ({ data, onReply, onEdit }: PostMainPostProps) => {
               </div>
 
               {showSingleMediaLightbox && (
-                <div
-                  className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowSingleMediaLightbox(false);
-                    }}
-                    className="absolute top-4 right-4 text-white hover:bg-white/20 p-2 rounded-full transition z-50"
-                  >
-                    <X size={24} />
-                  </button>
-
-                  {isYoutube ? (
-                    <div
-                      className="relative w-full max-w-4xl bg-black"
-                      style={{ paddingBottom: "56.25%" }}
-                    >
-                      <iframe
-                        src={embedUrl!}
-                        title="YouTube video"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="absolute top-0 left-0 w-full h-full"
-                      />
-                    </div>
-                  ) : actualMediaType === "video" ? (
-                    <video
-                      controls
-                      autoPlay
-                      className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-                      src={processedData.media_url!}
-                    />
-                  ) : (
-                    <img
-                      src={processedData.media_url!}
-                      alt="Post media lightbox"
-                      className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-                    />
-                  )}
-                </div>
+                <MediaLightbox
+                  open={showSingleMediaLightbox}
+                  onClose={() => setShowSingleMediaLightbox(false)}
+                  src={processedData.media_url!}
+                  type={isYoutube ? "youtube" : actualMediaType as any}
+                />
               )}
             </>
           )
