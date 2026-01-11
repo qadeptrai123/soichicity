@@ -1,5 +1,6 @@
 //Kiệt
 import React, { useState, useCallback, useEffect } from "react";
+import TextWithMentions from "./TextWithMentions";
 import { ActionButton } from "./ActionButton";
 import {
   Card,
@@ -475,7 +476,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
         >
           {post.content && (
             <p className="text-sm leading-relaxed text-foreground whitespace-normal mb-1 wrap-break-words">
-              {post.content}
+              <TextWithMentions content={post.content} />
             </p>
           )}
 

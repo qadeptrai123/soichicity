@@ -16,6 +16,7 @@ import { SearchDialog } from "@/components/SearchDialog";
 import { useState } from "react";
 import { MOCK_FRIENDS } from "@/MockData/data";
 // import { useMe } from "@/hooks/api/use-users";
+import { useUnreadNotifications } from "@/hooks/api/use-activities";
 import logo from "@/assets/logo.svg";
 import { LoginPrompt } from "@/components/LoginPrompt";
 
@@ -34,6 +35,8 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
     subtitle: "See what people are talking about and join the conversation."
   });
   // const { data: me } = useMe();
+  const { data: unreadData } = useUnreadNotifications(isAuthenticated);
+
   const items = [
     { icon: Home, path: "/" },
     { icon: Search, path: "/search" },
@@ -141,12 +144,15 @@ export default function Sidebar({ open, onOpenChange }: { open: boolean; onOpenC
                 <button
                   key={index}
                   onClick={() => handleItemClick(item.path, item.icon)}
-                  className={`p-3 rounded-xl transition ${active
+                  className={`relative p-3 rounded-xl transition ${active
                     ? "bg-[#17212b] text-white"
                     : "text-gray-400 hover:bg-[#1a222e] hover:text-white"
                     } ${item.icon === PlusSquare ? "mt-32" : ""}`}
                 >
                   <Icon size={24} />
+                  {item.icon === Heart && unreadData?.count > 0 && (
+                    <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-backgroundfeed" />
+                  )}
                 </button>
               );
             })}

@@ -1206,3 +1206,130 @@ def get_users_followers_paginated(db, user_id: str, limit: int = 10, cursor: str
         "next_cursor": docs[-1].id if docs else None,
         "has_more": len(docs) == limit
     }
+
+def get_notifications(db, user_id: str, limit: int = 20, cursor: str = None, filter_type: str = "all"):
+    """
+    Get notifications for user (Paginated).
+    filter_type: 'all', 'like', 'reply', 'repost', 'follow', 'mention'
+    """
+    notif_ref = db.collection('users').document(user_id).collection('notifications')
+    
+    query = notif_ref.order_by('created_at', direction=firestore.Query.DESCENDING)
+    
+    if filter_type != "all":
+        # Note: Requires composite index if combined with order_by created_at
+        # filter_type might need to match exact strings in DB: 'like', 'comment', 'repost'
+        query = query.where(filter=firestore.FieldFilter('type', '==', filter_type))
+    
+    if cursor:
+
+        last_doc = notif_ref.document(cursor).get()
+        if last_doc.exists:
+             query = query.start_after(last_doc)
+    
+    query = query.limit(limit)
+    docs = list(query.stream())
+    
+    if not docs:
+         return {"items": [], "next_cursor": None, "has_more": False}
+         
+    # Collect Sender IDs
+    sender_ids = set()
+    for doc in docs:
+        d = doc.to_dict()
+        if d.get("sender_id"):
+            sender_ids.add(d.get("sender_id"))
+            
+    # Batch fetch senders
+    senders_map = _get_docs_batch(db, 'users', list(sender_ids))
+    
+    items = []
+    
+    for doc in docs:
+        d = doc.to_dict()
+        sender_id = d.get("sender_id")
+        user_info = None
+        
+        if sender_id and sender_id in senders_map:
+            u_doc = senders_map[sender_id]
+            if u_doc.exists:
+                ud = u_doc.to_dict()
+                user_info = {
+                    "uid": sender_id,
+                    "username": ud.get("username", "Unknown"),
+                    "full_name": ud.get("full_name", ""),
+                    "avatar_url": ud.get("avatar_url")
+                }
+        
+        if not user_info:
+             user_info = {
+                 "uid": sender_id or "unknown", 
+                 "username": "Unknown", 
+                 "full_name": "Unknown",
+                 "avatar_url": None
+             }
+             
+        # Format content/context based on type
+        # Ideally we fetch post snippets too, but avoiding N+1 complexity for now.
+        # Frontend might need minimal text.
+        
+        items.append({
+            "id": doc.id,
+            "type": d.get("type"),
+            "user": user_info,
+            "post_id": d.get("post_id"),
+            "created_at": d.get("created_at"),
+            "is_read": d.get("is_read", False),
+            "content": d.get("preview_text") or "", # If we saved snippet
+            "context_text": _get_notification_context_text(d.get("type"))
+        })
+        
+    return {
+        "items": items,
+        "next_cursor": docs[-1].id if docs else None,
+        "has_more": len(docs) == limit
+    }
+
+def _get_notification_context_text(n_type):
+    if n_type == 'like': return "liked your post"
+    if n_type == 'comment' or n_type == 'reply': return "replied to your post"
+    if n_type == 'repost': return "reposted your post"
+    if n_type == 'follow': return "followed you"
+    if n_type == 'mention': return "mentioned you in a post"
+    return "interacted with you"
+
+def count_unread_notifications(db, user_id: str) -> int:
+    """
+    Count unread notifications for a user.
+    """
+    notif_ref = db.collection('users').document(user_id).collection('notifications')
+    query = notif_ref.where(filter=firestore.FieldFilter('is_read', '==', False))
+    
+    # Efficient counting
+    aggregate_query = query.count()
+    results = aggregate_query.get()
+    return results[0][0].value
+
+def mark_all_notifications_read(db, user_id: str):
+    """
+    Mark all notifications as read for a user.
+    """
+    notif_ref = db.collection('users').document(user_id).collection('notifications')
+    # Get all unread
+    query = notif_ref.where(filter=firestore.FieldFilter('is_read', '==', False))
+    docs = query.stream()
+    
+    batch = db.batch()
+    count = 0
+    for doc in docs:
+        batch.update(doc.reference, {"is_read": True})
+        count += 1
+        if count >= 400: # Firestore batch limit is 500
+            batch.commit()
+            batch = db.batch()
+            count = 0
+            
+    if count > 0:
+        batch.commit()
+    
+    return True

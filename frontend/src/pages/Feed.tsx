@@ -11,6 +11,7 @@ import ReplyCommentDialog from "@/components/comment";
 import { usePosts } from "@/hooks/api/use-posts";
 import EditPostDialog from "@/components/EditPostDialog";
 import { MOCK_FRIENDS } from "@/MockData/data";
+import AnimateEntrance from "@/components/ui/AnimateEntrance";
 
 
 // --- BẮT ĐẦU: DỮ LIỆU MOCK MỚI VỚI YOUTUBE LINKS ---
@@ -206,36 +207,39 @@ const Feed = () => {
             )}
 
             {!isLoading &&
-              displayedPosts.length > 0 &&
-              displayedPosts.map((item, index) => (
-                <FeedCard
-                  key={`post-${item.post_id}-${index}`}
-                  post={{
-                    post_id: item.post_id,
-                    content: item.content,
-                    created_at: item.created_at,
-                    author_id: item.author_id,
-                    media_url: item.media_url,
-                    media_type: item.media_type,
-                    gallery: item.gallery,
-                    likes_count: item.likes_count,
-                    comments_count: item.comments_count,
-                    saves_count: item.saves_count,
-                    shares_count: item.shares_count,
-                    reposts_count: item.reposts_count,
-                    is_liked: item.is_liked,
-                    is_saved: item.is_saved,
-                    is_shared: item.is_shared,
-                    is_reposted: item.is_reposted,
-                  }}
-                  author={item.author}
-                  onReply={handleReply}
-                  onEdit={(post) => {
-                    setEditingPost(post);
-                    setIsEditOpen(true);
-                  }}
-                />
-              ))}
+              displayedPosts.length > 0 && (
+                <AnimateEntrance type="fade" delay={0.1} className="space-y-4">
+                  {displayedPosts.map((item, index) => (
+                    <FeedCard
+                      key={`post-${item.post_id}-${index}`}
+                      post={{
+                        post_id: item.post_id,
+                        content: item.content,
+                        created_at: item.created_at,
+                        author_id: item.author_id,
+                        media_url: item.media_url,
+                        media_type: item.media_type,
+                        gallery: item.gallery,
+                        likes_count: item.likes_count,
+                        comments_count: item.comments_count,
+                        saves_count: item.saves_count,
+                        shares_count: item.shares_count,
+                        reposts_count: item.reposts_count,
+                        is_liked: item.is_liked,
+                        is_saved: item.is_saved,
+                        is_shared: item.is_shared,
+                        is_reposted: item.is_reposted,
+                      }}
+                      author={item.author}
+                      onReply={handleReply}
+                      onEdit={(post) => {
+                        setEditingPost(post);
+                        setIsEditOpen(true);
+                      }}
+                    />
+                  ))}
+                </AnimateEntrance>
+              )}
 
             {/* Infinite scroll trigger */}
             <div ref={observerTarget} className="py-8 text-center">

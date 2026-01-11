@@ -1,13 +1,18 @@
 import type { ActivityItem as ActivityItemType } from "@/types/activity";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, MessageCircle, Repeat2, UserPlus, AtSign } from "lucide-react";
+import { formatRelativeTime } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 interface ActivityItemProps {
-    item: ActivityItemType;
+    item: any; // Allow any for flexibility with backend response
+
     isLast?: boolean;
 }
 
 export default function ActivityItem({ item, isLast }: ActivityItemProps) {
+    const navigate = useNavigate();
 
     // Helper to determine badge properties
     const getBadgeProps = () => {
@@ -30,15 +35,30 @@ export default function ActivityItem({ item, isLast }: ActivityItemProps) {
     const badgeProps = getBadgeProps();
     const BORDER_COLOR = "border-[#374151]";
 
+    const handleClick = () => {
+        if (item.type === 'follow') return;
+
+        if (item.post_id) {
+            navigate(`/post/${item.post_id}`);
+        }
+    };
+
+    const handleAvatarClick = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent triggering row click
+        navigate(`/profile/${item.user.username}`);
+    };
 
     return (
-        <div className={`flex gap-3 py-4 px-4 hover:bg-white/5 transition-colors ${!isLast ? 'border-b border-[#374151]' : ''}`}>
+        <div
+            onClick={handleClick}
+            className={`flex gap-3 py-4 px-4 hover:bg-white/5 transition-colors ${!isLast ? 'border-b border-[#374151]' : ''} ${item.type !== 'follow' ? 'cursor-pointer' : ''}`}
+        >
 
             {/* Avatar Section with Badge */}
-            <div className="relative w-10 h-10 flex-none">
+            <div className="relative w-10 h-10 flex-none cursor-pointer" onClick={handleAvatarClick}>
                 <Avatar className={`w-full h-full border ${BORDER_COLOR}`}>
-                    <AvatarImage src={item.user.avatar_url} alt={item.user.username} />
-                    <AvatarFallback>{item.user.username[0].toUpperCase()}</AvatarFallback>
+                    <AvatarImage src={item.user.avatar_url || DEFAULT_AVATAR_URL} alt={item.user.username} className="object-cover" />
+                    <AvatarFallback>{item.user.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
 
                 {/* Badge Icon (Matching ActivityPopup style) */}
@@ -55,7 +75,7 @@ export default function ActivityItem({ item, isLast }: ActivityItemProps) {
                 {/* Header: Username + Timestamp */}
                 <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm text-white">{item.user.username}</span>
-                    <span className="text-neutral-500 text-xs">{item.created_at}</span>
+                    <span className="text-neutral-500 text-xs">{formatRelativeTime(item.created_at)}</span>
                 </div>
 
                 {/* Context Text */}

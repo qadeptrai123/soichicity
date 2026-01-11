@@ -22,6 +22,9 @@ export const api = {
     block: (userId: string) => apiClient.post(`/api/v1/users/${userId}/block`),
     unblock: (userId: string) => apiClient.post(`/api/v1/users/${userId}/unblock`),
     getBlockedUsers: () => apiClient.get<User[]>('/api/v1/users/me/blocks') as unknown as Promise<User[]>,
+    getNotifications: (limit: number = 20, cursor?: string | null, filter: string = "all") => apiClient.get<any>('/api/v1/users/notifications', { params: { limit, cursor, filter } }) as unknown as Promise<{ items: any[], next_cursor: string | null }>,
+    getUnreadCount: () => apiClient.get<{ count: number }>('/api/v1/users/notifications/unread-count') as unknown as Promise<{ count: number }>,
+    markAsRead: () => apiClient.post('/api/v1/users/notifications/read'),
   },
   posts: {
     getAll: (filter?: string, cursor?: string) => apiClient.get<Post[]>('/api/v1/posts', { params: { filter, cursor } }) as unknown as Promise<Post[]>,
