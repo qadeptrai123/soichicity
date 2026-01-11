@@ -234,6 +234,8 @@ def sync_google_user(db, decoded_token):
     # Save to Firestore here
     db.collection('users').document(uid).set(user_data)
     
+    return {"uid": uid, **user_data}
+    
 
 
 def update_user(db, user_id: str, user_update: UserUpdate):
