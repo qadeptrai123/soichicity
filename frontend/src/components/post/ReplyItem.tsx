@@ -232,7 +232,7 @@ export const ReplyItem = ({ reply, onReplyClick, isNested = false, onEdit, onAut
                     <AvatarImage src={reply.author.avatar_url || reply.author.avatar || DEFAULT_AVATAR_URL} />
                     <AvatarFallback>{reply.author.full_name?.[0] || '?'}</AvatarFallback>
                 </Avatar>
-                <div className="w-[2px] grow bg-[#374151] rounded-full"></div>
+                <div className="w-0.5 grow bg-[#374151] rounded-full"></div>
             </div>
 
             <div className="flex-1 pb-2">

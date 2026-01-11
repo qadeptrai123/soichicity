@@ -100,6 +100,7 @@ class PostService:
                  # If parent has root_id, use it. Else parent is the root.
                  root_id = p_data.get("root_id") or reply_to_id
         
+        # Determine root_id if not provided
         payload = {
             "post_id": post_id, # DB field
             "content": content,
@@ -116,7 +117,25 @@ class PostService:
             "saves_count": 0,
             "comments_count": 0
         }
+        
+        # --- BLOCK CHECK FOR REPLY ---
+        if reply_to_id:
+            parent_check_ref = db.collection("posts").document(reply_to_id)
+            p_check_doc = parent_check_ref.get()
+            if p_check_doc.exists:
+                p_check_data = p_check_doc.to_dict()
+                product_author_id = p_check_data.get("author_id")
+                
+                if product_author_id and product_author_id != user_id:
+                     # Check if I blocked them
+                     if db.collection("users").document(user_id).collection("blocks").document(product_author_id).get().exists:
+                         raise ValueError("You have blocked the author of this post.")
+                     # Check if they blocked me
+                     if db.collection("users").document(product_author_id).collection("blocks").document(user_id).get().exists:
+                         raise ValueError("You are blocked by the author of this post.")
+
         db.collection("posts").document(post_id).set(payload)
+
 
         # If this is a reply, increment the parent's comment count
         # if reply_to_id:
@@ -138,20 +157,30 @@ class PostService:
                 p_author_id = p_data.get("author_id")
                 
                 if p_author_id and p_author_id != user_id:
-                     try:
-                        from app.services.notification_service import NotificationService
-                        from app.schemas.user_interactions import NotificationCreate
-                        
-                        NotificationService.create_notification(
-                            user_id=p_author_id,
-                            notification_data=NotificationCreate(
-                                type="reply",
-                                sender_id=user_id,
-                                post_id=post_id
+                     # Check Block Status (Strict)
+                     can_notify = True
+                     # 1. I blocked them? (Less likely to reply, but possible)
+                     if db.collection("users").document(user_id).collection("blocks").document(p_author_id).get().exists:
+                         can_notify = False
+                     # 2. They blocked me?
+                     elif db.collection("users").document(p_author_id).collection("blocks").document(user_id).get().exists:
+                         can_notify = False
+                     
+                     if can_notify:
+                         try:
+                            from app.services.notification_service import NotificationService
+                            from app.schemas.user_interactions import NotificationCreate
+                            
+                            NotificationService.create_notification(
+                                user_id=p_author_id,
+                                notification_data=NotificationCreate(
+                                    type="reply",
+                                    sender_id=user_id,
+                                    post_id=post_id
+                                )
                             )
-                        )
-                     except Exception as e:
-                         print(f"Error sending reply notification: {e}")
+                         except Exception as e:
+                             print(f"Error sending reply notification: {e}")
 
             while current_parent_id:
                 parent_ref = db.collection("posts").document(current_parent_id)
@@ -177,16 +206,11 @@ class PostService:
              mentions = list(set(mentions))
              
              # Find users with these usernames
-             # Firestore doesn't support "in" query for large lists efficiently or field matching easily without exact match
-             # But usually mentions are few (1-5). We can query per mention or use "in" if supported for 'username'
-             # 'username' is indexed? Likely.
-             # Limit to 10 mentions to prevent abuse?
-             
              try:
+                 from app.services.notification_service import NotificationService
+                 from app.schemas.user_interactions import NotificationCreate
+                 
                  users_ref = db.collection("users")
-                 # Chunking if necessary, but assume < 10 mentions
-                 # Since we need to match 'username' == mention, and 'username' is a field.
-                 # "in" query supports up to 10 values actions.
                  
                  chunk_size = 10
                  for i in range(0, len(mentions), chunk_size):
@@ -194,19 +218,20 @@ class PostService:
                      # Note: This requires 'username' to be exact match
                      q = users_ref.where(filter=firestore.FieldFilter("username", "in", chunk)).stream()
                      
-                     from app.services.notification_service import NotificationService
-                     from app.schemas.user_interactions import NotificationCreate
-                     
-                     for u in q:
-                         target_uid = u.id
-                         
-                         # Don't notify self
+                     for user_doc in q:
+                         target_uid = user_doc.id
                          if target_uid == user_id:
                              continue
-                             
-                         # Check if we already sent a 'reply' notification to this user for this same event?
-                         # (Optional optimization: if target_uid == p_author_id (from reply logic), maybe create separate 'mention' or skip?
-                         # Standard: You get a reply notif AND a mention notif if you are explicitly tagged in a reply.)
+                        
+                         # --- BLOCK CHECK FOR MENTIONS ---
+                         # If blocked in either direction, do NOT notify
+                         
+                         # 1. I blocked them?
+                         if db.collection("users").document(user_id).collection("blocks").document(target_uid).get().exists:
+                             continue
+                         # 2. They blocked me?
+                         if db.collection("users").document(target_uid).collection("blocks").document(user_id).get().exists:
+                             continue
                          
                          NotificationService.create_notification(
                             user_id=target_uid,
@@ -215,10 +240,10 @@ class PostService:
                                 sender_id=user_id,
                                 post_id=post_id
                             )
-                         )
+                        )
+                         
              except Exception as e:
                  print(f"Error processing mentions: {e}")
-
 
         return payload
 
@@ -384,6 +409,15 @@ class PostService:
             post_data = post_snap.to_dict()
             author_id = post_data.get("author_id")
             
+            # --- BLOCK CHECK (Prevent Interaction) ---
+            if author_id and author_id != user_id:
+                # 1. Check if I blocked them
+                if db.collection("users").document(user_id).collection("blocks").document(author_id).get().exists:
+                     raise ValueError("You have blocked this user.")
+                # 2. Check if they blocked me
+                if db.collection("users").document(author_id).collection("blocks").document(user_id).get().exists:
+                     raise ValueError("You are blocked by this user.")
+            
             timestamp_iso = datetime.utcnow().isoformat()
 
             post_interaction_ref = post_ref.collection(target_collection).document(user_id)
@@ -413,23 +447,31 @@ class PostService:
                 
                 # Notification Logic
                 if target_collection in ["likes", "reposts"] and author_id and author_id != user_id:
-                    try:
-                        print(f"Attempting to send notification to {author_id}")
-                        from app.services.notification_service import NotificationService
-                        from app.schemas.user_interactions import NotificationCreate
-                        
-                        notif_type = "like" if target_collection == "likes" else "repost"
-                        
-                        NotificationService.create_notification(
-                            user_id=author_id,
-                            notification_data=NotificationCreate(
-                                type=notif_type,
-                                sender_id=user_id,
-                                post_id=post_id
+                    # Check Block Status
+                    can_notify = True
+                    if db.collection("users").document(user_id).collection("blocks").document(author_id).get().exists:
+                        can_notify = False
+                    elif db.collection("users").document(author_id).collection("blocks").document(user_id).get().exists:
+                        can_notify = False
+
+                    if can_notify:
+                        try:
+                            print(f"Attempting to send notification to {author_id}")
+                            from app.services.notification_service import NotificationService
+                            from app.schemas.user_interactions import NotificationCreate
+                            
+                            notif_type = "like" if target_collection == "likes" else "repost"
+                            
+                            NotificationService.create_notification(
+                                user_id=author_id,
+                                notification_data=NotificationCreate(
+                                    type=notif_type,
+                                    sender_id=user_id,
+                                    post_id=post_id
+                                )
                             )
-                        )
-                    except Exception as ne:
-                        print(f"Error sending notification (non-fatal): {ne}")
+                        except Exception as ne:
+                            print(f"Error sending notification (non-fatal): {ne}")
 
                 return {"status": "added"}
             
@@ -453,62 +495,75 @@ class PostService:
 
     # --- NEW: Hàm xử lý Comment ---
     @staticmethod
-    # def create_comment(post_id: str, user_id: str, user_avatar: str, content: str):
-    #     # Check if post exists
-    #     post_ref = db.collection("posts").document(post_id)
-    #     if not post_ref.get().exists:
-    #         raise ValueError(f"Post {post_id} not found")
+    def create_comment(post_id: str, user_id: str, user_avatar: str, content: str):
+        # Check if post exists
+        post_ref = db.collection("posts").document(post_id)
+        post_snap = post_ref.get()
+        if not post_snap.exists:
+            raise ValueError(f"Post {post_id} not found")
         
-    #     # Validate comment content
-    #     if not content or len(content.strip()) == 0:
-    #         raise ValueError("Comment content cannot be empty")
+        post_data = post_snap.to_dict()
+        author_id = post_data.get("author_id")
         
-    #     # Comment dùng UUID vì 1 user có thể comment nhiều lần
-    #     comment_id = str(uuid.uuid4())
-    #     timestamp = int(time.time() * 1000)
+        # --- BLOCK CHECK ---
+        if author_id and author_id != user_id:
+            # 1. Check if I blocked them
+            if db.collection("users").document(user_id).collection("blocks").document(author_id).get().exists:
+                    raise ValueError("You have blocked this user.")
+            # 2. Check if they blocked me
+            if db.collection("users").document(author_id).collection("blocks").document(user_id).get().exists:
+                    raise ValueError("You are blocked by this user.")
         
-    #     payload = {
-    #         "id": comment_id,
-    #         "user_id": user_id,
-    #         "id": comment_id,
-    #         "user_id": user_id,
-    #         "avatar_url": user_avatar, # Standardized
-    #         "content": content,
-    #         "timestamp": timestamp
-    #     }
+        # Validate comment content
+        if not content or len(content.strip()) == 0:
+            raise ValueError("Comment content cannot be empty")
         
-    #     # Lưu vào posts/{post_id}/comments/{comment_id}
-    #     post_ref.collection("comments").document(comment_id).set(payload)
+        # Comment dùng UUID vì 1 user có thể comment nhiều lần
+        comment_id = str(uuid.uuid4())
+        timestamp = int(time.time() * 1000)
         
-    #     # Lưu vào users/{user_id}/comments/{comment_id} (để track comments của user)
-    #     # Không cần lưu comment_id vì đã có trong document ID
-    #     user_comment_ref = db.collection("users").document(user_id).collection("comments").document(comment_id)
-    #     user_comment_ref.set({
-    #         "post_id": post_id,
-    #         "content": content,
-    #         "timestamp": timestamp
-    #     })
+        payload = {
+            "id": comment_id,
+            "user_id": user_id,
+            "avatar_url": user_avatar, # Standardized
+            "content": content,
+            "timestamp": timestamp
+        }
         
-    #     post_ref.update({"comments_count": firestore.Increment(1)})
+        # Lưu vào posts/{post_id}/comments/{comment_id}
+        post_ref.collection("comments").document(comment_id).set(payload)
         
-    #     # Trigger Notification
-    #     post_data = post_ref.get().to_dict()
-    #     author_id = post_data.get("author_id")
+        # Lưu vào users/{user_id}/comments/{comment_id} (để track comments của user)
+        # Không cần lưu comment_id vì đã có trong document ID
+        user_comment_ref = db.collection("users").document(user_id).collection("comments").document(comment_id)
+        user_comment_ref.set({
+            "post_id": post_id,
+            "content": content,
+            "timestamp": timestamp
+        })
         
-    #     if author_id and author_id != user_id:
-    #         from app.services.notification_service import NotificationService
-    #         from app.schemas.user_interactions import NotificationCreate
-    #         print("Triggering notification...")
-    #         NotificationService.create_notification(
-    #             user_id=author_id,
-    #             notification_data=NotificationCreate(
-    #                 type="comment",
-    #                 sender_id=user_id,
-    #                 post_id=post_id
-    #             )
-    #         )
+        post_ref.update({"comments_count": firestore.Increment(1)})
         
-    #     return payload
+        # Trigger Notification
+        if author_id and author_id != user_id:
+            from app.services.notification_service import NotificationService
+            from app.schemas.user_interactions import NotificationCreate
+            
+            # Re-check block status? already checked above.
+            try:
+                print("Triggering notification...")
+                NotificationService.create_notification(
+                    user_id=author_id,
+                    notification_data=NotificationCreate(
+                        type="comment",
+                        sender_id=user_id,
+                        post_id=post_id
+                    )
+                )
+            except Exception as e:
+                print(f"Error sending comment notification: {e}")
+        
+        return payload
 
     @staticmethod
     def delete_comment(post_id: str, comment_id: str, user_id: str):
@@ -676,27 +731,98 @@ class PostService:
              
              if cursor:
                  query = query.start_after({"created_at": cursor})
-                 
-             docs_stream = list(query.limit(limit).stream())
+             
+             # FIX: Fetch gấp 3 lần limit để bù cho các bài bị ẩn do Block
+             scan_limit = limit * 3
+             docs_stream = list(query.limit(scan_limit).stream())
+
+       
         
         # --- NEW: Filter blocked users ---
         if user_id:
-             # Get list of users I blocked - Optimized: check local list
-             # Assume blocked_ids passed or fetch? 
-             # Fetch is safer for consistency.
+             # Get list of users I blocked
              blocks_stream = db.collection("users").document(user_id).collection("blocks").stream()
              blocked_ids = {b.id for b in blocks_stream}
+
+             # Get list of users blocking me
+             blocked_by_stream = db.collection("users").document(user_id).collection("blocked_by").stream()
+             blocked_by_ids = {b.id for b in blocked_by_stream}
              
+             # Combined block list
+             all_blocked_ids = blocked_ids.union(blocked_by_ids)
+             
+             # Get usernames of blocked people (to filter mentions)
+             blocked_usernames = set()
+             if all_blocked_ids:
+                 try:
+                     # Batch fetch user docs to get usernames
+                     b_docs = db.get_all([db.collection("users").document(uid) for uid in all_blocked_ids])
+                     blocked_usernames = {d.to_dict().get("username") for d in b_docs if d.exists and d.to_dict().get("username")}
+                 except: pass # Fallback to no mention filtering if fail
              # Filter out authors I blocked
              safe_docs = []
+             
+             # 1. Collect all post data
+             docs_data = []
              for d in docs_stream:
-                 if hasattr(d, "to_dict"):
-                     auth_id = d.to_dict().get("author_id")
-                 else:
-                     auth_id = d.get("author_id")
+                 data = d.to_dict() if hasattr(d, "to_dict") else d
+                 docs_data.append({"doc": d, "data": data})
+
+             # 2. Collect IDs for batch checking parent/root authors
+             parent_ids = set()
+             for item in docs_data:
+                 if item["data"].get("reply_to_id"):
+                     parent_ids.add(item["data"].get("reply_to_id"))
+                 if item["data"].get("root_id"):
+                     parent_ids.add(item["data"].get("root_id"))
+             
+             # 3. Batch fetch parent/root posts
+             parent_authors_map = {}
+             if parent_ids:
+                 parent_posts = db.get_all([db.collection("posts").document(pid) for pid in parent_ids])
+                 for p_doc in parent_posts:
+                     if p_doc.exists:
+                         parent_authors_map[p_doc.id] = p_doc.to_dict().get("author_id")
+
+             # 4. Filter
+             for item in docs_data:
+                 data = item["data"]
+                 auth_id = data.get("author_id")
+                 reply_to_id = data.get("reply_to_id")
+                 root_id = data.get("root_id")
                  
-                 if auth_id not in blocked_ids:
-                     safe_docs.append(d)
+                 # Check current author
+                 if auth_id in all_blocked_ids:
+                     continue
+                 
+                 # Check Mentions in content
+                 content = data.get("content", "")
+                 if blocked_usernames and content:
+                     has_blocked_mention = False
+                     import re
+                     found_mentions = re.findall(r"@(\w+)", content)
+                     for m in found_mentions:
+                         if m in blocked_usernames:
+                             has_blocked_mention = True
+                             break
+                     if has_blocked_mention:
+                         continue
+
+                 # Check parent author
+                 if reply_to_id and parent_authors_map.get(reply_to_id) in all_blocked_ids:
+                     continue
+                     
+                 # Check root author
+                 if root_id and parent_authors_map.get(root_id) in all_blocked_ids:
+                     continue
+                 
+                 # Strict check for author
+                 if auth_id and auth_id not in all_blocked_ids:
+                      # If we haven't checked this author yet, it might be blocking me (legacy/sync issue)
+                      # For performance, we trust all_blocked_ids contains blocked_by
+                      pass
+
+                 safe_docs.append(item["doc"])
              docs_stream = safe_docs
         
 
@@ -712,7 +838,7 @@ class PostService:
             author_id = data.get("author_id")
             
             # Skip if author in blocked list (Double check)
-            if user_id and 'blocked_ids' in locals() and author_id in blocked_ids:
+            if user_id and 'all_blocked_ids' in locals() and author_id in all_blocked_ids:
                 continue
 
             # Normalize to new schema structure
@@ -816,8 +942,10 @@ class PostService:
                 post["is_reposted"] = False
                 post["is_saved"] = False
 
+        # Cuối hàm, sau khi filter xong, nhớ cắt lại đúng limit để trả về FE
+        final_posts = final_posts[:limit] 
+        
         return final_posts
-    
     @staticmethod
     def mark_post_as_seen(user_id: str, post_id: str):
         # Giữ nguyên logic cũ của bạn (lưu vào users_seen_posts)
@@ -849,6 +977,33 @@ class PostService:
         post_data = post_doc.to_dict()
         author_id = post_data.get("author_id")
         
+        # --- BLOCK CHECK (Main Post) ---
+        if current_user_id and author_id and author_id != current_user_id:
+             # Check block status of the main author
+             is_blocked = db.collection("users").document(current_user_id).collection("blocks").document(author_id).get().exists
+             if is_blocked:
+                 return None
+            
+             is_blocking_me = db.collection("users").document(author_id).collection("blocks").document(current_user_id).get().exists
+             if is_blocking_me:
+                 return None
+             
+             # Check Block Status for Parent/Root (Nếu có)
+             root_id = post_data.get("root_id")
+             reply_to_id = post_data.get("reply_to_id")
+             
+             check_ids = [pid for pid in [root_id, reply_to_id] if pid]
+             if check_ids:
+                 parent_docs = db.get_all([db.collection("posts").document(pid) for pid in check_ids])
+                 for p_doc in parent_docs:
+                     if p_doc.exists:
+                         pa_id = p_doc.to_dict().get("author_id")
+                         if pa_id:
+                             if db.collection("users").document(current_user_id).collection("blocks").document(pa_id).get().exists:
+                                 return None
+                             if db.collection("users").document(pa_id).collection("blocks").document(current_user_id).get().exists:
+                                 return None
+        
         # 2) Fetch author info
         author_doc = db.collection("users").document(author_id).get()
         author_data = {
@@ -878,16 +1033,9 @@ class PostService:
             blocks_stream = db.collection("users").document(current_user_id).collection("blocks").stream()
             blocked_ids.update({b.id for b in blocks_stream})
             
-            # Users blocking me (Optimization needed in real app, here we might skip or do best effort)
-            # Since we iterate replies, we can check "blocking me" status if crucial, but usually "I block them" is main view filter.
-            # To be strict as requested: "hien nhung lien quan ve user block" -> Should hide both directions.
-            # But checking "blocking me" for every reply author is expensive (N reads).
-            # Let's rely on the fact that if they block me, I shouldn't see their content.
-            # We can do a batch check for "blocking me" for all reply authors later, or accept simple filter.
-            # For now, let's filter out "Users I Blocked" which is cheap (local list).
-            # If we need "Users Blocking Me", we need to fetch that for each author. 
-            # I'll implement "Users I Blocked" first. 
-            pass
+            # Users blocking me
+            blocked_by_stream = db.collection("users").document(current_user_id).collection("blocked_by").stream()
+            blocked_ids.update({b.id for b in blocked_by_stream})
 
         replies_list = []
         for rep in replies_ref:
@@ -965,26 +1113,34 @@ class PostService:
                     print(f"DTO DEBUG: get_post_detail reply found SAVE for {r_data.get('post_id')}")
         
         # 4) Fetch likes & reposts lists (user IDs) - lightweight check
-        #   (Optional: Only needed if we want to show list of likers in UI, usually overkill for detail)
-        #   Let's keep it if legacy needed, or just remove if not needed. FE uses data.activity for this?
-        #   FE Mock uses 'activity': [{type, user...}].
-        #   Let's construct a simple activity list from sub-collections (limit to last 5?)
         activity_list = []
+        
+        # Determine blocked IDs for filtering activity
+        all_blocked_ids = set()
+        if current_user_id:
+            blocks = db.collection("users").document(current_user_id).collection("blocks").stream()
+            all_blocked_ids.update({b.id for b in blocks})
+            blocked_by = db.collection("users").document(current_user_id).collection("blocked_by").stream()
+            all_blocked_ids.update({b.id for b in blocked_by})
+
         # Likes
-        recent_likes = db.collection("posts").document(post_id).collection("likes").limit(3).stream()
-        for l in recent_likes:
-            uid = l.id
-            u_doc = db.collection("users").document(uid).get()
-            if u_doc.exists:
-                ud = u_doc.to_dict()
-                activity_list.append({
-                    "type": "like",
-                    "user": {
-                        "name": ud.get("full_name", "User"),
-                        "username": ud.get("username", ""),
-                        "avatar_url": ud.get("avatar_url") or ud.get("avatar") or ""
-                    }
-                })
+        recent_likes = db.collection("posts").document(post_id).collection("likes").limit(10).stream()
+        like_uids = [l.id for l in recent_likes if l.id not in all_blocked_ids]
+        
+        if like_uids:
+            u_docs = db.get_all([db.collection("users").document(uid) for uid in like_uids])
+            for u_snap in u_docs:
+                if u_snap.exists:
+                    ud = u_snap.to_dict()
+                    activity_list.append({
+                        "type": "like",
+                        "user": {
+                            "uid": u_snap.id,
+                            "name": ud.get("full_name", "User"),
+                            "username": ud.get("username", ""),
+                            "avatar_url": ud.get("avatar_url") or ud.get("avatar") or ""
+                        }
+                    })
         
         # 5) Check current user's interaction status
         user_interaction = {
@@ -1045,12 +1201,32 @@ class PostService:
         """
         replies_ref = db.collection("posts").where("reply_to_id", "==", post_id).order_by("created_at", direction=firestore.Query.DESCENDING).stream()
         
+        # Block filtering
+        blocked_ids = set()
+        if current_user_id:
+             blocks_stream = db.collection("users").document(current_user_id).collection("blocks").stream()
+             blocked_ids.update({b.id for b in blocks_stream})
+             blocked_by_stream = db.collection("users").document(current_user_id).collection("blocked_by").stream()
+             blocked_ids.update({b.id for b in blocked_by_stream})
+
         results = []
         for rep in replies_ref:
             r_data = rep.to_dict()
             
             # Resolve Reply Author
             r_author_id = r_data.get("author_id")
+
+            # Filter blocked users
+            if r_author_id and current_user_id:
+                 # 1. Known list check
+                 if r_author_id in blocked_ids:
+                    continue
+                 
+                 # 2. Strict Fallback
+                 is_blocking_me = db.collection("users").document(r_author_id).collection("blocks").document(current_user_id).get().exists
+                 if is_blocking_me:
+                     continue
+
             r_author_data = {"uid": r_author_id, "name": "Unknown", "username": "unknown", "avatar_url": ""}
             if r_author_id:
                 # Optimized: In real app, use DataLoader or batch get. Here we do N reads (slow but simple)
@@ -1128,8 +1304,20 @@ class PostService:
         reposts_stream = post_ref.collection("reposts").order_by("created_at", direction=firestore.Query.DESCENDING).stream()
         reposts_data = [{"uid": doc.id, **doc.to_dict(), "type": "repost"} for doc in reposts_stream]
         
-        # 3. Collect all unique User IDs
-        all_uids = set([item["uid"] for item in likes_data] + [item["uid"] for item in reposts_data])
+        # 3. Collect all unique User IDs (Filter blocked)
+        
+        # Block filtering
+        blocked_ids = set()
+        if current_user_id:
+             blocks_stream = db.collection("users").document(current_user_id).collection("blocks").stream()
+             blocked_ids.update({b.id for b in blocks_stream})
+             blocked_by_stream = db.collection("users").document(current_user_id).collection("blocked_by").stream()
+             blocked_ids.update({b.id for b in blocked_by_stream})
+
+        filtered_likes = [item for item in likes_data if item["uid"] not in blocked_ids]
+        filtered_reposts = [item for item in reposts_data if item["uid"] not in blocked_ids]
+        
+        all_uids = set([item["uid"] for item in filtered_likes] + [item["uid"] for item in filtered_reposts])
         
         # 4. Batch Fetch Users
         users_map = {}
@@ -1195,6 +1383,6 @@ class PostService:
             return res
 
         return {
-            "likes": hydrate(likes_data),
-            "reposts": hydrate(reposts_data)
+            "likes": hydrate(filtered_likes),
+            "reposts": hydrate(filtered_reposts)
         }

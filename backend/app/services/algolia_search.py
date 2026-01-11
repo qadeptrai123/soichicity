@@ -174,9 +174,20 @@ class AlgoliaSearchService:
         if not items or not current_user_id:
             return items
 
-        # 1. Get List of Users I Blocked
+        # 1. Get List of Blocked IDs (My blocks + Blocked by)
         my_blocks_stream = db.collection("users").document(current_user_id).collection("blocks").stream()
-        my_blocked_ids = {b.id for b in my_blocks_stream}
+        all_blocked_ids = {b.id for b in my_blocks_stream}
+        
+        blocked_by_stream = db.collection("users").document(current_user_id).collection("blocked_by").stream()
+        all_blocked_ids.update({b.id for b in blocked_by_stream})
+        
+        # 1.5 Get usernames of blocked people (to filter mentions)
+        blocked_usernames = set()
+        if all_blocked_ids:
+            try:
+                b_docs = db.get_all([db.collection("users").document(uid) for uid in all_blocked_ids])
+                blocked_usernames = {d.to_dict().get("username") for d in b_docs if d.exists and d.to_dict().get("username")}
+            except: pass
 
         # 2. Identify Target User IDs from items
         target_uids = set()
@@ -185,48 +196,29 @@ class AlgoliaSearchService:
             if type == "users":
                 uid = item.get("objectID")
             elif type == "posts":
-                # Ensure author_id is present (should be after enrichment)
                 uid = item.get("author_id")
             
             if uid and uid != current_user_id:
                 target_uids.add(uid)
         
-        if not target_uids:
-            return items
-
-        # 3. Batch Check: Are they blocking me?
-        # Check users/{target_uid}/blocks/{current_user_id}
-        blocking_me_ids = set()
-        
-        check_refs = []
-        ref_map = {} # target_uid -> ref
-
-        for uid in target_uids:
-            ref = db.collection("users").document(uid).collection("blocks").document(current_user_id)
-            check_refs.append(ref)
-            ref_map[uid] = ref
+        # 3. For Posts: Batch Fetch Parent Authors to check their block status
+        parent_authors_map = {}
+        if type == "posts":
+            parent_ids = set()
+            for item in items:
+                rid = item.get("reply_to_id")
+                roid = item.get("root_id")
+                if rid: parent_ids.add(rid)
+                if roid: parent_ids.add(roid)
             
-        try:
-            # Batch Get
-            # Note: db.get_all accepts a list of references
-            block_docs = db.get_all(check_refs)
-            
-            # Map back: If exists, then uid is blocking me
-            # But get_all returns docs in order (usually), need to be careful mapping back?
-            # actually get_all returns snapshots. snapshot.reference.parent.parent.id is the target_uid
-            
-            for doc in block_docs:
-                if doc.exists:
-                    # Access the user ID who owns this block collection
-                    # Path: users/{uid}/blocks/{me}
-                    # Parent = blocks, Parent.Parent = users/{uid}
-                    # This works for standard collections
-                    blocker_uid = doc.reference.parent.parent.id
-                    blocking_me_ids.add(blocker_uid)
-
-        except Exception as e:
-            print(f"Error checking block status in search: {e}")
-            pass
+            if parent_ids:
+                try:
+                    p_docs = db.get_all([db.collection("posts").document(pid) for pid in parent_ids])
+                    for p_doc in p_docs:
+                        if p_doc.exists:
+                            parent_authors_map[p_doc.id] = p_doc.to_dict().get("author_id")
+                except Exception as e:
+                    print(f"Error fetching parent posts in search filter: {e}")
 
         # 4. Filter
         filtered_items = []
@@ -236,20 +228,39 @@ class AlgoliaSearchService:
                 uid = item.get("objectID")
             elif type == "posts":
                 uid = item.get("author_id")
-            
-            # Allow if:
-            # 1. Unknown UID (fallback)
-            # 2. It's me
-            # 3. Not in my_blocked_ids AND not in blocking_me_ids
+                
+                # Check current author
+                if uid in all_blocked_ids:
+                    continue
+                
+                # Check Mentions in content
+                content = item.get("content", "")
+                if blocked_usernames and content:
+                    import re
+                    found_mentions = re.findall(r"@(\w+)", content)
+                    if any(m in blocked_usernames for m in found_mentions):
+                        continue
+
+                # Check parent/root author
+                rid = item.get("reply_to_id")
+                roid = item.get("root_id")
+                if rid and parent_authors_map.get(rid) in all_blocked_ids:
+                    continue
+                if roid and parent_authors_map.get(roid) in all_blocked_ids:
+                    continue
+                
+                # If everything is clear
+                filtered_items.append(item)
+                continue
+
+            # Default logic for users
             if not uid or uid == current_user_id:
                  filtered_items.append(item)
                  continue
             
-            if uid in my_blocked_ids:
+            if uid in all_blocked_ids:
                 continue
-            if uid in blocking_me_ids:
-                continue
-            
+                
             filtered_items.append(item)
             
         return filtered_items

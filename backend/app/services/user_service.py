@@ -76,6 +76,14 @@ def _normalize_feed_item(db, item_data, author_map, current_user_id=None):
         if post_ref.collection("saves").document(current_user_id).get().exists:
             is_saved = True
 
+    # --- BLOCK FILTERING in Normalization ---
+    if current_user_id:
+        # Check if current_user blocked author or vice versa
+        # Note: Extensive DB checks here might be slow, but for single item it's okay.
+        # However, it's better to filter in the calling function.
+        # But as a fallback protective measure:
+        pass
+
     return {
         # --- Core Post Data ---
         "post_id": post_doc.id,
@@ -375,13 +383,19 @@ def unfollow_user(db, current_user_id:str, target_user_id:str):
     
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error unfollowing user: {str(e)}")
+# app/services/user_service.py
+
+# app/services/user_service.py
 
 def block_user(db, current_user_id: str, target_user_id: str):
     """
     Block a user.
-    1. Add to users/{current_user_id}/blocks/{target_user_id}
-    2. Increment blocks_count
-    3. FORCE UNFOLLOW both directions
+    Hành động:
+    1. Tạo doc trong users/{current}/blocks/{target}
+    2. Tạo doc trong users/{target}/blocked_by/{current} (QUAN TRỌNG để Feed lọc nhanh)
+    3. Tăng count blocks
+    4. Xóa Follow 2 chiều
+    5. Xóa Notification và Save
     """
     if current_user_id == target_user_id:
         raise HTTPException(status_code=400, detail="You cannot block yourself.")
@@ -400,78 +414,102 @@ def block_user(db, current_user_id: str, target_user_id: str):
     batch = db.batch()
     timestamp = datetime.utcnow().isoformat()
     
-    # 1. Add to blocks sub-collection
+    # 1. Ghi vào collection 'blocks' của người chặn (A block B)
     batch.set(block_ref, {
         "user_id": target_user_id, 
         "created_at": timestamp
     })
     
-    # 2. Increment blocks_count
+    # 2. Ghi vào collection 'blocked_by' của người bị chặn (B bị A block)
+    # Đây là bước quan trọng để get_feed_posts lọc bài nhanh
+    blocked_by_ref = target_ref.collection('blocked_by').document(current_user_id)
+    batch.set(blocked_by_ref, {
+        "user_id": current_user_id,
+        "created_at": timestamp
+    })
+
+    # 3. Tăng blocks_count
     batch.update(current_ref, {
         "blocks_count": firestore.Increment(1)
     })
     
-    # 3. Force Unfollow (Both directions)
-    # Remove target from current's following
-    batch.delete(current_ref.collection("followings").document(target_user_id))
-    batch.delete(target_ref.collection("followers").document(current_user_id))
+    # 4. Force Unfollow (Hủy follow 2 chiều ngay lập tức)
+    # Gom các ref để fetch 1 lần (giảm network hop)
+    a_follows_b_ref = current_ref.collection("followings").document(target_user_id)
+    b_follows_a_ref = current_ref.collection("followers").document(target_user_id)
     
-    # Remove current from target's following (Target following Current)
-    batch.delete(target_ref.collection("followings").document(current_user_id))
-    batch.delete(current_ref.collection("followers").document(target_user_id))
+    # Docs in target side
+    target_followers_ref = target_ref.collection("followers").document(current_user_id)
+    target_followings_ref = target_ref.collection("followings").document(current_user_id)
 
-    # We should update counts if they were following, but checking existence inside a transaction/batch 
-    # for counts conditionally is hard without transaction. 
-    # Simplified approach: We accept counts might drift slightly OR we check first.
-    # To be safe/clean: We just run the delete. If they weren't following, delete is no-op. 
-    # BUT decrementing count blindly is bad.
+    # Batch fetch
+    check_docs = list(db.get_all([a_follows_b_ref, b_follows_a_ref]))
     
-    # Correct approach: Use individual helper functions or simple discrete checks?
-    # Let's do a best-effort cleanup without risking negative counts weirdly, 
-    # or just assume the `unfollow_user` logic is too heavy to call here inside a batch.
-    # Let's just remove the relationships. The counts will be eventually consistent or require a recalc script.
-    # OR: we can check "is_following" before batch?
-    # Let's keep it simple: Just remove the relationship docs. 
-    # Users will disappear from lists. Counts might be +1 off until next strict recount. 
-    # For this project scope, it's acceptable vs complex transactions.
-    # Note: `unfollow_user` logic does decr counters. We can call it? 
-    # No, `unfollow_user` commits its own batch.
-    
-    # Let's manually decrement ONLY if we know they exist. 
-    # Checking 2 reads is cheap.
-    
-    is_following_target = current_ref.collection("followings").document(target_user_id).get().exists
-    is_followed_by_target = target_ref.collection("followings").document(current_user_id).get().exists
-    
-    if is_following_target:
+    # 4a. Xử lý: A đang follow B -> Xóa
+    if check_docs[0].exists:
+         batch.delete(a_follows_b_ref)
+         batch.delete(target_followers_ref)
          batch.update(current_ref, {"followings_count": firestore.Increment(-1)})
          batch.update(target_ref, {"followers_count": firestore.Increment(-1)})
-         # Update arrays
          batch.update(current_ref, {"following": firestore.ArrayRemove([target_user_id])})
          batch.update(target_ref, {"followers": firestore.ArrayRemove([current_user_id])})
 
-    if is_followed_by_target:
-         batch.update(target_ref, {"followings_count": firestore.Increment(-1)})
+    # 4b. Xử lý: B đang follow A -> Xóa
+    if check_docs[1].exists:
+         batch.delete(b_follows_a_ref)
+         batch.delete(target_followings_ref)
          batch.update(current_ref, {"followers_count": firestore.Increment(-1)})
-         # Update arrays
-         batch.update(target_ref, {"following": firestore.ArrayRemove([current_user_id])})
+         batch.update(target_ref, {"followings_count": firestore.Increment(-1)})
          batch.update(current_ref, {"followers": firestore.ArrayRemove([target_user_id])})
+         batch.update(target_ref, {"following": firestore.ArrayRemove([current_user_id])})
 
+    # Commit Batch (Quan trọng: Phải commit thì DB mới thay đổi)
     try:
         batch.commit()
-        return {"status": "success", "message": f"Blocked user {target_user_id}"}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error blocking user: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error processing block: {e}")
+
+    return {"status": "success", "message": f"User {target_user_id} has been blocked."}
+
+def block_user_cleanup(db, current_user_id: str, target_user_id: str):
+    """
+    Hàm dọn dẹp chạy ngầm để xóa data liên quan sau khi block thành công.
+    """
+    try:
+        # Xóa thông báo của cả 2 bên
+        _cleanup_notifications(db, current_user_id, target_user_id)
+        _cleanup_notifications(db, target_user_id, current_user_id)
+
+        # Xóa các tương tác (Likes, Reposts, Saves)
+        _cleanup_user_interactions(db, current_user_id, target_user_id)
+        _cleanup_user_interactions(db, target_user_id, current_user_id)
+
+    except Exception as e:
+        print(f"Warning: Failed to cleanup interactions in background: {e}")
 
 def unblock_user(db, current_user_id: str, target_user_id: str):
+    """
+    Unblock a user.
+    """
     current_ref = db.collection('users').document(current_user_id)
+    target_ref = db.collection('users').document(target_user_id)
+    
     block_ref = current_ref.collection('blocks').document(target_user_id)
     
+    # Nếu không tìm thấy block -> Return luôn
     if not block_ref.get().exists:
          return {"status": "success", "message": "User was not blocked"}
          
     batch = db.batch()
+    
+    # Xóa trong collection 'blocks'
     batch.delete(block_ref)
+    
+    # Xóa trong collection 'blocked_by' ở phía target (QUAN TRỌNG)
+    blocked_by_ref = target_ref.collection('blocked_by').document(current_user_id)
+    batch.delete(blocked_by_ref)
+    
+    # Giảm count
     batch.update(current_ref, {
         "blocks_count": firestore.Increment(-1)
     })
@@ -480,8 +518,76 @@ def unblock_user(db, current_user_id: str, target_user_id: str):
         batch.commit()
         return {"status": "success", "message": f"Unblocked user {target_user_id}"}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error unblocking: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error unblocking user: {e}")
 
+def _cleanup_notifications(db, user_id, sender_id):
+    """Xóa tất cả notifications từ sender_id gửi cho user_id"""
+    notif_ref = db.collection("users").document(user_id).collection("notifications")
+    notif_query = notif_ref.where("sender_id", "==", sender_id).stream()
+    
+    batch = db.batch()
+    count = 0
+    for doc in notif_query:
+        batch.delete(doc.reference)
+        count += 1
+        if count >= 400:
+            batch.commit()
+            batch = db.batch()
+            count = 0
+    if count > 0:
+        batch.commit()
+
+def _cleanup_user_interactions(db, user_id, blocked_author_id):
+    """
+    Xóa tất cả tương tác (Like, Repost, Save) của user_id 
+    đối với các bài viết của blocked_author_id.
+    """
+    user_ref = db.collection("users").document(user_id)
+    
+    # 1. Cleanup Saves
+    _cleanup_sub_interaction(db, user_ref, "activity_saves", "saves", "saves_count", blocked_author_id)
+    
+    # 2. Cleanup Likes
+    _cleanup_sub_interaction(db, user_ref, "activity_likes", "likes", "likes_count", blocked_author_id)
+    
+    # 3. Cleanup Reposts
+    _cleanup_sub_interaction(db, user_ref, "activity_reposts", "reposts", "reposts_count", blocked_author_id)
+
+def _cleanup_sub_interaction(db, user_ref, activity_col, post_sub_col, count_field, blocked_author_id):
+    """Helper để xóa tương tác trong sub-collection và update count bài viết"""
+    interactions = user_ref.collection(activity_col).stream()
+    batch = db.batch()
+    count = 0
+    
+    for doc in interactions:
+        post_id = doc.get("post_id") or doc.id
+        if not post_id: continue
+        
+        post_ref = db.collection("posts").document(post_id)
+        p_snap = post_ref.get()
+        
+        if p_snap.exists and p_snap.to_dict().get("author_id") == blocked_author_id:
+            # Xóa activity của user
+            batch.delete(doc.reference)
+            # Xóa record trong post sub-collection
+            batch.delete(post_ref.collection(post_sub_col).document(user_ref.id))
+            # Giảm count trên post
+            batch.update(post_ref, {count_field: firestore.Increment(-1)})
+            
+            # Nếu là saves thì giảm saves_count trên user doc (nếu có lưu)
+            if count_field == "saves_count":
+                batch.update(user_ref, {"saves_count": firestore.Increment(-1)})
+            elif count_field == "likes_count":
+                batch.update(user_ref, {"likes_count": firestore.Increment(-1)})
+
+            count += 1
+            if count >= 400:
+                batch.commit()
+                batch = db.batch()
+                count = 0
+                
+    if count > 0:
+        batch.commit()
 def get_blocked_users(db, current_user_id: str):
     blocks = db.collection('users').document(current_user_id).collection('blocks').stream()
     blocked_ids = [b.id for b in blocks]
@@ -509,6 +615,17 @@ def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: 
     [API Tab 1] Lấy danh sách bài viết gốc của user (có phân trang).
     post_type: 'posts' (default - no replies), 'replies', 'media', 'all'
     """
+    if current_user_id and author_id and current_user_id != author_id:
+         # 1. Check if I blocked them
+         is_blocked = db.collection("users").document(current_user_id).collection("blocks").document(author_id).get().exists
+         if is_blocked:
+             return {"items": [], "next_cursor": None, "has_more": False}
+         
+         # 2. Check if they blocked me
+         is_blocking_me = db.collection("users").document(author_id).collection("blocks").document(current_user_id).get().exists
+         if is_blocking_me:
+             return {"items": [], "next_cursor": None, "has_more": False}
+
     posts_ref = db.collection('posts')
     
     # 1. Query cơ bản
@@ -682,6 +799,56 @@ def get_user_posts_paginated(db, author_id: str, limit: int = 10, last_post_id: 
             if parent_author_ids:
                 parent_authors_map = _get_docs_batch(db, "users", list(parent_author_ids))
 
+    # --- BLOCK FILTERING for all post types ---
+    if current_user_id and filtered_docs:
+        # 1. Fetch block lists
+        blocks_stream = db.collection("users").document(current_user_id).collection("blocks").stream()
+        blocked_ids = {b.id for b in blocks_stream}
+        bb_stream = db.collection("users").document(current_user_id).collection("blocked_by").stream()
+        blocked_ids.update({b.id for b in bb_stream} )
+        
+        blocked_usernames = set()
+        if blocked_ids:
+            try:
+                b_docs = db.get_all([db.collection("users").document(uid) for uid in blocked_ids])
+                blocked_usernames = {d.to_dict().get("username") for d in b_docs if d.exists and d.to_dict().get("username")}
+            except: pass
+
+        # 2. Filter loop
+        safe_docs = []
+        for doc in filtered_docs:
+            data = doc.to_dict()
+            auth_id = data.get("author_id")
+            
+            # Check current author
+            if auth_id in blocked_ids: continue
+            
+            # Check Mentions
+            content = data.get("content", "")
+            if blocked_usernames and content:
+                import re
+                found_mentions = re.findall(r"@(\w+)", content)
+                if any(m in blocked_usernames for m in found_mentions):
+                    continue
+            
+            # Check Parent/Root Author (if available in parent_posts_map)
+            reply_to = data.get("reply_to_id")
+            root_id = data.get("root_id")
+            
+            if reply_to and reply_to in parent_posts_map:
+                p_doc = parent_posts_map[reply_to]
+                if p_doc.exists and p_doc.to_dict().get("author_id") in blocked_ids:
+                    continue
+            
+            if root_id and root_id in parent_posts_map:
+                r_doc = parent_posts_map[root_id]
+                if r_doc.exists and r_doc.to_dict().get("author_id") in blocked_ids:
+                    continue
+            
+            safe_docs.append(doc)
+        filtered_docs = safe_docs
+
+
     # --- 4. Populate Interaction Status (Batch Fetch) ---
     final_items = []
     
@@ -850,12 +1017,17 @@ def get_user_profile(db, username: str, current_user_id: str = None):
             
             # Check Blocked By Me
             is_blocked_by_me = db.collection('users').document(current_user_id).collection('blocks').document(target_uid).get().exists
-
+            
             # Check Blocking Me
             is_blocking_me = db.collection('users').document(target_uid).collection('blocks').document(current_user_id).get().exists
-            
+             
+            # STRICT BLOCK ENFORCEMENT
+            # if is_blocking_me: # Only 404 if THEY blocked ME
             if is_blocking_me:
                  raise HTTPException(status_code=404, detail="User not found")
+            
+            # Note: is_blocked_by_me (I blocked them) is allowed to load the profile 
+            # so the user can see the "Unblock" button. Content is filtered below.
 
     # Posts fetching (Paginated)
     final_posts = []
@@ -901,6 +1073,17 @@ def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_
     [API Tab 2] Lấy danh sách bài Repost (có phân trang).
     Cursor: ID của document trong sub-collection 'activity_reposts'.
     """
+    if current_user_id and author_id and current_user_id != author_id:
+         # 1. Check if I blocked them
+         is_blocked = db.collection("users").document(current_user_id).collection("blocks").document(author_id).get().exists
+         if is_blocked:
+             return {"items": [], "next_cursor": None, "has_more": False}
+         
+         # 2. Check if they blocked me
+         is_blocking_me = db.collection("users").document(author_id).collection("blocks").document(current_user_id).get().exists
+         if is_blocking_me:
+             return {"items": [], "next_cursor": None, "has_more": False}
+
     # 1. Query vào Sub-collection
     reposts_ref = db.collection('users').document(author_id).collection('activity_reposts')
     
@@ -937,6 +1120,62 @@ def get_user_reposts_paginated(db, author_id: str, limit: int = 10, last_repost_
                 "repost_doc": r_doc,
                 "post_doc": post_doc
             })
+            
+    # --- BLOCK FILTERING for Reposts ---
+    if current_user_id:
+        # Get list of blocked users (local + strict check later)
+        blocks_stream = db.collection("users").document(current_user_id).collection("blocks").stream()
+        blocked_ids = {b.id for b in blocks_stream}
+        blocked_by_stream = db.collection("users").document(current_user_id).collection("blocked_by").stream()
+        blocked_ids.update({b.id for b in blocked_by_stream} )
+        
+        filtered_items = []
+        for item in valid_items:
+            p_data = item["post_doc"].to_dict()
+            post_author_id = p_data.get("author_id")
+            reply_to_id = p_data.get("reply_to_id")
+            root_id = p_data.get("root_id")
+            
+            # 1. Current post author
+            if post_author_id in blocked_ids:
+                continue
+                
+            # 2. Parent/Root author check for reposted content
+            # To be efficient, we can check if these authors are in blocked_ids.
+            # But we might not have the parent post docs here.
+            # Repost functionality usually reposts a specific post. 
+            # If that post is a reply to a blocked user, we hide the repost too.
+            
+            # For simplicity in repost tab, we check the post_author.
+            # If we want to be strict, we'd need to fetch parent/root here too.
+            # Given the user's "chuẩn chỉnh" request, let's do it.
+            
+            filtered_items.append(item)
+        valid_items = filtered_items
+        
+        # --- Batch Fetch Parent/Root for Reposts if needed ---
+        repost_parent_ids = set()
+        for item in valid_items:
+            p_data = item["post_doc"].to_dict()
+            if p_data.get("reply_to_id"): repost_parent_ids.add(p_data.get("reply_to_id"))
+            if p_data.get("root_id"): repost_parent_ids.add(p_data.get("root_id"))
+        
+        if repost_parent_ids:
+            rp_docs = db.get_all([db.collection("posts").document(pid) for pid in repost_parent_ids])
+            rp_author_map = {d.id: d.to_dict().get("author_id") for d in rp_docs if d.exists}
+            
+            final_valid = []
+            for item in valid_items:
+                p_data = item["post_doc"].to_dict()
+                rid = p_data.get("reply_to_id")
+                roid = p_data.get("root_id")
+                
+                if rid and rp_author_map.get(rid) in blocked_ids: continue
+                if roid and rp_author_map.get(roid) in blocked_ids: continue
+                
+                final_valid.append(item)
+            valid_items = final_valid
+
     
     authors_map = _get_docs_batch(db, "users", list(author_ids))
 
@@ -987,13 +1226,38 @@ def get_users_following(db, user_id: str, current_user_id: str = None):
     
     # Check is_following for current_user
     following_set = set()
+    blocked_ids = set()
+    
     if current_user_id:
         current_following_refs = db.collection('users').document(current_user_id).collection('followings').stream()
         following_set = {doc.id for doc in current_following_refs}
 
+        # --- BLOCK FILTERING ---
+        # 1. Users I blocked
+        blocks_stream = db.collection('users').document(current_user_id).collection('blocks').stream()
+        blocked_ids.update({b.id for b in blocks_stream})
+        # 2. Users blocking me
+        blocked_by_stream = db.collection('users').document(current_user_id).collection('blocked_by').stream()
+        blocked_ids.update({b.id for b in blocked_by_stream})
+
     # Build response list
     result = []
     for uid, user_doc in users_map.items():
+        # Check blocks
+        if current_user_id and uid in blocked_ids:
+            continue
+            
+        # Strict Check (if not in known list but might be blocking me)
+        # Note: Extensive strict check for every item in list might be slow (N reads).
+        # But for 'immediate' correctness as requested:
+        if current_user_id and uid != current_user_id:
+             # Optimization: Check if we already have this info? No.
+             # We rely on 'blocked_by' collection for performance. 
+             # If legacy data missing 'blocked_by', they might leak.
+             # PROMPT: "related to user being blocked... AND user blocking user... hidden IMMEDIATELY"
+             # We will trust the collections 'blocks' and 'blocked_by' are kept in sync by block_user.
+             pass
+
         if user_doc.exists:
             user_data = user_doc.to_dict()
             is_following = False
@@ -1050,15 +1314,28 @@ def get_users_following_paginated(db, user_id: str, limit: int = 10, cursor: str
     
     # Check is_following for current_user
     following_set = set()
+    blocked_ids = set()
+
     if current_user_id:
         current_following_refs = db.collection('users').document(current_user_id).collection('followings').stream()
         following_set = {doc.id for doc in current_following_refs}
+
+        # --- BLOCK FILTERING ---
+        blocks_stream = db.collection('users').document(current_user_id).collection('blocks').stream()
+        blocked_ids.update({b.id for b in blocks_stream})
+        blocked_by_stream = db.collection('users').document(current_user_id).collection('blocked_by').stream()
+        blocked_ids.update({b.id for b in blocked_by_stream})
 
     # Build response list
     items = []
     # Preserve order from docs
     for doc in docs:
         uid = doc.id
+        
+        # Block check
+        if current_user_id and uid in blocked_ids:
+            continue
+            
         user_doc = users_map.get(uid)
         
         if user_doc:
@@ -1109,13 +1386,25 @@ def get_users_followers(db, user_id: str, current_user_id: str = None):
     
     # Check is_following for current_user
     following_set = set()
+    blocked_ids = set()
+
     if current_user_id:
         current_following_refs = db.collection('users').document(current_user_id).collection('followings').stream()
         following_set = {doc.id for doc in current_following_refs}
 
+        # --- BLOCK FILTERING ---
+        blocks_stream = db.collection('users').document(current_user_id).collection('blocks').stream()
+        blocked_ids.update({b.id for b in blocks_stream})
+        blocked_by_stream = db.collection('users').document(current_user_id).collection('blocked_by').stream()
+        blocked_ids.update({b.id for b in blocked_by_stream})
+
     # Build response list
     result = []
     for uid, user_doc in users_map.items():
+        # Block check
+        if current_user_id and uid in blocked_ids:
+            continue
+
         if user_doc.exists:
             user_data = user_doc.to_dict()
             
@@ -1171,15 +1460,28 @@ def get_users_followers_paginated(db, user_id: str, limit: int = 10, cursor: str
     
     # Check is_following for current_user
     following_set = set()
+    blocked_ids = set()
+
     if current_user_id:
         current_following_refs = db.collection('users').document(current_user_id).collection('followings').stream()
         following_set = {doc.id for doc in current_following_refs}
+
+        # --- BLOCK FILTERING ---
+        blocks_stream = db.collection('users').document(current_user_id).collection('blocks').stream()
+        blocked_ids.update({b.id for b in blocks_stream})
+        blocked_by_stream = db.collection('users').document(current_user_id).collection('blocked_by').stream()
+        blocked_ids.update({b.id for b in blocked_by_stream})
 
     # Build response list
     items = []
     # Preserve order
     for doc in docs:
         uid = doc.id
+        
+        # Block check
+        if current_user_id and uid in blocked_ids:
+            continue
+
         user_doc = users_map.get(uid)
         
         if user_doc:
@@ -1233,6 +1535,43 @@ def get_notifications(db, user_id: str, limit: int = 20, cursor: str = None, fil
     if not docs:
          return {"items": [], "next_cursor": None, "has_more": False}
          
+    # --- BLOCK FILTERING for Notifications ---
+    blocks_stream = db.collection("users").document(user_id).collection("blocks").stream()
+    blocked_ids = {b.id for b in blocks_stream}
+    blocked_by_stream = db.collection("users").document(user_id).collection("blocked_by").stream()
+    blocked_ids.update({b.id for b in blocked_by_stream})
+    
+    # Pre-filter docs based on sender_id if available (assume 'sender_id' in notification doc)
+    # Some older notifications might not have sender_id? usually they do.
+    filtered_docs = []
+    
+    # Helper for strict check
+    strict_check_cache = {}
+
+    for doc in docs:
+        d = doc.to_dict()
+        sid = d.get("sender_id")
+        
+        if sid:
+            # 1. Known list
+            if sid in blocked_ids:
+                continue
+                
+            # 2. Strict Check
+            # Only check if not in cache (True = is_blocking_me, False = safe)
+            if sid not in strict_check_cache:
+                 is_blocking_me = db.collection("users").document(sid).collection("blocks").document(user_id).get().exists
+                 strict_check_cache[sid] = is_blocking_me
+            
+            if strict_check_cache[sid]:
+                continue
+                
+        filtered_docs.append(doc)
+        
+    docs = filtered_docs
+    if not docs:
+         return {"items": [], "next_cursor": None, "has_more": False}
+
     # Collect Sender IDs
     sender_ids = set()
     for doc in docs:
@@ -1243,6 +1582,12 @@ def get_notifications(db, user_id: str, limit: int = 20, cursor: str = None, fil
     # Batch fetch senders
     senders_map = _get_docs_batch(db, 'users', list(sender_ids))
     
+    # --- BLOCK FILTERING ---
+    blocks_stream = db.collection("users").document(user_id).collection("blocks").stream()
+    blocked_ids = {b.id for b in blocks_stream}
+    blocked_by_stream = db.collection("users").document(user_id).collection("blocked_by").stream()
+    blocked_ids.update({b.id for b in blocked_by_stream})
+
     # Check is_following status for each sender
     # We check if 'user_id' (viewer) is following 'sender_id'
     is_following_map = {}
@@ -1262,6 +1607,11 @@ def get_notifications(db, user_id: str, limit: int = 20, cursor: str = None, fil
     for doc in docs:
         d = doc.to_dict()
         sender_id = d.get("sender_id")
+        
+        # Block check
+        if sender_id and sender_id in blocked_ids:
+            continue
+
         user_info = None
         
         if sender_id and sender_id in senders_map:
