@@ -25,7 +25,7 @@ export function usePostEditor({ mockFriends = [], initialContent = "", initialMe
 
     // Sync initialContent when it changes
     useEffect(() => {
-        if (initialContent) {
+        if (initialContent && content === "") {
             setContent(initialContent);
         }
         if (initialMedia.length > 0) {
