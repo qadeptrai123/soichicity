@@ -1243,6 +1243,20 @@ def get_notifications(db, user_id: str, limit: int = 20, cursor: str = None, fil
     # Batch fetch senders
     senders_map = _get_docs_batch(db, 'users', list(sender_ids))
     
+    # Check is_following status for each sender
+    # We check if 'user_id' (viewer) is following 'sender_id'
+    is_following_map = {}
+    if sender_ids:
+        following_refs = [
+            db.collection('users').document(user_id).collection('followings').document(sid) 
+            for sid in sender_ids
+        ]
+        following_docs = db.get_all(following_refs)
+        for doc in following_docs:
+            if doc.exists:
+                # The doc ID is the sender_id
+                is_following_map[doc.id] = True
+    
     items = []
     
     for doc in docs:
@@ -1258,7 +1272,8 @@ def get_notifications(db, user_id: str, limit: int = 20, cursor: str = None, fil
                     "uid": sender_id,
                     "username": ud.get("username", "Unknown"),
                     "full_name": ud.get("full_name", ""),
-                    "avatar_url": ud.get("avatar_url")
+                    "avatar_url": ud.get("avatar_url"),
+                    "is_following": is_following_map.get(sender_id, False)
                 }
         
         if not user_info:
@@ -1266,7 +1281,8 @@ def get_notifications(db, user_id: str, limit: int = 20, cursor: str = None, fil
                  "uid": sender_id or "unknown", 
                  "username": "Unknown", 
                  "full_name": "Unknown",
-                 "avatar_url": None
+                 "avatar_url": None,
+                 "is_following": False
              }
              
         # Format content/context based on type

@@ -511,6 +511,10 @@ const FeedCard: React.FC<FeedCardProps> = ({
                       alt="Post media"
                       className="media-content max-h-96 w-full h-auto object-contain object-left"
                       loading="lazy"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowSingleMediaLightbox(true);
+                      }}
                     />
                   )}
                 </div>

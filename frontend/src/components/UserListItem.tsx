@@ -4,7 +4,7 @@ import { useFollowUser, useUnfollowUser } from "@/hooks/api/use-users";
 import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LoginPrompt } from "@/components/LoginPrompt";
 import { UnfollowDialog } from "@/components/UnfollowDialog";
 
@@ -25,8 +25,13 @@ export const UserListItem = ({ user, onClose }: UserListItemProps) => {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+    const [isFollowing, setIsFollowing] = useState(!!user.is_following);
     const [showUnfollowDialog, setShowUnfollowDialog] = useState(false);
-    
+
+    useEffect(() => {
+        setIsFollowing(!!user.is_following);
+    }, [user.is_following]);
+
     const followMutation = useFollowUser();
     const unfollowMutation = useUnfollowUser();
 
@@ -42,16 +47,24 @@ export const UserListItem = ({ user, onClose }: UserListItemProps) => {
             return;
         }
 
-        if (user.is_following) {
+        if (isFollowing) {
             setShowUnfollowDialog(true);
         } else {
-            followMutation.mutate(user.uid);
+            // Optimistic Follow
+            setIsFollowing(true);
+            followMutation.mutate(user.uid, {
+                onError: () => setIsFollowing(false)
+            });
         }
     };
 
     const handleConfirmUnfollow = () => {
-        unfollowMutation.mutate(user.uid);
-        setShowUnfollowDialog(false);
+        // Optimistic Unfollow
+        setIsFollowing(false);
+        unfollowMutation.mutate(user.uid, {
+            onError: () => setIsFollowing(true),
+            onSettled: () => setShowUnfollowDialog(false)
+        });
     };
 
     const isLoading = followMutation.isPending || unfollowMutation.isPending;
@@ -83,18 +96,18 @@ export const UserListItem = ({ user, onClose }: UserListItemProps) => {
                     <Button
                         onClick={handleFollowToggle}
                         disabled={isLoading}
-                        variant={user.is_following ? "outline" : "default"}
-                        className={`h-8 rounded-full w-24 text-sm font-semibold transition-all ${user.is_following
+                        variant={isFollowing ? "outline" : "default"}
+                        className={`h-8 rounded-full w-24 text-sm font-semibold transition-all duration-200 active:scale-95 ${isFollowing
                             ? "bg-transparent border-neutral-600 text-white hover:border-red-500 hover:text-red-500 hover:bg-transparent"
                             : "bg-primary text-white hover:bg-primary-hover border-none"
                             }`}
                     >
-                        {user.is_following ? "Following" : "Follow"}
+                        {isFollowing ? "Following" : "Follow"}
                     </Button>
                 )}
             </div>
 
-            <UnfollowDialog 
+            <UnfollowDialog
                 isOpen={showUnfollowDialog}
                 onClose={() => setShowUnfollowDialog(false)}
                 onConfirm={handleConfirmUnfollow}
@@ -103,7 +116,7 @@ export const UserListItem = ({ user, onClose }: UserListItemProps) => {
                 isPending={unfollowMutation.isPending}
             />
 
-             {/* Login Prompt Overlay */}
+            {/* Login Prompt Overlay */}
             {showLoginPrompt && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 cursor-default"

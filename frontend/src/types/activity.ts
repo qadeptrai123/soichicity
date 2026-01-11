@@ -6,6 +6,7 @@ export interface ActivityItem {
         username: string;
         avatar_url: string;
         is_verified?: boolean;
+        is_following?: boolean;
     };
     post_id?: string; // Optional, for context
     content?: string; // Snippet or reply content 

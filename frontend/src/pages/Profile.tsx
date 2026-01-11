@@ -1,5 +1,5 @@
 import { ArrowLeft, Calendar, Link as LinkIcon, Edit3, Ban } from "lucide-react";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import EditProfile from "@/components/EditProfile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -64,6 +64,15 @@ export default function Profile() {
   const unfollowMutation = useUnfollowUser();
   const blockMutation = useBlockUser();
   const unblockMutation = useUnblockUser();
+
+  // Optimistic Follow State
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  useEffect(() => {
+    if (profileData?.user) {
+      setIsFollowing(!!(me && profileData.user.is_following));
+    }
+  }, [me, profileData?.user?.is_following]); // Use optional chaining in dependency or just profileData
 
   // Fetch Posts Separately - Use activeTab to drive the query
   // We use optional chaining because profileData might be undefined initially
@@ -133,7 +142,6 @@ export default function Profile() {
   const { user } = profileData;
 
   const isOwnProfile = !!me && (user.is_self || user.uid === me.uid || user.username === me.username);
-  const isFollowing = !!me && user.is_following;
 
   const handleFollowToggle = () => {
     if (!me) {
@@ -143,12 +151,19 @@ export default function Profile() {
     if (isFollowing) {
       setShowUnfollowDialog(true);
     } else {
-      followMutation.mutate(user.uid);
+      // Optimistic Follow
+      setIsFollowing(true);
+      followMutation.mutate(user.uid, {
+        onError: () => setIsFollowing(false)
+      });
     }
   };
 
   const handleConfirmUnfollow = () => {
+    // Optimistic Unfollow
+    setIsFollowing(false);
     unfollowMutation.mutate(user.uid, {
+      onError: () => setIsFollowing(true),
       onSettled: () => setShowUnfollowDialog(false)
     });
   };
@@ -258,7 +273,7 @@ export default function Profile() {
                 <Button
                   onClick={handleFollowToggle}
                   disabled={followMutation.isPending || unfollowMutation.isPending}
-                  className={`flex-1 rounded-xl h-[36px] font-semibold text-[15px] transition-colors ${isFollowing
+                  className={`flex-1 rounded-xl h-[36px] font-semibold text-[15px] transition-all duration-200 active:scale-95 ${isFollowing
                     ? "bg-transparent border border-neutral-700 text-white hover:border-red-500 hover:text-red-500 hover:bg-transparent"
                     : "bg-[#3b82f6] text-white hover:bg-blue-600 border-none"
                     }`}
