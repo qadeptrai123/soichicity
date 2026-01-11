@@ -405,7 +405,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
           }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <Avatar 
+        <Avatar
           className="w-10 h-10 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={handleProfileClick}
         >
@@ -427,14 +427,11 @@ const FeedCard: React.FC<FeedCardProps> = ({
           <div className="flex items-center gap-2">
             <span
               className="text hover:underline cursor-pointer text-foreground"
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log("Go to profile");
-              }}
+              onClick={handleProfileClick}
             >
               {displayAuthor?.name || "Unknown User"}
             </span>
-            <span 
+            <span
               className="text-text-secondary text-ft hover:underline cursor-pointer"
               onClick={handleProfileClick}
             >
