@@ -7,6 +7,7 @@ import { formatRelativeTime } from "@/lib/utils";
 import type { Post as PostData, Author as AuthorData } from "@/types/post";
 
 import { useAuth } from "@/contexts/AuthProvider";
+import { Image as ImageIcon } from "lucide-react";
 
 interface ReplyFeedCardProps {
     post: PostData;
@@ -57,8 +58,8 @@ const ReplyFeedCard: React.FC<ReplyFeedCardProps> = ({ post, onReply, onEdit, on
                         onClick={handleParentAuthorClick}
                     >
                         <AvatarImage src={
-                            isParentAuthor 
-                                ? (me?.avatar_url || DEFAULT_AVATAR_URL) 
+                            isParentAuthor
+                                ? (me?.avatar_url || DEFAULT_AVATAR_URL)
                                 : (parentPost.author?.avatar_url || DEFAULT_AVATAR_URL)
                         } />
                         <AvatarFallback>{parentPost.author?.username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
@@ -80,6 +81,16 @@ const ReplyFeedCard: React.FC<ReplyFeedCardProps> = ({ post, onReply, onEdit, on
                         </span>
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-2">{parentPost.content}</p>
+
+                    {/* Media Count Indicator */}
+                    {parentPost.media_urls && parentPost.media_urls.length > 0 && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground font-medium">
+                            <ImageIcon size={14} />
+                            <span>
+                                {parentPost.media_urls.length} media
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 
