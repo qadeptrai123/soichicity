@@ -196,7 +196,15 @@ export default function ReplyCommentDialog({
                 <div className="flex gap-2 overflow-x-auto py-2 mt-2 no-scrollbar">
                   {mediaFiles.map((item, index) => (
                     <div key={index} className="relative w-20 h-20 rounded-md overflow-hidden border border-border flex-shrink-0 group">
-                      <img src={item.url} className="w-full h-full object-cover" alt="preview" />
+                      {item.type === "video" ? (
+                        <video
+                          src={item.url}
+                          className="w-full h-full object-cover"
+                          muted
+                        />
+                      ) : (
+                        <img src={item.url} className="w-full h-full object-cover" alt="preview" />
+                      )}
                       <button onClick={() => removeMedia(index)} className="absolute top-0 right-0 bg-black/50 p-1 text-white opacity-0 group-hover:opacity-100 transition">
                         <X size={12} />
                       </button>
